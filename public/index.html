@@ -490,13 +490,32 @@
           </div>
         </div>
         <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Demand Change</button>
+
+        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Custom Product Market Model</h4>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+          Define how the custom product market behaves - the external pricing conditions your optimizer must work within
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.85rem;">Custom Base Price ($)</label>
+            <input type="number" id="env_customBasePrice" value="1200" min="0" step="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Target Delivery Days</label>
+            <input type="number" id="env_customTarget" value="10" min="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Penalty Per Late Day ($)</label>
+            <input type="number" id="env_customPenalty" value="10" min="0" step="1">
+          </div>
+        </div>
       </div>
 
       <!-- Category 3: Policy Decisions (Always Variable, Optional, No Defaults) -->
       <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1.5rem;">
         <h3 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1.1rem;">⚙️ Policy Decisions</h3>
         <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">
-          Optional: Input your current policy decisions. If left blank, optimizer will explore all possibilities.
+          Optional: Input your current policy decisions as seeds for optimization. If left blank, optimizer will explore all possibilities.
           <span style="color: #a78bfa; font-weight: 600;">All policy parameters are variable and can be optimized by the GA.</span>
         </p>
 
@@ -518,20 +537,8 @@
             <input type="number" id="reopt_mceAllocation" placeholder="Optional" min="0" max="100">
           </div>
           <div>
-            <label style="font-size: 0.85rem;">Standard Price ($)</label>
+            <label style="font-size: 0.85rem;">Standard Product Price ($)</label>
             <input type="number" id="reopt_standardPrice" placeholder="Optional" min="0" step="1">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Custom Base Price ($)</label>
-            <input type="number" id="reopt_customBasePrice" placeholder="Optional" min="0" step="1">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Custom Penalty Per Day ($)</label>
-            <input type="number" id="reopt_customPenalty" placeholder="Optional" min="0" step="1">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Custom Target Delivery (days)</label>
-            <input type="number" id="reopt_customTarget" placeholder="Optional" min="1">
           </div>
         </div>
       </div>
@@ -789,6 +796,13 @@
         console.log('Using custom demand schedule with', demandForecast.length, 'total days defined');
       }
 
+      // Read custom market model from environment variables (fixed params)
+      const fixedParams = {
+        customBasePrice: parseInt(document.getElementById('env_customBasePrice').value) || 1200,
+        customTargetDeliveryDays: parseInt(document.getElementById('env_customTarget').value) || 10,
+        customPenaltyPerDay: parseInt(document.getElementById('env_customPenalty').value) || 10
+      };
+
       // Read policy decision values (all are variable and optional)
       const variableParams = {};
 
@@ -797,9 +811,6 @@
       const batchSizeVal = document.getElementById('reopt_batchSize').value;
       const mceAllocationVal = document.getElementById('reopt_mceAllocation').value;
       const standardPriceVal = document.getElementById('reopt_standardPrice').value;
-      const customBasePriceVal = document.getElementById('reopt_customBasePrice').value;
-      const customPenaltyVal = document.getElementById('reopt_customPenalty').value;
-      const customTargetVal = document.getElementById('reopt_customTarget').value;
 
       // Only include policy decisions that have values (optional)
       if (reorderPointVal !== '') {
@@ -817,25 +828,16 @@
       if (standardPriceVal !== '') {
         variableParams.standardPrice = parseInt(standardPriceVal);
       }
-      if (customBasePriceVal !== '') {
-        variableParams.customBasePrice = parseInt(customBasePriceVal);
-      }
-      if (customPenaltyVal !== '') {
-        variableParams.customPenaltyPerDay = parseInt(customPenaltyVal);
-      }
-      if (customTargetVal !== '') {
-        variableParams.customTargetDeliveryDays = parseInt(customTargetVal);
-      }
 
       // Add strategy configuration to config
-      // No fixed params in new design - all policy decisions are variable
-      config.fixedParams = {};
+      config.fixedParams = fixedParams;
       config.variableParams = variableParams;
 
+      console.log('🔒 Fixed market model (external conditions):', fixedParams);
       if (Object.keys(variableParams).length > 0) {
-        console.log('Variable policy parameters (seeds for optimization):', variableParams);
+        console.log('🔄 Variable policy parameters (seeds for optimization):', variableParams);
       } else {
-        console.log('No policy parameters specified - GA will explore all possibilities');
+        console.log('🔄 No policy seeds specified - GA will explore all operational possibilities');
       }
 
       try {
