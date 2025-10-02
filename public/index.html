@@ -491,68 +491,89 @@
         </div>
         <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Demand Change</button>
 
-        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Custom Product Market Model</h4>
-        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
-          Define how the custom product market behaves - the external pricing conditions your optimizer must work within (data-driven defaults from historical regression analysis)
+        <!-- Standard Line Model -->
+        <h4 style="margin: 1.5rem 0 0.3rem 0; color: #60a5fa; font-size: 1.15rem; font-weight: 600;">📊 Standard Line Model</h4>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #94a3b8;">
+          High-volume product with price-sensitive demand
         </p>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
-          <div>
-            <label style="font-size: 0.85rem;">Custom Base Price ($)</label>
-            <input type="number" id="env_customBasePrice" value="106.56" min="0" step="0.01">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Target Delivery Days</label>
-            <input type="number" id="env_customTarget" value="5" min="1">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Penalty Per Late Day ($)</label>
-            <input type="number" id="env_customPenalty" value="0.27" min="0" step="0.01">
-          </div>
-        </div>
 
-        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Demand Model Parameters</h4>
-        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
-          Define market demand distribution parameters (data-driven defaults from business case analysis)
-        </p>
-        <div style="margin-bottom: 0.75rem;">
-          <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 1 (Days 51-172)</p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+        <div style="background: #1e293b; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.95rem;">Price Elasticity Model</h5>
+          <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+            Linear demand curve: Q = Intercept + Slope × Price<br>
+            <span style="color: #94a3b8; font-style: italic;">Defines how many units customers buy at a given price</span>
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
             <div>
-              <label style="font-size: 0.85rem;">Mean Demand</label>
-              <input type="number" id="env_demandMean1" value="25" min="0" step="0.1">
+              <label style="font-size: 0.85rem;">Demand Intercept (Q at P=$0)</label>
+              <input type="number" id="env_standardDemandIntercept" value="500" min="0" step="1">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Std Deviation</label>
-              <input type="number" id="env_demandStdDev1" value="5" min="0" step="0.1">
-            </div>
-          </div>
-        </div>
-        <div>
-          <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 2 (Days 173-400)</p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
-            <div>
-              <label style="font-size: 0.85rem;">Mean Demand</label>
-              <input type="number" id="env_demandMean2" value="32.5" min="0" step="0.1">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Std Deviation</label>
-              <input type="number" id="env_demandStdDev2" value="6.5" min="0" step="0.1">
+              <label style="font-size: 0.85rem;">Demand Slope (ΔQ per $1)</label>
+              <input type="number" id="env_standardDemandSlope" value="-0.25" max="0" step="0.01">
             </div>
           </div>
         </div>
 
-        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Standard Product Demand Curve (Linear: Q = Intercept + Slope × Price)</h4>
-        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
-          Define the linear demand curve for standard products - how quantity sold responds to price changes (Q = Intercept + Slope × Price)
+        <!-- Custom Line Model -->
+        <h4 style="margin: 1.5rem 0 0.3rem 0; color: #a78bfa; font-size: 1.15rem; font-weight: 600;">🎯 Custom Line Model</h4>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #94a3b8;">
+          Premium service with performance-based pricing
         </p>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
-          <div>
-            <label style="font-size: 0.85rem;">Demand Intercept (Q at P=$0)</label>
-            <input type="number" id="env_standardDemandIntercept" value="500" min="0" step="1">
+
+        <div style="background: #1e293b; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.95rem;">Order Forecast Model</h5>
+          <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+            Stochastic order arrivals with demand shock on Day 172<br>
+            <span style="color: #94a3b8; font-style: italic;">Predicts how many new custom orders arrive each day</span>
+          </p>
+          <div style="margin-bottom: 0.75rem;">
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 1 (Days 51-172)</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+              <div>
+                <label style="font-size: 0.85rem;">Mean Demand</label>
+                <input type="number" id="env_demandMean1" value="25" min="0" step="0.1">
+              </div>
+              <div>
+                <label style="font-size: 0.85rem;">Std Deviation</label>
+                <input type="number" id="env_demandStdDev1" value="5" min="0" step="0.1">
+              </div>
+            </div>
           </div>
           <div>
-            <label style="font-size: 0.85rem;">Demand Slope (ΔQ per $1)</label>
-            <input type="number" id="env_standardDemandSlope" value="-0.25" max="0" step="0.01">
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 2 (Days 173-400)</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+              <div>
+                <label style="font-size: 0.85rem;">Mean Demand</label>
+                <input type="number" id="env_demandMean2" value="32.5" min="0" step="0.1">
+              </div>
+              <div>
+                <label style="font-size: 0.85rem;">Std Deviation</label>
+                <input type="number" id="env_demandStdDev2" value="6.5" min="0" step="0.1">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #1e293b; padding: 1rem; border-radius: 6px;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.95rem;">Performance Pricing Model</h5>
+          <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+            Price = Base - Penalty × Max(0, ActualDays - Target)<br>
+            <span style="color: #94a3b8; font-style: italic;">Determines revenue earned based on delivery speed</span>
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+            <div>
+              <label style="font-size: 0.85rem;">Base Price ($)</label>
+              <input type="number" id="env_customBasePrice" value="106.56" min="0" step="0.01">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Target Delivery (days)</label>
+              <input type="number" id="env_customTarget" value="5" min="1">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Late Penalty ($/day)</label>
+              <input type="number" id="env_customPenalty" value="0.27" min="0" step="0.01">
+            </div>
           </div>
         </div>
       </div>
