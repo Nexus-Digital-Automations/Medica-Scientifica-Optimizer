@@ -153,9 +153,9 @@ export const DEFAULT_STRATEGY: Strategy = {
 
   // Pricing Policy
   standardPrice: 750, // $ per unit
-  customBasePrice: 1200, // $ base price
-  customPenaltyPerDay: 10, // $ penalty for each day over target
-  customTargetDeliveryDays: 10, // target delivery time
+  customBasePrice: 106.56, // $ base price (from historical data regression analysis)
+  customPenaltyPerDay: 0.27, // $ penalty for each day over target (from regression slope)
+  customTargetDeliveryDays: 5, // target delivery time (data-driven optimal)
 
   // Timed Actions (will be evolved by genetic algorithm)
   timedActions: [],
