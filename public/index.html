@@ -550,6 +550,12 @@
 
     <div id="results" class="results">
       <div class="result-card">
+        <h2>📋 Input Configuration Summary</h2>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">Complete traceability of all inputs used for this optimization run.</p>
+        <div id="inputConfigSummary"></div>
+      </div>
+
+      <div class="result-card">
         <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <span>📊 Optimal Strategy Found</span>
           <div style="display: flex; gap: 0.5rem;">
@@ -868,7 +874,7 @@
               } else if (data.type === 'complete') {
                 status.className = 'status success';
                 status.innerHTML = `<strong>✅ Optimization Complete!</strong><br>Found optimal strategy in ${config.generations} generations`;
-                displayResults(data.result);
+                displayResults(data.result, config, requestData);
                 results.classList.add('show');
               } else if (data.type === 'error') {
                 status.className = 'status';
@@ -885,12 +891,186 @@
       }
     }
 
-    function displayResults(result) {
+    function displayResults(result, config, requestData) {
       const { bestStrategy, finalSimulation } = result;
 
-      // Store strategy and state for CSV export and re-optimization
+      // Store strategy, state, config, and request data for CSV export and re-optimization
       storeBestStrategy(bestStrategy);
       storeFinalState(finalSimulation.state);
+      globalConfig = config;
+      globalRequestData = requestData;
+
+      // Input Configuration Summary
+      const startingState = requestData.startingState;
+      const demandForecast = requestData.demandForecast;
+      const fixedParams = config.fixedParams;
+      const variableParams = config.variableParams;
+
+      let inputConfigHTML = '<div style="display: grid; gap: 1.5rem;">';
+
+      // Optimizer Settings
+      inputConfigHTML += `
+        <div>
+          <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Optimizer Settings</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Population Size</div>
+              <div class="metric-value">${config.populationSize}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Generations</div>
+              <div class="metric-value">${config.generations}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Mutation Rate</div>
+              <div class="metric-value">${(config.mutationRate * 100).toFixed(1)}%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Elite Count</div>
+              <div class="metric-value">${config.eliteCount}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Environment Variables - Starting State
+      inputConfigHTML += `
+        <div>
+          <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Environment Variables - Starting State</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Starting Day</div>
+              <div class="metric-value">${startingState ? startingState.currentDay : 51}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Initial Cash</div>
+              <div class="metric-value">$${startingState ? startingState.cash.toFixed(2) : '8206.12'}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Initial Debt</div>
+              <div class="metric-value">$${startingState ? startingState.debt.toFixed(2) : '70000.00'}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">MCE Machines</div>
+              <div class="metric-value">${startingState ? startingState.machines.MCE : 1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">WMA Machines</div>
+              <div class="metric-value">${startingState ? startingState.machines.WMA : 1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">PUC Machines</div>
+              <div class="metric-value">${startingState ? startingState.machines.PUC : 1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Expert Workers</div>
+              <div class="metric-value">${startingState ? startingState.workforce.experts : 1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Rookie Workers</div>
+              <div class="metric-value">${startingState ? startingState.workforce.rookies : 0}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Environment Variables - Market Model
+      inputConfigHTML += `
+        <div>
+          <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Environment Variables - Custom Market Model (Fixed)</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Custom Base Price</div>
+              <div class="metric-value">$${fixedParams.customBasePrice.toFixed(2)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Target Delivery Days</div>
+              <div class="metric-value">${fixedParams.customTargetDeliveryDays}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Penalty Per Late Day</div>
+              <div class="metric-value">$${fixedParams.customPenaltyPerDay.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Demand Schedule
+      if (demandForecast) {
+        inputConfigHTML += `
+          <div>
+            <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Custom Demand Schedule</h3>
+            <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">${demandForecast.length} days with custom demand defined</p>
+          </div>
+        `;
+      } else {
+        inputConfigHTML += `
+          <div>
+            <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Demand Schedule</h3>
+            <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">Using default demand curve from business case</p>
+          </div>
+        `;
+      }
+
+      // Policy Seeds
+      const hasPolicySeeds = Object.keys(variableParams).length > 0;
+      inputConfigHTML += `
+        <div>
+          <h3 style="color: #60a5fa; margin: 0 0 0.75rem 0; font-size: 1rem;">Policy Decision Seeds (Variable Parameters)</h3>
+      `;
+
+      if (hasPolicySeeds) {
+        inputConfigHTML += '<div class="metric-grid">';
+
+        if (variableParams.reorderPoint !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">Reorder Point (seed)</div>
+              <div class="metric-value">${variableParams.reorderPoint} units</div>
+            </div>
+          `;
+        }
+        if (variableParams.orderQuantity !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">Order Quantity (seed)</div>
+              <div class="metric-value">${variableParams.orderQuantity} units</div>
+            </div>
+          `;
+        }
+        if (variableParams.standardBatchSize !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">Standard Batch Size (seed)</div>
+              <div class="metric-value">${variableParams.standardBatchSize} units</div>
+            </div>
+          `;
+        }
+        if (variableParams.mceAllocationCustom !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">MCE Allocation Custom (seed)</div>
+              <div class="metric-value">${(variableParams.mceAllocationCustom * 100).toFixed(1)}%</div>
+            </div>
+          `;
+        }
+        if (variableParams.standardPrice !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">Standard Price (seed)</div>
+              <div class="metric-value">$${variableParams.standardPrice}</div>
+            </div>
+          `;
+        }
+
+        inputConfigHTML += '</div>';
+      } else {
+        inputConfigHTML += '<p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">No policy seeds provided - optimizer explored all operational possibilities</p>';
+      }
+
+      inputConfigHTML += '</div></div>';
+
+      document.getElementById('inputConfigSummary').innerHTML = inputConfigHTML;
 
       // Final Metrics
       document.getElementById('finalMetrics').innerHTML = `
@@ -923,6 +1103,10 @@
           <div class="metric-value">${bestStrategy.orderQuantity} units</div>
         </div>
         <div class="metric">
+          <div class="metric-label">Standard Batch Size</div>
+          <div class="metric-value">${bestStrategy.standardBatchSize} units</div>
+        </div>
+        <div class="metric">
           <div class="metric-label">MCE Allocation to Custom</div>
           <div class="metric-value">${(bestStrategy.mceAllocationCustom * 100).toFixed(1)}%</div>
         </div>
@@ -932,7 +1116,11 @@
         </div>
         <div class="metric">
           <div class="metric-label">Custom Base Price</div>
-          <div class="metric-value">$${bestStrategy.customBasePrice}</div>
+          <div class="metric-value">$${bestStrategy.customBasePrice.toFixed(2)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Custom Penalty Per Day</div>
+          <div class="metric-value">$${bestStrategy.customPenaltyPerDay.toFixed(2)}</div>
         </div>
         <div class="metric">
           <div class="metric-label">Custom Target Delivery</div>
@@ -1034,6 +1222,8 @@
     let globalHistory = null;
     let globalBestStrategy = null;
     let globalFinalState = null;
+    let globalConfig = null;
+    let globalRequestData = null;
 
     function storeHistoryData(history) {
       globalHistory = history;
@@ -1118,11 +1308,56 @@
         filename = 'medica-scientifica-complete-forecast.csv';
       }
 
+      // Add metadata headers for reproducibility
+      let csvContent = '';
+
+      if (globalConfig && globalRequestData) {
+        const timestamp = new Date().toISOString();
+        const startingState = globalRequestData.startingState;
+        const fixedParams = globalConfig.fixedParams;
+        const variableParams = globalConfig.variableParams;
+
+        csvContent += `# Medica Scientifica Optimization Results\n`;
+        csvContent += `# Generated: ${timestamp}\n`;
+        csvContent += `# Period: ${period === 'active' ? 'Active Management (Days 51-268)' : period === 'runoff' ? 'Runoff (Days 269-500)' : 'Complete (Days 51-500)'}\n`;
+        csvContent += `#\n`;
+        csvContent += `# OPTIMIZER CONFIGURATION:\n`;
+        csvContent += `# Population: ${globalConfig.populationSize}, Generations: ${globalConfig.generations}, Mutation Rate: ${(globalConfig.mutationRate * 100).toFixed(1)}%, Elite Count: ${globalConfig.eliteCount}\n`;
+        csvContent += `#\n`;
+        csvContent += `# MARKET MODEL (FIXED ENVIRONMENT):\n`;
+        csvContent += `# Custom Base Price: $${fixedParams.customBasePrice.toFixed(2)}, Target Delivery: ${fixedParams.customTargetDeliveryDays} days, Penalty Per Day: $${fixedParams.customPenaltyPerDay.toFixed(2)}\n`;
+        csvContent += `#\n`;
+        csvContent += `# STARTING STATE:\n`;
+        csvContent += `# Day: ${startingState ? startingState.currentDay : 51}, Cash: $${startingState ? startingState.cash.toFixed(2) : '8206.12'}, Debt: $${startingState ? startingState.debt.toFixed(2) : '70000.00'}\n`;
+        csvContent += `# Machines: MCE=${startingState ? startingState.machines.MCE : 1}, WMA=${startingState ? startingState.machines.WMA : 1}, PUC=${startingState ? startingState.machines.PUC : 1}\n`;
+        csvContent += `# Workforce: Experts=${startingState ? startingState.workforce.experts : 1}, Rookies=${startingState ? startingState.workforce.rookies : 0}\n`;
+        csvContent += `#\n`;
+        csvContent += `# DEMAND SCHEDULE:\n`;
+        csvContent += `# ${globalRequestData.demandForecast ? globalRequestData.demandForecast.length + ' days with custom demand' : 'Default demand curve from business case'}\n`;
+        csvContent += `#\n`;
+        csvContent += `# POLICY SEEDS (VARIABLE PARAMETERS):\n`;
+
+        if (Object.keys(variableParams).length > 0) {
+          const seedsList = [];
+          if (variableParams.reorderPoint !== undefined) seedsList.push(`Reorder Point: ${variableParams.reorderPoint}`);
+          if (variableParams.orderQuantity !== undefined) seedsList.push(`Order Quantity: ${variableParams.orderQuantity}`);
+          if (variableParams.standardBatchSize !== undefined) seedsList.push(`Batch Size: ${variableParams.standardBatchSize}`);
+          if (variableParams.mceAllocationCustom !== undefined) seedsList.push(`MCE Allocation: ${(variableParams.mceAllocationCustom * 100).toFixed(1)}%`);
+          if (variableParams.standardPrice !== undefined) seedsList.push(`Standard Price: $${variableParams.standardPrice}`);
+          csvContent += `# ${seedsList.join(', ')}\n`;
+        } else {
+          csvContent += `# No policy seeds - optimizer explored all operational possibilities\n`;
+        }
+
+        csvContent += `#\n`;
+        csvContent += `# DATA COLUMNS:\n`;
+      }
+
       // Create CSV header (add Actions column)
       const headers = ['Day', ...allMetrics.map(m =>
         m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()
       ), 'Action'];
-      let csvContent = headers.join(',') + '\n';
+      csvContent += headers.join(',') + '\n';
 
       // Add data rows
       filteredDays.forEach(dayItem => {
@@ -1170,8 +1405,31 @@
         return;
       }
 
+      // Add metadata headers for reproducibility
+      let csvContent = '';
+
+      if (globalConfig && globalRequestData) {
+        const timestamp = new Date().toISOString();
+        const startingState = globalRequestData.startingState;
+        const fixedParams = globalConfig.fixedParams;
+
+        csvContent += `# Medica Scientifica Action Timeline\n`;
+        csvContent += `# Generated: ${timestamp}\n`;
+        csvContent += `#\n`;
+        csvContent += `# OPTIMIZER CONFIGURATION:\n`;
+        csvContent += `# Population: ${globalConfig.populationSize}, Generations: ${globalConfig.generations}, Mutation Rate: ${(globalConfig.mutationRate * 100).toFixed(1)}%, Elite Count: ${globalConfig.eliteCount}\n`;
+        csvContent += `#\n`;
+        csvContent += `# MARKET MODEL (FIXED ENVIRONMENT):\n`;
+        csvContent += `# Custom Base Price: $${fixedParams.customBasePrice.toFixed(2)}, Target Delivery: ${fixedParams.customTargetDeliveryDays} days, Penalty Per Day: $${fixedParams.customPenaltyPerDay.toFixed(2)}\n`;
+        csvContent += `#\n`;
+        csvContent += `# STARTING STATE:\n`;
+        csvContent += `# Day: ${startingState ? startingState.currentDay : 51}, Cash: $${startingState ? startingState.cash.toFixed(2) : '8206.12'}, Debt: $${startingState ? startingState.debt.toFixed(2) : '70000.00'}\n`;
+        csvContent += `#\n`;
+        csvContent += `# PRESCRIBED ACTIONS:\n`;
+      }
+
       // Create CSV header
-      let csvContent = 'Day,Action Type,Description,Amount/Count/Machine Type\n';
+      csvContent += 'Day,Action Type,Description,Amount/Count/Machine Type\n';
 
       // Add action rows
       globalBestStrategy.timedActions.forEach(action => {
