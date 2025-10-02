@@ -30,6 +30,55 @@ import {
   processStandardLineProduction,
 } from './productionModule.js';
 import { processSales, getCurrentPricing } from './pricingModule.js';
+import { getDemandForDay, type DemandForecast } from './demandModule.js';
+
+/**
+ * Calculates the value of all remaining inventory at end of simulation
+ * This inventory becomes worthless when the plant shuts down
+ */
+function calculateInventoryWriteOff(state: SimulationState): number {
+  // Raw material value at cost
+  const rawMaterialValue = state.rawMaterialInventory * CONSTANTS.RAW_MATERIAL_UNIT_COST;
+
+  // WIP value (rough estimate based on raw material consumed)
+  const wipStandardPreStation1 = state.standardLineWIP.preStation1.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const wipStandardStation1 = state.standardLineWIP.station1.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const wipStandardStation2 = state.standardLineWIP.station2.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const wipStandardStation3 = state.standardLineWIP.station3.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const wipStandardValue =
+    (wipStandardPreStation1 + wipStandardStation1 + wipStandardStation2 + wipStandardStation3) *
+    CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT *
+    CONSTANTS.RAW_MATERIAL_UNIT_COST;
+
+  const wipCustomValue =
+    state.customLineWIP.orders.length * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT * CONSTANTS.RAW_MATERIAL_UNIT_COST;
+
+  // Finished goods value (cost basis - material cost only)
+  const finishedGoodsValue =
+    (state.finishedGoods.standard * CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT +
+      state.finishedGoods.custom * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT) *
+    CONSTANTS.RAW_MATERIAL_UNIT_COST;
+
+  // Pending raw material orders (already paid for but not yet arrived)
+  const pendingOrdersValue = state.pendingRawMaterialOrders.reduce(
+    (sum: number, order) => sum + order.quantity * CONSTANTS.RAW_MATERIAL_UNIT_COST,
+    0
+  );
+
+  return rawMaterialValue + wipStandardValue + wipCustomValue + finishedGoodsValue + pendingOrdersValue;
+}
 
 /**
  * Executes timed actions for the current day
@@ -112,7 +161,7 @@ function executeTimedActions(state: SimulationState, strategy: Strategy): Strate
 /**
  * Simulates a single day in the factory
  */
-function simulateDay(state: SimulationState, strategy: Strategy): DailyMetrics {
+function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?: DemandForecast[]): DailyMetrics {
   const dailyMetrics: DailyMetrics = {
     revenue: 0,
     expenses: 0,
@@ -170,8 +219,11 @@ function simulateDay(state: SimulationState, strategy: Strategy): DailyMetrics {
   const pricing = getCurrentPricing(strategy, dailyMetrics.avgCustomDeliveryTime);
   dailyMetrics.customPrice = pricing.customPrice;
 
-  // Step 11: Process sales and collect revenue
-  const salesResult = processSales(state, strategy, dailyMetrics.avgCustomDeliveryTime);
+  // Step 11: Get demand limits for today
+  const demandLimits = getDemandForDay(state.currentDay, demandForecast);
+
+  // Step 12: Process sales and collect revenue (respecting demand limits)
+  const salesResult = processSales(state, strategy, dailyMetrics.avgCustomDeliveryTime, demandLimits);
   dailyMetrics.revenue = salesResult.totalRevenue;
 
   // Step 12: Calculate total expenses
@@ -185,19 +237,30 @@ function simulateDay(state: SimulationState, strategy: Strategy): DailyMetrics {
 
 /**
  * Runs complete simulation from start to end day
+ * @param strategy - The strategy to simulate
+ * @param endDay - The final day of simulation (default: CONSTANTS.SIMULATION_END_DAY)
+ * @param startingState - Optional starting state for mid-course re-optimization
+ * @param demandForecast - Optional custom demand forecast (defaults to business case demand curve)
  */
-export function runSimulation(strategy: Strategy, endDay = CONSTANTS.SIMULATION_END_DAY): SimulationResult {
-  const state = initializeState();
-  const startDay = CONSTANTS.SIMULATION_START_DAY;
+export function runSimulation(
+  strategy: Strategy,
+  endDay = CONSTANTS.SIMULATION_END_DAY,
+  startingState?: SimulationState,
+  demandForecast?: DemandForecast[]
+): SimulationResult {
+  const state = startingState ? JSON.parse(JSON.stringify(startingState)) : initializeState();
+  const startDay = state.currentDay;
 
   // Run day-by-day simulation
   for (let day = startDay; day <= endDay; day++) {
     state.currentDay = day;
-    simulateDay(state, strategy);
+    simulateDay(state, strategy, demandForecast);
   }
 
-  // Calculate final fitness score (final cash on hand)
-  const fitnessScore = state.cash;
+  // Calculate final fitness score (cash minus inventory write-off penalty)
+  // Inventory is worthless at plant shutdown, so we penalize remaining inventory
+  const inventoryWriteOff = calculateInventoryWriteOff(state);
+  const fitnessScore = state.cash - inventoryWriteOff;
 
   return {
     finalCash: state.cash,
@@ -211,8 +274,17 @@ export function runSimulation(strategy: Strategy, endDay = CONSTANTS.SIMULATION_
 
 /**
  * Runs simulation and returns only fitness score (optimized for genetic algorithm)
+ * @param strategy - The strategy to evaluate
+ * @param endDay - The final day of simulation (default: CONSTANTS.SIMULATION_END_DAY)
+ * @param startingState - Optional starting state for mid-course re-optimization
+ * @param demandForecast - Optional custom demand forecast (defaults to business case demand curve)
  */
-export function evaluateStrategy(strategy: Strategy, endDay = CONSTANTS.SIMULATION_END_DAY): number {
-  const result = runSimulation(strategy, endDay);
+export function evaluateStrategy(
+  strategy: Strategy,
+  endDay = CONSTANTS.SIMULATION_END_DAY,
+  startingState?: SimulationState,
+  demandForecast?: DemandForecast[]
+): number {
+  const result = runSimulation(strategy, endDay, startingState, demandForecast);
   return result.fitnessScore;
 }

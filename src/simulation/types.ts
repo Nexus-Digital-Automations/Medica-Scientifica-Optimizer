@@ -22,7 +22,8 @@ export interface SimulationState {
 }
 
 export interface StandardLineWIP {
-  station1: WIPBatch[]; // MCE
+  preStation1: WIPBatch[]; // Queue before MCE processing
+  station1: WIPBatch[]; // MCE - immediate processing, then to station2
   station2: WIPBatch[]; // WMA - 4 day batching
   station3: WIPBatch[]; // PUC - 1 day batching
 }

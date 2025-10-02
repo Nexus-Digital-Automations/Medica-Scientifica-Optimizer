@@ -62,6 +62,7 @@ export const INITIAL_STATE: SimulationState = {
 
   // Work in Progress
   standardLineWIP: {
+    preStation1: [], // Queue before MCE processing
     station1: [], // MCE - awaiting processing
     station2: [], // WMA - in batching (4 days)
     station3: [], // PUC - in final batching (1 day)

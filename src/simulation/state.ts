@@ -66,10 +66,14 @@ export function validateState(state: SimulationState): boolean {
  * Calculates total units in standard line WIP
  */
 export function getTotalStandardWIP(state: SimulationState): number {
-  const station1Count = state.standardLineWIP.station1.reduce((sum, batch) => sum + batch.units, 0);
-  const station2Count = state.standardLineWIP.station2.reduce((sum, batch) => sum + batch.units, 0);
-  const station3Count = state.standardLineWIP.station3.reduce((sum, batch) => sum + batch.units, 0);
-  return station1Count + station2Count + station3Count;
+  const preStation1Count = state.standardLineWIP.preStation1.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const station1Count = state.standardLineWIP.station1.reduce((sum: number, batch) => sum + batch.units, 0);
+  const station2Count = state.standardLineWIP.station2.reduce((sum: number, batch) => sum + batch.units, 0);
+  const station3Count = state.standardLineWIP.station3.reduce((sum: number, batch) => sum + batch.units, 0);
+  return preStation1Count + station1Count + station2Count + station3Count;
 }
 
 /**

@@ -31,16 +31,20 @@ const server = createServer(async (req, res) => {
       const html = await readFile(join(__dirname, '../public/index.html'), 'utf-8');
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
-    } catch (error) {
+    } catch {
       res.writeHead(404);
       res.end('Not found');
     }
     return;
   }
 
-  // API: Start optimization
+  // API: Start optimization with SSE progress updates
   if (req.url === '/api/optimize' && req.method === 'POST') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
 
     try {
       let body = '';
@@ -49,23 +53,53 @@ const server = createServer(async (req, res) => {
       });
 
       req.on('end', async () => {
-        const config = body ? JSON.parse(body) : DEFAULT_GA_CONFIG;
+        const requestData = body ? JSON.parse(body) : { config: DEFAULT_GA_CONFIG };
+        const config = requestData.config || DEFAULT_GA_CONFIG;
+        const startingState = requestData.startingState;
+        const demandForecast = requestData.demandForecast;
 
         console.log('🚀 Starting optimization with config:', config);
+        if (startingState) {
+          console.log('📍 Starting from custom state at day:', startingState.currentDay);
+        }
+        if (demandForecast) {
+          console.log('📈 Using custom demand forecast with', demandForecast.length, 'data points');
+        }
 
-        const result = await optimize(config, (generation, stats) => {
-          // Could send progress updates via SSE in future
-          if (generation % 10 === 0) {
-            console.log(`Generation ${generation}: $${stats.bestFitness.toFixed(2)}`);
-          }
-        });
+        const result = await optimize(
+          config,
+          (generation, stats) => {
+            // Send progress update via SSE
+            const progressData = {
+              type: 'progress',
+              generation,
+              totalGenerations: config.generations,
+              bestFitness: stats.bestFitness,
+              avgFitness: stats.avgFitness,
+              progress: (generation / config.generations) * 100,
+            };
+            res.write(`data: ${JSON.stringify(progressData)}\n\n`);
+          },
+          startingState,
+          demandForecast
+        );
 
-        res.end(JSON.stringify(result, null, 2));
+        // Send final result
+        const finalData = {
+          type: 'complete',
+          result,
+        };
+        res.write(`data: ${JSON.stringify(finalData)}\n\n`);
+        res.end();
       });
     } catch (error) {
       console.error('Optimization error:', error);
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: 'Optimization failed' }));
+      const errorData = {
+        type: 'error',
+        error: 'Optimization failed',
+      };
+      res.write(`data: ${JSON.stringify(errorData)}\n\n`);
+      res.end();
     }
     return;
   }

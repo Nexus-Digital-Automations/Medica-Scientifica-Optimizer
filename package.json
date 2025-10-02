@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "node --test dist/test/**/*.test.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
   },
   "keywords": [
     "optimization",
@@ -24,6 +25,10 @@
     "typescript": "^5.7.3"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2"
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "typescript-eslint": "^8.45.0"
   }
 }

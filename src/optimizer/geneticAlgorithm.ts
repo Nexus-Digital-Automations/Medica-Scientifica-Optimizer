@@ -3,9 +3,10 @@
  * Uses evolution-based optimization to discover winning strategies
  */
 
-import type { Strategy, OptimizationResult, PopulationStats, StrategyAction } from '../simulation/types.js';
+import type { Strategy, OptimizationResult, PopulationStats, StrategyAction, SimulationState } from '../simulation/types.js';
 import { CONSTANTS } from '../simulation/constants.js';
 import { runSimulation, evaluateStrategy } from '../simulation/simulationEngine.js';
+import type { DemandForecast } from '../simulation/demandModule.js';
 
 export interface GeneticAlgorithmConfig {
   populationSize: number;
@@ -145,16 +146,68 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
     mutated.standardPrice = Math.max(500, Math.min(1200, mutated.standardPrice));
   }
 
-  // Mutate timed actions (add or remove)
+  // Mutate timed actions with hybrid approach (90% gentle, 10% wild)
   if (Math.random() < mutationRate) {
-    if (Math.random() < 0.5 && mutated.timedActions.length > 0) {
-      // Remove random action
-      const index = Math.floor(Math.random() * mutated.timedActions.length);
-      mutated.timedActions.splice(index, 1);
-    } else {
-      // Add random action
-      mutated.timedActions.push(...generateRandomTimedActions().slice(0, 1));
-      mutated.timedActions.sort((a, b) => a.day - b.day);
+    // 10% chance: WILD mutation (long-range exploration)
+    if (Math.random() < 0.1) {
+      // 50% chance: Add completely random new action
+      if (Math.random() < 0.5) {
+        mutated.timedActions.push(...generateRandomTimedActions().slice(0, 1));
+        mutated.timedActions.sort((a, b) => a.day - b.day);
+      }
+      // 50% chance: Drastically modify existing action (if any exist)
+      else if (mutated.timedActions.length > 0) {
+        const actionIndex = Math.floor(Math.random() * mutated.timedActions.length);
+        const action = mutated.timedActions[actionIndex];
+
+        // Completely random day
+        action.day = Math.floor(
+          Math.random() * (CONSTANTS.SIMULATION_END_DAY - CONSTANTS.SIMULATION_START_DAY)
+        ) + CONSTANTS.SIMULATION_START_DAY;
+
+        // Completely random amounts
+        if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+          action.amount = Math.floor(Math.random() * 150000) + 20000; // $20K-$170K
+        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+          action.count = Math.floor(Math.random() * 4) + 1; // 1-4 rookies
+        } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
+          action.quantity = Math.floor(Math.random() * 700) + 200; // 200-900 units
+        }
+
+        mutated.timedActions.sort((a, b) => a.day - b.day);
+      }
+    }
+    // 90% chance: GENTLE mutation (local refinement)
+    else if (mutated.timedActions.length > 0) {
+      const actionIndex = Math.floor(Math.random() * mutated.timedActions.length);
+      const action = mutated.timedActions[actionIndex];
+
+      // 70% chance: modify existing action, 30% chance: remove it
+      if (Math.random() < 0.7) {
+        // Modify action timing slightly (±20 days)
+        action.day = Math.max(
+          CONSTANTS.SIMULATION_START_DAY,
+          Math.min(CONSTANTS.SIMULATION_END_DAY, action.day + Math.floor(Math.random() * 41) - 20)
+        );
+
+        // Modify action amount slightly (±30%)
+        if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+          const variation = action.amount * 0.3;
+          action.amount = Math.floor(action.amount + (Math.random() * variation * 2 - variation));
+          action.amount = Math.max(10000, Math.min(200000, action.amount));
+        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+          action.count = Math.max(1, Math.min(5, action.count + (Math.random() < 0.5 ? 1 : -1)));
+        } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
+          const variation = action.quantity * 0.3;
+          action.quantity = Math.floor(action.quantity + (Math.random() * variation * 2 - variation));
+          action.quantity = Math.max(100, Math.min(1000, action.quantity));
+        }
+
+        mutated.timedActions.sort((a, b) => a.day - b.day);
+      } else {
+        // Remove this action
+        mutated.timedActions.splice(actionIndex, 1);
+      }
     }
   }
 
@@ -163,10 +216,16 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
 
 /**
  * Runs the genetic algorithm optimization
+ * @param config - Genetic algorithm configuration
+ * @param onProgress - Optional progress callback
+ * @param startingState - Optional starting state for mid-course re-optimization
+ * @param demandForecast - Optional custom demand forecast
  */
 export async function optimize(
   config: GeneticAlgorithmConfig = DEFAULT_GA_CONFIG,
-  onProgress?: (generation: number, stats: PopulationStats) => void
+  onProgress?: (generation: number, stats: PopulationStats) => void,
+  startingState?: SimulationState,
+  demandForecast?: DemandForecast[]
 ): Promise<OptimizationResult> {
   console.log('🧬 Starting genetic algorithm optimization...');
   console.log(`Population: ${config.populationSize}, Generations: ${config.generations}`);
@@ -183,52 +242,82 @@ export async function optimize(
 
   // Evolution loop
   for (let gen = 0; gen < config.generations; gen++) {
+    console.log(`\n━━━ Generation ${gen} START ━━━`);
+    console.log(`  Population size: ${population.length}`);
+
     // Evaluate fitness for entire population
-    const fitnessScores = population.map((strategy) => ({
-      strategy,
-      fitness: evaluateStrategy(strategy),
-    }));
+    console.log(`  Evaluating fitness for ${population.length} strategies...`);
+    const startEval = Date.now();
+    const fitnessScores = population.map((strategy, idx) => {
+      if (idx % 100 === 0) {
+        console.log(`    Evaluating strategy ${idx}/${population.length}...`);
+      }
+      const fitness = evaluateStrategy(strategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+      if (idx % 100 === 0) {
+        console.log(`    Strategy ${idx} fitness: $${fitness.toFixed(2)}`);
+      }
+      return {
+        strategy,
+        fitness,
+      };
+    });
+    console.log(`  ✓ Fitness evaluation complete in ${Date.now() - startEval}ms`);
 
     // Sort by fitness (descending)
+    console.log(`  Sorting ${fitnessScores.length} strategies by fitness...`);
     fitnessScores.sort((a, b) => b.fitness - a.fitness);
+    console.log(`  ✓ Sorting complete`);
 
     // Update best strategy
     if (fitnessScores[0].fitness > bestFitness) {
+      console.log(`  🎯 NEW BEST FITNESS: $${fitnessScores[0].fitness.toFixed(2)} (previous: $${bestFitness.toFixed(2)})`);
       bestFitness = fitnessScores[0].fitness;
       bestStrategy = JSON.parse(JSON.stringify(fitnessScores[0].strategy));
+    } else {
+      console.log(`  Best fitness unchanged: $${bestFitness.toFixed(2)}`);
     }
 
     // Calculate population stats
     const avgFitness = fitnessScores.reduce((sum, item) => sum + item.fitness, 0) / fitnessScores.length;
     const worstFitness = fitnessScores[fitnessScores.length - 1].fitness;
 
+    console.log(`  Stats: Best=$${bestFitness.toFixed(2)}, Avg=$${avgFitness.toFixed(2)}, Worst=$${worstFitness.toFixed(2)}`);
+
     const stats: PopulationStats = {
       generation: gen,
       bestFitness,
       avgFitness,
       worstFitness,
-      diversityScore: 0, // Could calculate actual diversity
+      diversityScore: 0,
     };
 
     convergenceHistory.push(bestFitness);
 
     // Report progress
     if (onProgress) {
+      console.log(`  Calling progress callback...`);
       onProgress(gen, stats);
+      console.log(`  ✓ Progress callback complete`);
     }
 
-    if (gen % 50 === 0) {
-      console.log(`Gen ${gen}: Best=$${bestFitness.toFixed(2)}, Avg=$${avgFitness.toFixed(2)}`);
-    }
+    console.log(`━━━ Generation ${gen} END ━━━\n`)
 
     // Selection: Keep elite strategies
+    console.log(`  Selecting ${config.eliteCount} elite strategies...`);
     const newPopulation: Strategy[] = fitnessScores.slice(0, config.eliteCount).map((item) => item.strategy);
+    console.log(`  ✓ Elite strategies selected`);
 
     // Generate rest of population through crossover and mutation
+    console.log(`  Generating ${config.populationSize - newPopulation.length} new strategies via crossover/mutation...`);
+    let breedCount = 0;
     while (newPopulation.length < config.populationSize) {
-      // Select two parents (tournament selection)
-      const parent1 = fitnessScores[Math.floor(Math.random() * config.eliteCount * 2)].strategy;
-      const parent2 = fitnessScores[Math.floor(Math.random() * config.eliteCount * 2)].strategy;
+      if (breedCount % 100 === 0) {
+        console.log(`    Breeding strategy ${breedCount}/${config.populationSize - config.eliteCount}...`);
+      }
+
+      // Select two parents (tournament selection from elites only)
+      const parent1 = fitnessScores[Math.floor(Math.random() * config.eliteCount)].strategy;
+      const parent2 = fitnessScores[Math.floor(Math.random() * config.eliteCount)].strategy;
 
       let child: Strategy;
       if (Math.random() < config.crossoverRate) {
@@ -239,7 +328,9 @@ export async function optimize(
 
       child = mutate(child, config.mutationRate);
       newPopulation.push(child);
+      breedCount++;
     }
+    console.log(`  ✓ New population complete (${newPopulation.length} strategies)`);
 
     population = newPopulation;
   }
@@ -248,7 +339,7 @@ export async function optimize(
   console.log(`Best fitness: $${bestFitness.toFixed(2)}`);
 
   // Run final simulation with best strategy to get complete results
-  const finalSimulation = runSimulation(bestStrategy);
+  const finalSimulation = runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
 
   return {
     bestStrategy,

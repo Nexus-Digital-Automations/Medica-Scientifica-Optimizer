@@ -295,10 +295,23 @@ export function processStandardLineProduction(state: SimulationState, mceCapacit
  * Gets production metrics summary
  */
 export function getProductionMetrics(state: SimulationState): ProductionMetrics {
-  const standardWIPStation1 = state.standardLineWIP.station1.reduce((sum, batch) => sum + batch.units, 0);
-  const standardWIPStation2 = state.standardLineWIP.station2.reduce((sum, batch) => sum + batch.units, 0);
-  const standardWIPStation3 = state.standardLineWIP.station3.reduce((sum, batch) => sum + batch.units, 0);
-  const standardWIPTotal = standardWIPStation1 + standardWIPStation2 + standardWIPStation3;
+  const standardWIPPreStation1 = state.standardLineWIP.preStation1.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const standardWIPStation1 = state.standardLineWIP.station1.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const standardWIPStation2 = state.standardLineWIP.station2.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const standardWIPStation3 = state.standardLineWIP.station3.reduce(
+    (sum: number, batch) => sum + batch.units,
+    0
+  );
+  const standardWIPTotal = standardWIPPreStation1 + standardWIPStation1 + standardWIPStation2 + standardWIPStation3;
 
   return {
     standard: {

@@ -5,6 +5,7 @@
 
 import type { SimulationState, Strategy } from './types.js';
 import { addRevenue } from './financeModule.js';
+import type { DemandLimits } from './demandModule.js';
 
 export interface PricingResult {
   standardPrice: number;
@@ -50,11 +51,17 @@ export function getCurrentPricing(strategy: Strategy, avgCustomDeliveryTime: num
 
 /**
  * Processes sales and generates revenue from finished goods
- * Assumes all finished goods are sold immediately (simplified model)
+ * Now respects demand limits - only sells what the market can absorb
  */
-export function processSales(state: SimulationState, strategy: Strategy, avgCustomDeliveryTime: number): SalesResult {
-  const standardUnitsSold = state.finishedGoods.standard;
-  const customOrdersSold = state.finishedGoods.custom;
+export function processSales(
+  state: SimulationState,
+  strategy: Strategy,
+  avgCustomDeliveryTime: number,
+  demandLimits: DemandLimits
+): SalesResult {
+  // Sell only up to demand limits (realistic market constraint)
+  const standardUnitsSold = Math.min(state.finishedGoods.standard, demandLimits.standard);
+  const customOrdersSold = Math.min(state.finishedGoods.custom, demandLimits.custom);
 
   // Calculate revenue
   const standardRevenue = standardUnitsSold * strategy.standardPrice;
@@ -70,9 +77,9 @@ export function processSales(state: SimulationState, strategy: Strategy, avgCust
     addRevenue(state, customRevenue, 'Custom Product Sales');
   }
 
-  // Clear finished goods (sold)
-  state.finishedGoods.standard = 0;
-  state.finishedGoods.custom = 0;
+  // Reduce finished goods by amount sold (inventory carries over!)
+  state.finishedGoods.standard -= standardUnitsSold;
+  state.finishedGoods.custom -= customOrdersSold;
 
   return {
     standardUnitsSold,

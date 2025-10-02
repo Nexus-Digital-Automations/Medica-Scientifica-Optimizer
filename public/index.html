@@ -226,6 +226,58 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    .progress-container {
+      margin-top: 1.5rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 24px;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      border: 1px solid #334155;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .progress-stat {
+      background: #0f172a;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+
+    .progress-stat-label {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .progress-stat-value {
+      color: #e2e8f0;
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -234,10 +286,11 @@
     <p class="subtitle">Genetic Algorithm Factory Optimization with Complete Transparency</p>
 
     <div class="controls">
+      <h3 style="margin-bottom: 1rem; color: #cbd5e1;">Genetic Algorithm Settings</h3>
       <div class="control-group">
         <div>
           <label>Population Size</label>
-          <input type="number" id="populationSize" value="100" min="20" max="500">
+          <input type="number" id="populationSize" value="100" min="20" max="2000">
         </div>
         <div>
           <label>Generations</label>
@@ -249,9 +302,20 @@
         </div>
         <div>
           <label>Elite Count</label>
-          <input type="number" id="eliteCount" value="20" min="5" max="100">
+          <input type="number" id="eliteCount" value="20" min="5" max="500">
         </div>
       </div>
+
+      <h3 style="margin: 1.5rem 0 1rem; color: #cbd5e1;">Re-Optimization Settings (Optional)</h3>
+      <div style="margin-bottom: 1rem;">
+        <label>Starting State JSON (optional - paste exported state for mid-course re-optimization)</label>
+        <textarea id="startingStateJSON" rows="4" style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: monospace; font-size: 0.9rem;" placeholder='{"currentDay": 172, "cash": 50000, ...}'></textarea>
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label>Custom Demand Forecast JSON (optional - override default business case demand curve)</label>
+        <textarea id="demandForecastJSON" rows="4" style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: monospace; font-size: 0.9rem;" placeholder='[{"day": 172, "standardDemand": 50, "customDemand": 20}, ...]'></textarea>
+      </div>
+
       <button id="startBtn" onclick="startOptimization()">🚀 Find Optimal Strategy</button>
     </div>
 
@@ -259,7 +323,10 @@
 
     <div id="results" class="results">
       <div class="result-card">
-        <h2>📊 Optimal Strategy Found</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>📊 Optimal Strategy Found</span>
+          <button class="export-btn" onclick="exportState()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📤 Export Final State (for Re-Optimization)</button>
+        </h2>
         <div class="metric-grid" id="finalMetrics"></div>
       </div>
 
@@ -269,14 +336,35 @@
       </div>
 
       <div class="result-card">
-        <h2>📅 Prescribed Action Timeline</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>📅 Prescribed Action Timeline</span>
+          <button class="export-btn" onclick="exportActionsToCSV()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📥 Export Action Timeline CSV</button>
+        </h2>
         <div class="timeline" id="actionTimeline"></div>
       </div>
 
       <div class="result-card">
-        <h2>📈 Complete Daily Forecast - ALL VARIABLES (Maximum Transparency)</h2>
-        <p style="margin-bottom: 1rem; color: #94a3b8;">Every metric tracked day-by-day for absolute confidence in the optimal strategy.</p>
-        <div id="dailyForecast"></div>
+        <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>📈 Complete Daily Forecast - ACTIVE MANAGEMENT PERIOD (Days 51-268)</span>
+          <button class="export-btn" onclick="exportToCSV('active')" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📥 Export Active Period CSV</button>
+        </h2>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">All metrics during active operations when you can make decisions and take actions.</p>
+        <div id="activeManagementForecast"></div>
+      </div>
+
+      <div class="result-card">
+        <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <span>📊 Complete Daily Forecast - RUNOFF PERIOD (Days 269-500)</span>
+          <button class="export-btn" onclick="exportToCSV('runoff')" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📥 Export Runoff Period CSV</button>
+        </h2>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">All metrics during runoff when operations wind down to final cash position.</p>
+        <div id="runoffForecast"></div>
+      </div>
+
+      <div class="result-card">
+        <h2 style="text-align: center;">
+          <button class="export-btn-large" onclick="exportToCSV('complete')" style="width: 100%; padding: 1rem 2rem; font-size: 1.1rem;">📥 Export Complete Forecast CSV (All Days 51-500)</button>
+        </h2>
       </div>
     </div>
   </div>
@@ -290,7 +378,7 @@
       btn.disabled = true;
       status.style.display = 'block';
       status.className = 'status';
-      status.innerHTML = '<div class="loading"><div class="spinner"></div><strong>Optimization in progress...</strong><br>This may take 30-60 seconds</div>';
+      status.innerHTML = '<div class="loading"><div class="spinner"></div><strong>Optimization in progress...</strong><br>Check the terminal for detailed progress logs</div>';
       results.classList.remove('show');
 
       const config = {
@@ -301,21 +389,72 @@
         crossoverRate: 0.7
       };
 
+      // Parse optional re-optimization parameters
+      const requestData = { config };
+
+      const startingStateText = document.getElementById('startingStateJSON').value.trim();
+      if (startingStateText) {
+        try {
+          requestData.startingState = JSON.parse(startingStateText);
+          console.log('Using custom starting state from day:', requestData.startingState.currentDay);
+        } catch (e) {
+          alert('Invalid Starting State JSON: ' + e.message);
+          btn.disabled = false;
+          status.style.display = 'none';
+          return;
+        }
+      }
+
+      const demandForecastText = document.getElementById('demandForecastJSON').value.trim();
+      if (demandForecastText) {
+        try {
+          requestData.demandForecast = JSON.parse(demandForecastText);
+          console.log('Using custom demand forecast with', requestData.demandForecast.length, 'data points');
+        } catch (e) {
+          alert('Invalid Demand Forecast JSON: ' + e.message);
+          btn.disabled = false;
+          status.style.display = 'none';
+          return;
+        }
+      }
+
       try {
         const response = await fetch('/api/optimize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config)
+          body: JSON.stringify(requestData)
         });
 
-        const result = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        status.className = 'status success';
-        status.innerHTML = `<strong>✅ Optimization Complete!</strong><br>Found optimal strategy in ${config.generations} generations`;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        displayResults(result);
-        results.classList.add('show');
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
 
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'progress') {
+                // Progress updates handled in terminal
+              } else if (data.type === 'complete') {
+                status.className = 'status success';
+                status.innerHTML = `<strong>✅ Optimization Complete!</strong><br>Found optimal strategy in ${config.generations} generations`;
+                displayResults(data.result);
+                results.classList.add('show');
+              } else if (data.type === 'error') {
+                status.className = 'status';
+                status.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
+              }
+            }
+          }
+        }
       } catch (error) {
         status.className = 'status';
         status.innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
@@ -326,6 +465,10 @@
 
     function displayResults(result) {
       const { bestStrategy, finalSimulation } = result;
+
+      // Store strategy and state for CSV export and re-optimization
+      storeBestStrategy(bestStrategy);
+      storeFinalState(finalSimulation.state);
 
       // Final Metrics
       document.getElementById('finalMetrics').innerHTML = `
@@ -389,43 +532,245 @@
       }).join('');
       document.getElementById('actionTimeline').innerHTML = timeline || '<p style="color: #94a3b8;">No timed actions in optimal strategy</p>';
 
-      // Daily Forecast - ALL VARIABLES
+      // Daily Forecast - Split into Active Management and Runoff periods
       displayDailyForecast(finalSimulation.state.history);
     }
 
     function displayDailyForecast(history) {
+      // Store history for CSV export
+      storeHistoryData(history);
+
+      const ACTIVE_PERIOD_END = 268; // Day 268 is end of active management
+
       const tables = [
-        { title: 'Financial Metrics', metrics: ['dailyCash', 'dailyDebt', 'dailyNetWorth', 'dailyRevenue', 'dailyExpenses'] },
-        { title: 'Production Metrics', metrics: ['dailyStandardProduction', 'dailyCustomProduction', 'dailyStandardWIP', 'dailyCustomWIP'] },
+        { title: 'Financial Metrics', metrics: ['dailyCash', 'dailyDebt', 'dailyNetWorth', 'dailyRevenue', 'dailyExpenses', 'dailyInterestPaid', 'dailyInterestEarned'] },
+        { title: 'Production Metrics', metrics: ['dailyStandardProduction', 'dailyCustomProduction', 'dailyStandardWIP', 'dailyCustomWIP', 'dailyFinishedStandard', 'dailyFinishedCustom'] },
         { title: 'Inventory Metrics', metrics: ['dailyRawMaterial', 'dailyRawMaterialOrders', 'dailyRawMaterialCost'] },
         { title: 'Workforce Metrics', metrics: ['dailyExperts', 'dailyRookies', 'dailyRookiesInTraining', 'dailySalaryCost'] },
         { title: 'Machine Metrics', metrics: ['dailyMCECount', 'dailyWMACount', 'dailyPUCCount'] },
+        { title: 'Pricing Metrics', metrics: ['dailyStandardPrice', 'dailyCustomPrice', 'dailyCustomDeliveryTime'] },
       ];
 
-      let html = '';
+      // Active Management Period (Days 51-268)
+      let activeHtml = '';
       for (const table of tables) {
-        html += `<h3 style="margin-top: 2rem; color: #60a5fa;">${table.title}</h3>`;
-        html += '<table class="data-table"><thead><tr><th>Day</th>';
+        activeHtml += `<h3 style="margin-top: 2rem; color: #60a5fa;">${table.title}</h3>`;
+        activeHtml += '<table class="data-table"><thead><tr><th>Day</th>';
         table.metrics.forEach(m => {
-          html += `<th>${m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()}</th>`;
+          activeHtml += `<th>${m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()}</th>`;
         });
-        html += '</tr></thead><tbody>';
+        activeHtml += '</tr></thead><tbody>';
 
-        // Show last 50 days
-        const days = history[table.metrics[0]].slice(-50);
-        days.forEach((item, i) => {
-          html += `<tr><td>${item.day}</td>`;
+        // Get data for active period
+        const allDays = history[table.metrics[0]];
+        const activeDays = allDays.filter(d => d.day >= 51 && d.day <= ACTIVE_PERIOD_END);
+
+        activeDays.forEach((item) => {
+          activeHtml += `<tr><td><strong>Day ${item.day}</strong></td>`;
           table.metrics.forEach(m => {
-            const value = history[m][history[m].length - 50 + i]?.value || 0;
-            html += `<td>${typeof value === 'number' ? value.toFixed(2) : value}</td>`;
+            const dataPoint = history[m].find(d => d.day === item.day);
+            const value = dataPoint?.value || 0;
+            activeHtml += `<td>${typeof value === 'number' ? value.toFixed(2) : value}</td>`;
           });
-          html += '</tr>';
+          activeHtml += '</tr>';
         });
 
-        html += '</tbody></table>';
+        activeHtml += '</tbody></table>';
+      }
+      document.getElementById('activeManagementForecast').innerHTML = activeHtml;
+
+      // Runoff Period (Days 269-500)
+      let runoffHtml = '';
+      for (const table of tables) {
+        runoffHtml += `<h3 style="margin-top: 2rem; color: #60a5fa;">${table.title}</h3>`;
+        runoffHtml += '<table class="data-table"><thead><tr><th>Day</th>';
+        table.metrics.forEach(m => {
+          runoffHtml += `<th>${m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()}</th>`;
+        });
+        runoffHtml += '</tr></thead><tbody>';
+
+        // Get data for runoff period
+        const allDays = history[table.metrics[0]];
+        const runoffDays = allDays.filter(d => d.day > ACTIVE_PERIOD_END);
+
+        runoffDays.forEach((item) => {
+          runoffHtml += `<tr><td><strong>Day ${item.day}</strong></td>`;
+          table.metrics.forEach(m => {
+            const dataPoint = history[m].find(d => d.day === item.day);
+            const value = dataPoint?.value || 0;
+            runoffHtml += `<td>${typeof value === 'number' ? value.toFixed(2) : value}</td>`;
+          });
+          runoffHtml += '</tr>';
+        });
+
+        runoffHtml += '</tbody></table>';
+      }
+      document.getElementById('runoffForecast').innerHTML = runoffHtml;
+    }
+
+    // Store history data, strategy, and final state globally for CSV export and re-optimization
+    let globalHistory = null;
+    let globalBestStrategy = null;
+    let globalFinalState = null;
+
+    function storeHistoryData(history) {
+      globalHistory = history;
+    }
+
+    function storeBestStrategy(strategy) {
+      globalBestStrategy = strategy;
+    }
+
+    function storeFinalState(state) {
+      globalFinalState = state;
+    }
+
+    function exportState() {
+      if (!globalFinalState) {
+        alert('No simulation state available to export');
+        return;
       }
 
-      document.getElementById('dailyForecast').innerHTML = html;
+      // Export final state as JSON for re-optimization
+      const stateJSON = JSON.stringify(globalFinalState, null, 2);
+      const blob = new Blob([stateJSON], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `simulation-state-day-${globalFinalState.currentDay}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToCSV(period) {
+      if (!globalHistory) {
+        alert('No forecast data available. Please run optimization first.');
+        return;
+      }
+
+      const ACTIVE_PERIOD_END = 268;
+      const allMetrics = [
+        'dailyCash', 'dailyDebt', 'dailyNetWorth', 'dailyRevenue', 'dailyExpenses',
+        'dailyInterestPaid', 'dailyInterestEarned', 'dailyStandardProduction',
+        'dailyCustomProduction', 'dailyStandardWIP', 'dailyCustomWIP',
+        'dailyFinishedStandard', 'dailyFinishedCustom', 'dailyRawMaterial',
+        'dailyRawMaterialOrders', 'dailyRawMaterialCost', 'dailyExperts',
+        'dailyRookies', 'dailyRookiesInTraining', 'dailySalaryCost',
+        'dailyMCECount', 'dailyWMACount', 'dailyPUCCount', 'dailyStandardPrice',
+        'dailyCustomPrice', 'dailyCustomDeliveryTime'
+      ];
+
+      // Get all days from first metric
+      const allDays = globalHistory[allMetrics[0]];
+      let filteredDays;
+      let filename;
+
+      if (period === 'active') {
+        filteredDays = allDays.filter(d => d.day >= 51 && d.day <= ACTIVE_PERIOD_END);
+        filename = 'medica-scientifica-active-period-forecast.csv';
+      } else if (period === 'runoff') {
+        filteredDays = allDays.filter(d => d.day > ACTIVE_PERIOD_END);
+        filename = 'medica-scientifica-runoff-period-forecast.csv';
+      } else {
+        filteredDays = allDays.filter(d => d.day >= 51);
+        filename = 'medica-scientifica-complete-forecast.csv';
+      }
+
+      // Create CSV header (add Actions column)
+      const headers = ['Day', ...allMetrics.map(m =>
+        m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()
+      ), 'Action'];
+      let csvContent = headers.join(',') + '\n';
+
+      // Add data rows
+      filteredDays.forEach(dayItem => {
+        const row = [dayItem.day];
+        allMetrics.forEach(metric => {
+          const dataPoint = globalHistory[metric].find(d => d.day === dayItem.day);
+          const value = dataPoint?.value ?? 0;
+          row.push(typeof value === 'number' ? value.toFixed(2) : value);
+        });
+
+        // Add action for this day (if any)
+        let actionDesc = '';
+        if (globalBestStrategy) {
+          const action = globalBestStrategy.timedActions.find(a => a.day === dayItem.day);
+          if (action) {
+            switch(action.type) {
+              case 'TAKE_LOAN': actionDesc = `Take loan of $${action.amount}`; break;
+              case 'HIRE_ROOKIE': actionDesc = `Hire ${action.count} rookie(s)`; break;
+              case 'BUY_MACHINE': actionDesc = `Buy ${action.count} ${action.machineType} machine(s)`; break;
+              case 'ORDER_MATERIALS': actionDesc = `Order ${action.quantity} units of raw materials`; break;
+              default: actionDesc = action.type;
+            }
+          }
+        }
+        row.push(`"${actionDesc}"`); // Quote to handle commas in description
+
+        csvContent += row.join(',') + '\n';
+      });
+
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportActionsToCSV() {
+      if (!globalBestStrategy) {
+        alert('No strategy data available. Please run optimization first.');
+        return;
+      }
+
+      // Create CSV header
+      let csvContent = 'Day,Action Type,Description,Amount/Count/Machine Type\n';
+
+      // Add action rows
+      globalBestStrategy.timedActions.forEach(action => {
+        let desc = '';
+        let details = '';
+
+        switch(action.type) {
+          case 'TAKE_LOAN':
+            desc = `Take loan of $${action.amount}`;
+            details = action.amount;
+            break;
+          case 'HIRE_ROOKIE':
+            desc = `Hire ${action.count} rookie(s)`;
+            details = action.count;
+            break;
+          case 'BUY_MACHINE':
+            desc = `Buy ${action.count} ${action.machineType} machine(s)`;
+            details = action.machineType;
+            break;
+          case 'ORDER_MATERIALS':
+            desc = `Order ${action.quantity} units of raw materials`;
+            details = action.quantity;
+            break;
+          default:
+            desc = action.type;
+            details = '';
+        }
+
+        csvContent += `${action.day},${action.type},"${desc}",${details}\n`;
+      });
+
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'medica-scientifica-action-timeline.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>
