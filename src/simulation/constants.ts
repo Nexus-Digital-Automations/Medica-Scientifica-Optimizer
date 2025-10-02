@@ -162,6 +162,12 @@ export const DEFAULT_STRATEGY: Strategy = {
   customPenaltyPerDay: 0.27, // $ penalty for each day over target (from regression slope)
   customTargetDeliveryDays: 5, // target delivery time (data-driven optimal)
 
+  // Demand Model Parameters (market conditions)
+  customDemandMean1: 25, // Phase 1 (days 51-172) mean demand
+  customDemandStdDev1: 5, // Phase 1 standard deviation
+  customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand - 30% increase
+  customDemandStdDev2: 6.5, // Phase 2 standard deviation
+
   // Timed Actions (will be evolved by genetic algorithm)
   timedActions: [],
 };

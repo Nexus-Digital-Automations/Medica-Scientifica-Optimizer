@@ -4,6 +4,8 @@
  * Uses data-driven demand model with normal distribution for custom line
  */
 
+import type { Strategy } from './types.js';
+
 export interface DemandForecast {
   day: number;
   standardDemand: number;
@@ -30,8 +32,9 @@ function generateNormalRandom(mean: number, stdDev: number): number {
 /**
  * Gets demand limits for a specific day
  * Can use custom forecast or default business case demand curve
+ * Demand parameters come from strategy (market conditions)
  */
-export function getDemandForDay(day: number, customForecast?: DemandForecast[]): DemandLimits {
+export function getDemandForDay(day: number, strategy: Strategy, customForecast?: DemandForecast[]): DemandLimits {
   // If custom forecast provided, use it
   if (customForecast) {
     const demand = customForecast.find((d) => d.day === day);
@@ -43,24 +46,24 @@ export function getDemandForDay(day: number, customForecast?: DemandForecast[]):
     }
   }
 
-  // Default business case demand curve (data-driven model)
+  // Default business case demand curve (data-driven model using strategy parameters)
 
   // Days 51-172: Baseline demand phase
-  // Custom: Normal distribution (mean=25, std=5) based on historical analysis
+  // Custom: Normal distribution using strategy parameters for phase 1
   // Standard: Unlimited (production-constrained, not market-constrained)
   if (day < 173) {
-    const customDemand = Math.max(0, generateNormalRandom(25, 5));
+    const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean1, strategy.customDemandStdDev1));
     return {
       standard: 999999, // Effectively unlimited - can sell everything produced
       custom: customDemand,
     };
   }
 
-  // Days 173-400: Demand shock phase (30% increase)
-  // Custom: Normal distribution (mean=32.5, std=6.5) - 30% increase from baseline
+  // Days 173-400: Demand shock phase
+  // Custom: Normal distribution using strategy parameters for phase 2
   // Standard: Still unlimited
   if (day <= 400) {
-    const customDemand = Math.max(0, generateNormalRandom(32.5, 6.5));
+    const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean2, strategy.customDemandStdDev2));
     return {
       standard: 999999, // Effectively unlimited - can sell everything produced
       custom: customDemand,
@@ -72,7 +75,7 @@ export function getDemandForDay(day: number, customForecast?: DemandForecast[]):
   const daysIntoRunoff = day - 400;
   const declineRate = 0.95; // 5% decline every 30 days
   const periods = daysIntoRunoff / 30;
-  const baseCustomDemand = 32.5; // Start from shock phase level
+  const baseCustomDemand = strategy.customDemandMean2; // Start from shock phase level
 
   return {
     standard: 999999, // Unlimited until final shutdown
@@ -87,15 +90,14 @@ export function getDemandForDay(day: number, customForecast?: DemandForecast[]):
 export function calculateRemainingDemandPotential(
   startDay: number,
   endDay: number,
-  standardPrice: number,
-  customPrice: number,
+  strategy: Strategy,
   customForecast?: DemandForecast[]
 ): number {
   let totalPotentialRevenue = 0;
 
   for (let day = startDay; day <= endDay; day++) {
-    const demand = getDemandForDay(day, customForecast);
-    totalPotentialRevenue += demand.standard * standardPrice + demand.custom * customPrice;
+    const demand = getDemandForDay(day, strategy, customForecast);
+    totalPotentialRevenue += demand.standard * strategy.standardPrice + demand.custom * strategy.customBasePrice;
   }
 
   return totalPotentialRevenue;

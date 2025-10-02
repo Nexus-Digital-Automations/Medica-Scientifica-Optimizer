@@ -25,6 +25,10 @@ export interface StrategyOverrides {
   customBasePrice?: number;
   customPenaltyPerDay?: number;
   customTargetDeliveryDays?: number;
+  customDemandMean1?: number;
+  customDemandStdDev1?: number;
+  customDemandMean2?: number;
+  customDemandStdDev2?: number;
 }
 
 export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
@@ -51,6 +55,12 @@ function generateRandomStrategy(): Strategy {
     customBasePrice: 106.56, // From historical regression baseline at 5-day target
     customPenaltyPerDay: 0.27, // From historical regression slope
     customTargetDeliveryDays: 5, // Data-driven optimal premium service target
+
+    // FIXED DEMAND MODEL (data-driven market conditions, NOT optimizable)
+    customDemandMean1: 25, // Phase 1 (days 51-172) mean demand
+    customDemandStdDev1: 5, // Phase 1 standard deviation
+    customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand
+    customDemandStdDev2: 6.5, // Phase 2 standard deviation
 
     timedActions: generateRandomTimedActions(),
   };
@@ -125,6 +135,12 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
     customPenaltyPerDay: 0.27,
     customTargetDeliveryDays: 5,
 
+    // FIXED demand model (data-driven, NOT crossed over)
+    customDemandMean1: 25,
+    customDemandStdDev1: 5,
+    customDemandMean2: 32.5,
+    customDemandStdDev2: 6.5,
+
     // Mix timed actions (take some from each parent)
     timedActions: [
       ...parent1.timedActions.slice(0, Math.floor(parent1.timedActions.length / 2)),
@@ -164,6 +180,7 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
   }
 
   // Custom pricing (customBasePrice, customPenaltyPerDay, customTargetDeliveryDays)
+  // and demand model (customDemandMean1, customDemandStdDev1, customDemandMean2, customDemandStdDev2)
   // are FIXED market conditions and are NEVER mutated
 
   // Mutate timed actions with hybrid approach (90% gentle, 10% wild)
@@ -257,6 +274,10 @@ function generateConstrainedStrategy(
     customBasePrice: fixedParams?.customBasePrice ?? (variableParams?.customBasePrice ?? base.customBasePrice),
     customPenaltyPerDay: fixedParams?.customPenaltyPerDay ?? (variableParams?.customPenaltyPerDay ?? base.customPenaltyPerDay),
     customTargetDeliveryDays: fixedParams?.customTargetDeliveryDays ?? (variableParams?.customTargetDeliveryDays ?? base.customTargetDeliveryDays),
+    customDemandMean1: fixedParams?.customDemandMean1 ?? (variableParams?.customDemandMean1 ?? base.customDemandMean1),
+    customDemandStdDev1: fixedParams?.customDemandStdDev1 ?? (variableParams?.customDemandStdDev1 ?? base.customDemandStdDev1),
+    customDemandMean2: fixedParams?.customDemandMean2 ?? (variableParams?.customDemandMean2 ?? base.customDemandMean2),
+    customDemandStdDev2: fixedParams?.customDemandStdDev2 ?? (variableParams?.customDemandStdDev2 ?? base.customDemandStdDev2),
     timedActions: base.timedActions,
   };
 }

@@ -509,6 +509,37 @@
             <input type="number" id="env_customPenalty" value="0.27" min="0" step="0.01">
           </div>
         </div>
+
+        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Demand Model Parameters</h4>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+          Define market demand distribution parameters (data-driven defaults from business case analysis)
+        </p>
+        <div style="margin-bottom: 0.75rem;">
+          <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 1 (Days 51-172)</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+            <div>
+              <label style="font-size: 0.85rem;">Mean Demand</label>
+              <input type="number" id="env_demandMean1" value="25" min="0" step="0.1">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Std Deviation</label>
+              <input type="number" id="env_demandStdDev1" value="5" min="0" step="0.1">
+            </div>
+          </div>
+        </div>
+        <div>
+          <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 2 (Days 173-400)</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+            <div>
+              <label style="font-size: 0.85rem;">Mean Demand</label>
+              <input type="number" id="env_demandMean2" value="32.5" min="0" step="0.1">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Std Deviation</label>
+              <input type="number" id="env_demandStdDev2" value="6.5" min="0" step="0.1">
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Category 3: Policy Decisions (Always Variable, Optional, No Defaults) -->
@@ -802,11 +833,15 @@
         console.log('Using custom demand schedule with', demandForecast.length, 'total days defined');
       }
 
-      // Read custom market model from environment variables (fixed params)
+      // Read custom market model and demand parameters from environment variables (fixed params)
       const fixedParams = {
         customBasePrice: parseFloat(document.getElementById('env_customBasePrice').value) || 106.56,
         customTargetDeliveryDays: parseInt(document.getElementById('env_customTarget').value) || 5,
-        customPenaltyPerDay: parseFloat(document.getElementById('env_customPenalty').value) || 0.27
+        customPenaltyPerDay: parseFloat(document.getElementById('env_customPenalty').value) || 0.27,
+        customDemandMean1: parseFloat(document.getElementById('env_demandMean1').value) || 25,
+        customDemandStdDev1: parseFloat(document.getElementById('env_demandStdDev1').value) || 5,
+        customDemandMean2: parseFloat(document.getElementById('env_demandMean2').value) || 32.5,
+        customDemandStdDev2: parseFloat(document.getElementById('env_demandStdDev2').value) || 6.5
       };
 
       // Read policy decision values (all are variable and optional)
@@ -990,6 +1025,25 @@
             <div class="metric">
               <div class="metric-label">Penalty Per Late Day</div>
               <div class="metric-value">$${fixedParams.customPenaltyPerDay.toFixed(2)}</div>
+            </div>
+          </div>
+          <h3 style="color: #60a5fa; margin: 1rem 0 0.75rem 0; font-size: 1rem;">Demand Model Parameters (Fixed)</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Phase 1 Mean (Days 51-172)</div>
+              <div class="metric-value">${fixedParams.customDemandMean1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Phase 1 Std Dev</div>
+              <div class="metric-value">${fixedParams.customDemandStdDev1}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Phase 2 Mean (Days 173-400)</div>
+              <div class="metric-value">${fixedParams.customDemandMean2}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Phase 2 Std Dev</div>
+              <div class="metric-value">${fixedParams.customDemandStdDev2}</div>
             </div>
           </div>
         </div>

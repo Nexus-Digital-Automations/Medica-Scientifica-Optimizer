@@ -220,7 +220,7 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   dailyMetrics.customPrice = pricing.customPrice;
 
   // Step 11: Get demand limits for today
-  const demandLimits = getDemandForDay(state.currentDay, demandForecast);
+  const demandLimits = getDemandForDay(state.currentDay, strategy, demandForecast);
 
   // Step 12: Process sales and collect revenue (respecting demand limits)
   const salesResult = processSales(state, strategy, dailyMetrics.avgCustomDeliveryTime, demandLimits);

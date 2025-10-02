@@ -154,6 +154,12 @@ export interface Strategy {
   customPenaltyPerDay: number;
   customTargetDeliveryDays: number;
 
+  // Demand Model Parameters (market conditions)
+  customDemandMean1: number;     // Phase 1 (days 51-172) mean demand
+  customDemandStdDev1: number;   // Phase 1 standard deviation
+  customDemandMean2: number;     // Phase 2 (days 173-400) mean demand
+  customDemandStdDev2: number;   // Phase 2 standard deviation
+
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];
 }
