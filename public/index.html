@@ -279,79 +279,82 @@
       font-weight: 600;
     }
 
-    /* Toggle switch for strategy parameters */
-    .param-field-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    /* Strategy parameter with toggle */
+    .param-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
     }
 
-    .param-toggle-row {
+    .param-label-with-toggle {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.3rem;
+      gap: 0.75rem;
     }
 
-    .toggle-switch {
+    .toggle-container {
       position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-    }
-
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .toggle-slider {
-      position: absolute;
+      width: 120px;
+      height: 32px;
+      background: #1e293b;
+      border-radius: 16px;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #334155;
-      transition: 0.3s;
-      border-radius: 24px;
+      border: 1px solid #334155;
+      transition: all 0.3s;
     }
 
-    .toggle-slider:before {
+    .toggle-container:hover {
+      border-color: #475569;
+    }
+
+    .toggle-checkbox {
+      display: none;
+    }
+
+    .toggle-state-label {
       position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
-    }
-
-    .toggle-switch input:checked + .toggle-slider {
-      background-color: #3b82f6;
-    }
-
-    .toggle-switch input:checked + .toggle-slider:before {
-      transform: translateX(20px);
-    }
-
-    .toggle-label {
+      top: 50%;
+      transform: translateY(-50%);
       font-size: 0.75rem;
-      color: #94a3b8;
-      user-select: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      pointer-events: none;
     }
 
-    .toggle-switch input:checked ~ .toggle-label-fixed {
-      font-weight: 600;
+    .toggle-state-variable {
+      left: 8px;
+      color: #a78bfa;
+    }
+
+    .toggle-state-fixed {
+      right: 8px;
+      color: #64748b;
+    }
+
+    .toggle-checkbox:checked ~ .toggle-state-variable {
+      color: #64748b;
+    }
+
+    .toggle-checkbox:checked ~ .toggle-state-fixed {
       color: #60a5fa;
     }
 
-    .toggle-switch input:not(:checked) ~ .toggle-label-variable {
-      font-weight: 600;
-      color: #a78bfa;
+    .toggle-slider-new {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 56px;
+      height: 26px;
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+      border-radius: 13px;
+      transition: all 0.3s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-checkbox:checked ~ .toggle-slider-new {
+      left: calc(100% - 59px);
+      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
     }
   </style>
 </head>
@@ -444,125 +447,120 @@
 
       <!-- Section B: Strategy Parameters (With Toggles) -->
       <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters (Toggle Fixed/Variable)</h4>
+        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters</h4>
         <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">
-          <span style="color: #60a5fa;">■ Fixed</span> = GA respects this exact value (hard constraint) |
-          <span style="color: #a78bfa;">■ Variable</span> = GA can optimize this parameter
+          Toggle each parameter: <span style="color: #a78bfa; font-weight: 600;">Variable</span> (GA can optimize) or <span style="color: #60a5fa; font-weight: 600;">Fixed</span> (GA must use exact value)
         </p>
-        <div class="control-group">
-          <!-- Reorder Point -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_reorderPoint">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Reorder Point (units)</label>
-            </div>
-            <input type="number" id="reopt_reorderPoint" value="180" min="0">
+        <!-- Row 1 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_reorderPoint">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_reorderPoint">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Reorder Point (units)</label>
           </div>
-
-          <!-- Order Quantity -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_orderQuantity">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Order Quantity (units)</label>
-            </div>
-            <input type="number" id="reopt_orderQuantity" value="400" min="0">
-          </div>
-
-          <!-- Standard Batch Size -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_batchSize">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Standard Batch Size (units)</label>
-            </div>
-            <input type="number" id="reopt_batchSize" value="20" min="1">
-          </div>
-
-          <!-- MCE Allocation -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_mceAllocation">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">MCE Allocation to Custom (%)</label>
-            </div>
-            <input type="number" id="reopt_mceAllocation" value="70" min="0" max="100">
-          </div>
+          <input type="number" id="reopt_reorderPoint" value="180" min="0" style="width: 150px;">
         </div>
 
-        <div class="control-group" style="margin-top: 0.5rem;">
-          <!-- Standard Price -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_standardPrice">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Standard Price ($)</label>
-            </div>
-            <input type="number" id="reopt_standardPrice" value="750" min="0" step="1">
+        <!-- Row 2 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_orderQuantity">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_orderQuantity">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Order Quantity (units)</label>
           </div>
+          <input type="number" id="reopt_orderQuantity" value="400" min="0" style="width: 150px;">
+        </div>
 
-          <!-- Custom Base Price -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_customBasePrice">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Custom Base Price ($)</label>
-            </div>
-            <input type="number" id="reopt_customBasePrice" value="1200" min="0" step="1">
+        <!-- Row 3 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_batchSize">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_batchSize">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Standard Batch Size (units)</label>
           </div>
+          <input type="number" id="reopt_batchSize" value="20" min="1" style="width: 150px;">
+        </div>
 
-          <!-- Custom Penalty Per Day -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_customPenalty">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Custom Penalty Per Day ($)</label>
-            </div>
-            <input type="number" id="reopt_customPenalty" value="10" min="0" step="1">
+        <!-- Row 4 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_mceAllocation">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_mceAllocation">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">MCE Allocation to Custom (%)</label>
           </div>
+          <input type="number" id="reopt_mceAllocation" value="70" min="0" max="100" style="width: 150px;">
+        </div>
 
-          <!-- Custom Target Delivery -->
-          <div class="param-field-wrapper">
-            <div class="param-toggle-row">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggle_customTarget">
-                <span class="toggle-slider"></span>
-              </label>
-              <span class="toggle-label toggle-label-variable">Variable</span>
-              <span class="toggle-label toggle-label-fixed">Fixed</span>
-              <label style="flex: 1; margin: 0;">Custom Target Delivery (days)</label>
-            </div>
-            <input type="number" id="reopt_customTarget" value="10" min="1">
+        <!-- Row 5 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_standardPrice">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_standardPrice">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Standard Price ($)</label>
           </div>
+          <input type="number" id="reopt_standardPrice" value="750" min="0" step="1" style="width: 150px;">
+        </div>
+
+        <!-- Row 6 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_customBasePrice">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_customBasePrice">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Custom Base Price ($)</label>
+          </div>
+          <input type="number" id="reopt_customBasePrice" value="1200" min="0" step="1" style="width: 150px;">
+        </div>
+
+        <!-- Row 7 -->
+        <div class="param-row" style="margin-bottom: 1rem;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_customPenalty">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_customPenalty">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Custom Penalty Per Day ($)</label>
+          </div>
+          <input type="number" id="reopt_customPenalty" value="10" min="0" step="1" style="width: 150px;">
+        </div>
+
+        <!-- Row 8 -->
+        <div class="param-row" style="margin-bottom: 0;">
+          <div class="param-label-with-toggle">
+            <label class="toggle-container" for="toggle_customTarget">
+              <input type="checkbox" class="toggle-checkbox" id="toggle_customTarget">
+              <span class="toggle-slider-new"></span>
+              <span class="toggle-state-label toggle-state-variable">Variable</span>
+              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
+            </label>
+            <label style="margin: 0; color: #cbd5e1;">Custom Target Delivery (days)</label>
+          </div>
+          <input type="number" id="reopt_customTarget" value="10" min="1" style="width: 150px;">
         </div>
       </div>
 
