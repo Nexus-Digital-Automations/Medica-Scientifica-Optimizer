@@ -304,10 +304,11 @@ export function runSimulation(
     simulateDay(state, strategy, demandForecast);
   }
 
-  // Calculate final fitness score (cash minus inventory write-off penalty)
+  // Calculate final fitness score (net worth minus inventory write-off penalty)
+  // Net worth = cash - debt
   // Inventory is worthless at plant shutdown, so we penalize remaining inventory
   const inventoryWriteOff = calculateInventoryWriteOff(state);
-  const fitnessScore = state.cash - inventoryWriteOff;
+  const fitnessScore = getNetWorth(state) - inventoryWriteOff;
 
   return {
     finalCash: state.cash,
