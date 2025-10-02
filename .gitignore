@@ -343,3 +343,9 @@ TODO.json.*
 *.logs
 
 .turbo/
+
+# Automation & Task Management
+.auth-state.json
+.validation-performance.json
+.validation-failures/
+TASKS.json
