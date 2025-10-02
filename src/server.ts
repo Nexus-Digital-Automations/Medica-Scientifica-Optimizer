@@ -55,6 +55,7 @@ const server = createServer(async (req, res) => {
       req.on('end', async () => {
         const requestData = body ? JSON.parse(body) : { config: DEFAULT_GA_CONFIG };
         const config = requestData.config || DEFAULT_GA_CONFIG;
+        const strategyOverrides = config.strategyOverrides;
         const startingState = requestData.startingState;
         const demandForecast = requestData.demandForecast;
 
@@ -64,6 +65,9 @@ const server = createServer(async (req, res) => {
         }
         if (demandForecast) {
           console.log('📈 Using custom demand forecast with', demandForecast.length, 'data points');
+        }
+        if (strategyOverrides) {
+          console.log('🎯 Using strategy parameter overrides:', strategyOverrides);
         }
 
         const result = await optimize(
@@ -81,7 +85,8 @@ const server = createServer(async (req, res) => {
             res.write(`data: ${JSON.stringify(progressData)}\n\n`);
           },
           startingState,
-          demandForecast
+          demandForecast,
+          strategyOverrides
         );
 
         // Send final result

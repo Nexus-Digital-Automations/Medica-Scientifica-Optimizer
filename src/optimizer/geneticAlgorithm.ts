@@ -16,6 +16,17 @@ export interface GeneticAlgorithmConfig {
   crossoverRate: number;
 }
 
+export interface StrategyOverrides {
+  reorderPoint?: number;
+  orderQuantity?: number;
+  standardBatchSize?: number;
+  mceAllocationCustom?: number;
+  standardPrice?: number;
+  customBasePrice?: number;
+  customPenaltyPerDay?: number;
+  customTargetDeliveryDays?: number;
+}
+
 export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
   populationSize: 100,
   generations: 500,
@@ -215,25 +226,63 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
 }
 
 /**
+ * Generates a strategy with user-provided overrides as base values
+ * Used to seed the initial population with user's preferred parameters
+ */
+function generateSeededStrategy(overrides: StrategyOverrides): Strategy {
+  const base = generateRandomStrategy();
+
+  return {
+    reorderPoint: overrides.reorderPoint ?? base.reorderPoint,
+    orderQuantity: overrides.orderQuantity ?? base.orderQuantity,
+    standardBatchSize: overrides.standardBatchSize ?? base.standardBatchSize,
+    mceAllocationCustom: overrides.mceAllocationCustom ?? base.mceAllocationCustom,
+    standardPrice: overrides.standardPrice ?? base.standardPrice,
+    customBasePrice: overrides.customBasePrice ?? base.customBasePrice,
+    customPenaltyPerDay: overrides.customPenaltyPerDay ?? base.customPenaltyPerDay,
+    customTargetDeliveryDays: overrides.customTargetDeliveryDays ?? base.customTargetDeliveryDays,
+    timedActions: base.timedActions, // Use random timed actions
+  };
+}
+
+/**
  * Runs the genetic algorithm optimization
  * @param config - Genetic algorithm configuration
  * @param onProgress - Optional progress callback
  * @param startingState - Optional starting state for mid-course re-optimization
  * @param demandForecast - Optional custom demand forecast
+ * @param strategyOverrides - Optional strategy parameter overrides to seed initial population
  */
 export async function optimize(
   config: GeneticAlgorithmConfig = DEFAULT_GA_CONFIG,
   onProgress?: (generation: number, stats: PopulationStats) => void,
   startingState?: SimulationState,
-  demandForecast?: DemandForecast[]
+  demandForecast?: DemandForecast[],
+  strategyOverrides?: StrategyOverrides
 ): Promise<OptimizationResult> {
   console.log('🧬 Starting genetic algorithm optimization...');
   console.log(`Population: ${config.populationSize}, Generations: ${config.generations}`);
 
-  // Initialize population
+  // Initialize population with strategy overrides if provided
   let population: Strategy[] = [];
-  for (let i = 0; i < config.populationSize; i++) {
-    population.push(generateRandomStrategy());
+  if (strategyOverrides) {
+    console.log('🎯 Seeding initial population with user strategy parameters');
+    // First half: seeded with user's parameters (with slight variations)
+    const seedCount = Math.floor(config.populationSize / 2);
+    for (let i = 0; i < seedCount; i++) {
+      const seeded = generateSeededStrategy(strategyOverrides);
+      // Apply slight mutations to create diversity while keeping user's values as base
+      population.push(mutate(seeded, 0.1)); // 10% mutation for diversity
+    }
+    // Second half: completely random for exploration
+    for (let i = seedCount; i < config.populationSize; i++) {
+      population.push(generateRandomStrategy());
+    }
+  } else {
+    // No overrides: fully random population
+    for (let i = 0; i < config.populationSize; i++) {
+      population.push(generateRandomStrategy());
+    }
   }
 
   const convergenceHistory: number[] = [];

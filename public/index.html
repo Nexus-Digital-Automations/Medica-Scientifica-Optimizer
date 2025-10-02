@@ -307,33 +307,161 @@
       </div>
 
       <h3 style="margin: 1.5rem 0 1rem; color: #cbd5e1;">
-        Custom Demand Forecast (Optional)
-        <span style="font-size: 0.8rem; font-weight: normal; color: #94a3b8; margin-left: 0.5rem;">Override default business case demand</span>
+        Re-Optimization Settings (Optional)
+        <span style="font-size: 0.8rem; font-weight: normal; color: #94a3b8; margin-left: 0.5rem;">All values pre-filled with defaults - modify as needed</span>
       </h3>
 
+      <!-- Section A: Simulation Starting Point -->
       <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 1rem;">Custom Demand Forecast</h4>
-        <p style="margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.85rem;">Override default demand curve for specific days (leave all blank to use business case defaults)</p>
+        <h4 style="margin: 0 0 1rem 0; color: #cbd5e1; font-size: 1rem;">📍 Simulation Starting Point</h4>
+        <div class="control-group">
+          <div>
+            <label>Starting Day</label>
+            <input type="number" id="reopt_startingDay" value="51" min="51" max="500">
+          </div>
+          <div>
+            <label>Cash ($)</label>
+            <input type="number" id="reopt_cash" value="8206.12" step="0.01">
+          </div>
+          <div>
+            <label>Debt ($)</label>
+            <input type="number" id="reopt_debt" value="70000" step="0.01" min="0">
+          </div>
+          <div>
+            <label>Raw Material (units)</label>
+            <input type="number" id="reopt_rawMaterial" value="0" min="0">
+          </div>
+        </div>
+        <div class="control-group" style="margin-top: 0.5rem;">
+          <div>
+            <label>MCE Machines</label>
+            <input type="number" id="reopt_mce" value="1" min="0">
+          </div>
+          <div>
+            <label>WMA Machines</label>
+            <input type="number" id="reopt_wma" value="1" min="0">
+          </div>
+          <div>
+            <label>PUC Machines</label>
+            <input type="number" id="reopt_puc" value="1" min="0">
+          </div>
+          <div>
+            <label>Expert Workers</label>
+            <input type="number" id="reopt_experts" value="1" min="0">
+          </div>
+        </div>
+        <div class="control-group" style="margin-top: 0.5rem;">
+          <div>
+            <label>Rookie Workers</label>
+            <input type="number" id="reopt_rookies" value="0" min="0">
+          </div>
+          <div>
+            <label>Finished Standard Units</label>
+            <input type="number" id="reopt_finishedStandard" value="0" min="0">
+          </div>
+          <div>
+            <label>Finished Custom Units</label>
+            <input type="number" id="reopt_finishedCustom" value="0" min="0">
+          </div>
+        </div>
+      </div>
 
-        <div id="demandForecastEntries">
+      <!-- Section B: Strategy Parameters -->
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
+        <h4 style="margin: 0 0 1rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters</h4>
+        <div class="control-group">
+          <div>
+            <label>Reorder Point (units)</label>
+            <input type="number" id="reopt_reorderPoint" value="180" min="0">
+          </div>
+          <div>
+            <label>Order Quantity (units)</label>
+            <input type="number" id="reopt_orderQuantity" value="400" min="0">
+          </div>
+          <div>
+            <label>Standard Batch Size (units)</label>
+            <input type="number" id="reopt_batchSize" value="20" min="1">
+          </div>
+          <div>
+            <label>MCE Allocation to Custom (%)</label>
+            <input type="number" id="reopt_mceAllocation" value="70" min="0" max="100">
+          </div>
+        </div>
+        <div class="control-group" style="margin-top: 0.5rem;">
+          <div>
+            <label>Standard Price ($)</label>
+            <input type="number" id="reopt_standardPrice" value="750" min="0" step="1">
+          </div>
+          <div>
+            <label>Custom Base Price ($)</label>
+            <input type="number" id="reopt_customBasePrice" value="1200" min="0" step="1">
+          </div>
+          <div>
+            <label>Custom Penalty Per Day ($)</label>
+            <input type="number" id="reopt_customPenalty" value="10" min="0" step="1">
+          </div>
+          <div>
+            <label>Custom Target Delivery (days)</label>
+            <input type="number" id="reopt_customTarget" value="10" min="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section C: Demand Schedule -->
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 1rem;">📈 Demand Schedule (Permanent Until Next Change)</h4>
+        <p style="margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.85rem;">Set demand levels that apply from a starting day forward until the next change. Default business case schedule pre-filled.</p>
+
+        <div id="demandScheduleEntries">
+          <!-- Default schedule entries -->
           <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
             <div>
-              <label style="font-size: 0.85rem;">Day (51-500)</label>
-              <input type="number" class="demand-day" placeholder="e.g., 172" min="51" max="500">
+              <label style="font-size: 0.85rem;">Starting Day</label>
+              <input type="number" class="demand-day" value="51" min="51" max="500">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Standard Demand</label>
-              <input type="number" class="demand-standard" placeholder="e.g., 50" min="0">
+              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <input type="number" class="demand-standard" value="10" min="0">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Custom Demand</label>
-              <input type="number" class="demand-custom" placeholder="e.g., 20" min="0">
+              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <input type="number" class="demand-custom" value="5" min="0">
+            </div>
+            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
+          </div>
+          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+            <div>
+              <label style="font-size: 0.85rem;">Starting Day</label>
+              <input type="number" class="demand-day" value="172" min="51" max="500">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <input type="number" class="demand-standard" value="50" min="0">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <input type="number" class="demand-custom" value="20" min="0">
+            </div>
+            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
+          </div>
+          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+            <div>
+              <label style="font-size: 0.85rem;">Starting Day</label>
+              <input type="number" class="demand-day" value="269" min="51" max="500">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <input type="number" class="demand-standard" value="47" min="0">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <input type="number" class="demand-custom" value="19" min="0">
             </div>
             <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
           </div>
         </div>
 
-        <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Another Day</button>
+        <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Demand Change</button>
       </div>
 
       <button id="startBtn" onclick="startOptimization()">🚀 Find Optimal Strategy</button>
@@ -394,22 +522,22 @@
   </div>
 
   <script>
-    // Helper functions for demand forecast entries
+    // Helper functions for demand schedule entries
     function addDemandEntry() {
-      const container = document.getElementById('demandForecastEntries');
+      const container = document.getElementById('demandScheduleEntries');
       const entryHtml = `
         <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
           <div>
-            <label style="font-size: 0.85rem;">Day (51-500)</label>
-            <input type="number" class="demand-day" placeholder="e.g., 172" min="51" max="500">
+            <label style="font-size: 0.85rem;">Starting Day</label>
+            <input type="number" class="demand-day" placeholder="e.g., 300" min="51" max="500">
           </div>
           <div>
-            <label style="font-size: 0.85rem;">Standard Demand</label>
-            <input type="number" class="demand-standard" placeholder="e.g., 50" min="0">
+            <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+            <input type="number" class="demand-standard" placeholder="e.g., 40" min="0">
           </div>
           <div>
-            <label style="font-size: 0.85rem;">Custom Demand</label>
-            <input type="number" class="demand-custom" placeholder="e.g., 20" min="0">
+            <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+            <input type="number" class="demand-custom" placeholder="e.g., 15" min="0">
           </div>
           <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
         </div>
@@ -419,6 +547,129 @@
 
     function removeDemandEntry(button) {
       button.parentElement.remove();
+    }
+
+    // Build starting state from form fields
+    function buildStartingState() {
+      // Get all form values
+      const currentDay = parseInt(document.getElementById('reopt_startingDay').value) || 51;
+      const cash = parseFloat(document.getElementById('reopt_cash').value) || 8206.12;
+      const debt = parseFloat(document.getElementById('reopt_debt').value) || 70000;
+      const rawMaterialInventory = parseInt(document.getElementById('reopt_rawMaterial').value) || 0;
+
+      const machines = {
+        MCE: parseInt(document.getElementById('reopt_mce').value) || 1,
+        WMA: parseInt(document.getElementById('reopt_wma').value) || 1,
+        PUC: parseInt(document.getElementById('reopt_puc').value) || 1
+      };
+
+      const workforce = {
+        experts: parseInt(document.getElementById('reopt_experts').value) || 1,
+        rookies: parseInt(document.getElementById('reopt_rookies').value) || 0,
+        rookiesInTraining: []
+      };
+
+      const finishedGoods = {
+        standard: parseInt(document.getElementById('reopt_finishedStandard').value) || 0,
+        custom: parseInt(document.getElementById('reopt_finishedCustom').value) || 0
+      };
+
+      // Build minimal starting state (complex WIP structures will be empty)
+      return {
+        currentDay,
+        cash,
+        debt,
+        rawMaterialInventory,
+        standardLineWIP: {
+          preStation1: [],
+          station1: [],
+          station2: [],
+          station3: []
+        },
+        customLineWIP: {
+          orders: []
+        },
+        finishedGoods,
+        workforce,
+        machines,
+        pendingRawMaterialOrders: [],
+        history: {
+          dailyCash: [],
+          dailyDebt: [],
+          dailyNetWorth: [],
+          dailyRevenue: [],
+          dailyExpenses: [],
+          dailyInterestPaid: [],
+          dailyInterestEarned: [],
+          dailyStandardProduction: [],
+          dailyCustomProduction: [],
+          dailyStandardWIP: [],
+          dailyCustomWIP: [],
+          dailyFinishedStandard: [],
+          dailyFinishedCustom: [],
+          dailyRawMaterial: [],
+          dailyRawMaterialOrders: [],
+          dailyRawMaterialCost: [],
+          dailyExperts: [],
+          dailyRookies: [],
+          dailyRookiesInTraining: [],
+          dailySalaryCost: [],
+          dailyMCECount: [],
+          dailyWMACount: [],
+          dailyPUCCount: [],
+          dailyStandardPrice: [],
+          dailyCustomPrice: [],
+          dailyCustomDeliveryTime: [],
+          actionsPerformed: []
+        }
+      };
+    }
+
+    // Build demand forecast from schedule (permanent from day X forward)
+    function buildDemandSchedule() {
+      const demandEntries = document.querySelectorAll('.demand-entry');
+      const schedule = [];
+
+      demandEntries.forEach(entry => {
+        const day = entry.querySelector('.demand-day').value;
+        const standardDemand = entry.querySelector('.demand-standard').value;
+        const customDemand = entry.querySelector('.demand-custom').value;
+
+        if (day && standardDemand !== '' && customDemand !== '') {
+          schedule.push({
+            day: parseInt(day),
+            standardDemand: parseInt(standardDemand),
+            customDemand: parseInt(customDemand)
+          });
+        }
+      });
+
+      // Sort by day
+      schedule.sort((a, b) => a.day - b.day);
+
+      // Build full forecast: for each day 51-500, find the most recent schedule entry
+      const fullForecast = [];
+      for (let day = 51; day <= 500; day++) {
+        // Find the most recent schedule entry that applies to this day
+        let applicableEntry = null;
+        for (const entry of schedule) {
+          if (entry.day <= day) {
+            applicableEntry = entry;
+          } else {
+            break; // Schedule is sorted, so we can stop
+          }
+        }
+
+        if (applicableEntry) {
+          fullForecast.push({
+            day,
+            standardDemand: applicableEntry.standardDemand,
+            customDemand: applicableEntry.customDemand
+          });
+        }
+      }
+
+      return fullForecast.length > 0 ? fullForecast : null;
     }
 
     async function startOptimization() {
@@ -443,34 +694,51 @@
       // Parse optional re-optimization parameters
       const requestData = { config };
 
-      // Use imported state if available
+      // Build starting state from form fields or use imported state
       if (importedState) {
         requestData.startingState = importedState;
         console.log('Using imported starting state from day:', importedState.currentDay);
-      }
+      } else {
+        // Check if user has modified any starting point fields from defaults
+        const startingDay = parseInt(document.getElementById('reopt_startingDay').value);
+        const cash = parseFloat(document.getElementById('reopt_cash').value);
+        const hasCustomStart = startingDay !== 51 || Math.abs(cash - 8206.12) > 0.01;
 
-      // Collect demand forecast entries
-      const demandEntries = document.querySelectorAll('.demand-entry');
-      const demandForecast = [];
-
-      demandEntries.forEach(entry => {
-        const day = entry.querySelector('.demand-day').value;
-        const standardDemand = entry.querySelector('.demand-standard').value;
-        const customDemand = entry.querySelector('.demand-custom').value;
-
-        if (day && standardDemand && customDemand) {
-          demandForecast.push({
-            day: parseInt(day),
-            standardDemand: parseInt(standardDemand),
-            customDemand: parseInt(customDemand)
-          });
+        if (hasCustomStart) {
+          requestData.startingState = buildStartingState();
+          console.log('Using custom starting state from day:', requestData.startingState.currentDay);
         }
-      });
-
-      if (demandForecast.length > 0) {
-        requestData.demandForecast = demandForecast;
-        console.log('Using custom demand forecast with', demandForecast.length, 'data points');
       }
+
+      // Build demand forecast from schedule
+      const demandForecast = buildDemandSchedule();
+      if (demandForecast) {
+        requestData.demandForecast = demandForecast;
+        console.log('Using custom demand schedule with', demandForecast.length, 'total days defined');
+      }
+
+      // Override GA config with strategy parameters if different from defaults
+      const reorderPoint = parseInt(document.getElementById('reopt_reorderPoint').value);
+      const orderQuantity = parseInt(document.getElementById('reopt_orderQuantity').value);
+      const batchSize = parseInt(document.getElementById('reopt_batchSize').value);
+      const mceAllocation = parseFloat(document.getElementById('reopt_mceAllocation').value) / 100; // Convert % to decimal
+      const standardPrice = parseInt(document.getElementById('reopt_standardPrice').value);
+      const customBasePrice = parseInt(document.getElementById('reopt_customBasePrice').value);
+      const customPenalty = parseInt(document.getElementById('reopt_customPenalty').value);
+      const customTarget = parseInt(document.getElementById('reopt_customTarget').value);
+
+      // Add strategy overrides to config (GA will use these as starting points/constraints)
+      config.strategyOverrides = {
+        reorderPoint,
+        orderQuantity,
+        standardBatchSize: batchSize,
+        mceAllocationCustom: mceAllocation,
+        standardPrice,
+        customBasePrice,
+        customPenaltyPerDay: customPenalty,
+        customTargetDeliveryDays: customTarget
+      };
+      console.log('Strategy parameter overrides:', config.strategyOverrides);
 
       try {
         const response = await fetch('/api/optimize', {
