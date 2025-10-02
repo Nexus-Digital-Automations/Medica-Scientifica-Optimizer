@@ -364,224 +364,96 @@
     <p class="subtitle">Genetic Algorithm Factory Optimization with Complete Transparency</p>
 
     <div class="controls">
-      <h3 style="margin-bottom: 1rem; color: #cbd5e1;">Genetic Algorithm Settings</h3>
-      <div class="control-group">
-        <div>
-          <label>Population Size</label>
-          <input type="number" id="populationSize" value="100" min="20" max="2000">
-        </div>
-        <div>
-          <label>Generations</label>
-          <input type="number" id="generations" value="200" min="50" max="1000">
-        </div>
-        <div>
-          <label>Mutation Rate</label>
-          <input type="number" id="mutationRate" value="0.05" min="0.01" max="0.5" step="0.01">
-        </div>
-        <div>
-          <label>Elite Count</label>
-          <input type="number" id="eliteCount" value="20" min="5" max="500">
+      <!-- Category 1: Optimizer Settings -->
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1.1rem;">🧬 Optimizer Settings</h3>
+        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">Configure the genetic algorithm parameters</p>
+        <div class="control-group">
+          <div>
+            <label>Population Size</label>
+            <input type="number" id="populationSize" value="100" min="20" max="2000">
+          </div>
+          <div>
+            <label>Generations</label>
+            <input type="number" id="generations" value="200" min="50" max="1000">
+          </div>
+          <div>
+            <label>Mutation Rate</label>
+            <input type="number" id="mutationRate" value="0.05" min="0.01" max="0.5" step="0.01">
+          </div>
+          <div>
+            <label>Elite Count</label>
+            <input type="number" id="eliteCount" value="20" min="5" max="500">
+          </div>
         </div>
       </div>
 
-      <h3 style="margin: 1.5rem 0 1rem; color: #cbd5e1;">
-        Re-Optimization Settings (Optional)
-        <span style="font-size: 0.8rem; font-weight: normal; color: #94a3b8; margin-left: 0.5rem;">All values pre-filled with defaults - modify as needed</span>
-      </h3>
+      <!-- Category 2: Environment Variables (Static and Required) -->
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1.1rem;">🌍 Environment Variables</h3>
+        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">Current state of your factory and demand forecast (static and required with defaults)</p>
 
-      <!-- Section A: Environment Parameters (Static) -->
-      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">🌍 Environment Parameters (Static)</h4>
-        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">The current state of your factory - these values are fixed and represent your starting conditions</p>
-        <div class="control-group">
+        <h4 style="margin: 1rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Current State</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
           <div>
-            <label>Starting Day</label>
+            <label style="font-size: 0.85rem;">Starting Day</label>
             <input type="number" id="reopt_startingDay" value="51" min="51" max="500">
           </div>
           <div>
-            <label>Cash ($)</label>
+            <label style="font-size: 0.85rem;">Cash ($)</label>
             <input type="number" id="reopt_cash" value="8206.12" step="0.01">
           </div>
           <div>
-            <label>Debt ($)</label>
+            <label style="font-size: 0.85rem;">Debt ($)</label>
             <input type="number" id="reopt_debt" value="70000" step="0.01" min="0">
           </div>
           <div>
-            <label>Raw Material (units)</label>
+            <label style="font-size: 0.85rem;">Raw Material</label>
             <input type="number" id="reopt_rawMaterial" value="0" min="0">
           </div>
-        </div>
-        <div class="control-group" style="margin-top: 0.5rem;">
           <div>
-            <label>MCE Machines</label>
+            <label style="font-size: 0.85rem;">MCE Machines</label>
             <input type="number" id="reopt_mce" value="1" min="0">
           </div>
           <div>
-            <label>WMA Machines</label>
+            <label style="font-size: 0.85rem;">WMA Machines</label>
             <input type="number" id="reopt_wma" value="1" min="0">
           </div>
           <div>
-            <label>PUC Machines</label>
+            <label style="font-size: 0.85rem;">PUC Machines</label>
             <input type="number" id="reopt_puc" value="1" min="0">
           </div>
           <div>
-            <label>Expert Workers</label>
+            <label style="font-size: 0.85rem;">Expert Workers</label>
             <input type="number" id="reopt_experts" value="1" min="0">
           </div>
-        </div>
-        <div class="control-group" style="margin-top: 0.5rem;">
           <div>
-            <label>Rookie Workers</label>
+            <label style="font-size: 0.85rem;">Rookie Workers</label>
             <input type="number" id="reopt_rookies" value="0" min="0">
           </div>
           <div>
-            <label>Finished Standard Units</label>
+            <label style="font-size: 0.85rem;">Finished Standard</label>
             <input type="number" id="reopt_finishedStandard" value="0" min="0">
           </div>
           <div>
-            <label>Finished Custom Units</label>
+            <label style="font-size: 0.85rem;">Finished Custom</label>
             <input type="number" id="reopt_finishedCustom" value="0" min="0">
           </div>
         </div>
-      </div>
 
-      <!-- Section B: Strategy Parameters (With Toggles) -->
-      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters</h4>
-        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">
-          Toggle each parameter: <span style="color: #a78bfa; font-weight: 600;">Variable</span> (GA can optimize) or <span style="color: #60a5fa; font-weight: 600;">Fixed</span> (GA must use exact value)
-        </p>
-        <!-- Row 1 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_reorderPoint">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_reorderPoint">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Reorder Point (units)</label>
-          </div>
-          <input type="number" id="reopt_reorderPoint" value="180" min="0" style="width: 150px;">
-        </div>
-
-        <!-- Row 2 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_orderQuantity">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_orderQuantity">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Order Quantity (units)</label>
-          </div>
-          <input type="number" id="reopt_orderQuantity" value="400" min="0" style="width: 150px;">
-        </div>
-
-        <!-- Row 3 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_batchSize">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_batchSize">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Standard Batch Size (units)</label>
-          </div>
-          <input type="number" id="reopt_batchSize" value="20" min="1" style="width: 150px;">
-        </div>
-
-        <!-- Row 4 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_mceAllocation">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_mceAllocation">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">MCE Allocation to Custom (%)</label>
-          </div>
-          <input type="number" id="reopt_mceAllocation" value="70" min="0" max="100" style="width: 150px;">
-        </div>
-
-        <!-- Row 5 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_standardPrice">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_standardPrice">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Standard Price ($)</label>
-          </div>
-          <input type="number" id="reopt_standardPrice" value="750" min="0" step="1" style="width: 150px;">
-        </div>
-
-        <!-- Row 6 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_customBasePrice">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_customBasePrice">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Custom Base Price ($)</label>
-          </div>
-          <input type="number" id="reopt_customBasePrice" value="1200" min="0" step="1" style="width: 150px;">
-        </div>
-
-        <!-- Row 7 -->
-        <div class="param-row" style="margin-bottom: 1rem;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_customPenalty">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_customPenalty">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Custom Penalty Per Day ($)</label>
-          </div>
-          <input type="number" id="reopt_customPenalty" value="10" min="0" step="1" style="width: 150px;">
-        </div>
-
-        <!-- Row 8 -->
-        <div class="param-row" style="margin-bottom: 0;">
-          <div class="param-label-with-toggle">
-            <label class="toggle-container" for="toggle_customTarget">
-              <input type="checkbox" class="toggle-checkbox" id="toggle_customTarget">
-              <span class="toggle-slider-new"></span>
-              <span class="toggle-state-label toggle-state-variable">Variable</span>
-              <span class="toggle-state-label toggle-state-fixed">Fixed</span>
-            </label>
-            <label style="margin: 0; color: #cbd5e1;">Custom Target Delivery (days)</label>
-          </div>
-          <input type="number" id="reopt_customTarget" value="10" min="1" style="width: 150px;">
-        </div>
-      </div>
-
-      <!-- Section C: Demand Schedule -->
-      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 1rem;">📈 Demand Schedule (Permanent Until Next Change)</h4>
-        <p style="margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.85rem;">Set demand levels that apply from a starting day forward until the next change. Default business case schedule pre-filled.</p>
-
+        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Demand Schedule (permanent from day X onward)</h4>
         <div id="demandScheduleEntries">
-          <!-- Default schedule entries -->
           <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
             <div>
               <label style="font-size: 0.85rem;">Starting Day</label>
               <input type="number" class="demand-day" value="51" min="51" max="500">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Standard Demand</label>
               <input type="number" class="demand-standard" value="10" min="0">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Custom Demand</label>
               <input type="number" class="demand-custom" value="5" min="0">
             </div>
             <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
@@ -592,11 +464,11 @@
               <input type="number" class="demand-day" value="172" min="51" max="500">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Standard Demand</label>
               <input type="number" class="demand-standard" value="50" min="0">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Custom Demand</label>
               <input type="number" class="demand-custom" value="20" min="0">
             </div>
             <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
@@ -607,18 +479,61 @@
               <input type="number" class="demand-day" value="269" min="51" max="500">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Standard Demand</label>
               <input type="number" class="demand-standard" value="47" min="0">
             </div>
             <div>
-              <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+              <label style="font-size: 0.85rem;">Custom Demand</label>
               <input type="number" class="demand-custom" value="19" min="0">
             </div>
             <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
           </div>
         </div>
-
         <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Demand Change</button>
+      </div>
+
+      <!-- Category 3: Policy Decisions (Always Variable, Optional, No Defaults) -->
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1.1rem;">⚙️ Policy Decisions</h3>
+        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">
+          Optional: Input your current policy decisions. If left blank, optimizer will explore all possibilities.
+          <span style="color: #a78bfa; font-weight: 600;">All policy parameters are variable and can be optimized by the GA.</span>
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.85rem;">Reorder Point (units)</label>
+            <input type="number" id="reopt_reorderPoint" placeholder="Optional" min="0">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Order Quantity (units)</label>
+            <input type="number" id="reopt_orderQuantity" placeholder="Optional" min="0">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Standard Batch Size (units)</label>
+            <input type="number" id="reopt_batchSize" placeholder="Optional" min="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">MCE Allocation to Custom (%)</label>
+            <input type="number" id="reopt_mceAllocation" placeholder="Optional" min="0" max="100">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Standard Price ($)</label>
+            <input type="number" id="reopt_standardPrice" placeholder="Optional" min="0" step="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Custom Base Price ($)</label>
+            <input type="number" id="reopt_customBasePrice" placeholder="Optional" min="0" step="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Custom Penalty Per Day ($)</label>
+            <input type="number" id="reopt_customPenalty" placeholder="Optional" min="0" step="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Custom Target Delivery (days)</label>
+            <input type="number" id="reopt_customTarget" placeholder="Optional" min="1">
+          </div>
+        </div>
       </div>
 
       <button id="startBtn" onclick="startOptimization()">🚀 Find Optimal Strategy</button>
@@ -874,50 +789,54 @@
         console.log('Using custom demand schedule with', demandForecast.length, 'total days defined');
       }
 
-      // Read strategy parameter values and toggle states
-      const strategyParams = {
-        reorderPoint: parseInt(document.getElementById('reopt_reorderPoint').value),
-        orderQuantity: parseInt(document.getElementById('reopt_orderQuantity').value),
-        standardBatchSize: parseInt(document.getElementById('reopt_batchSize').value),
-        mceAllocationCustom: parseFloat(document.getElementById('reopt_mceAllocation').value) / 100,
-        standardPrice: parseInt(document.getElementById('reopt_standardPrice').value),
-        customBasePrice: parseInt(document.getElementById('reopt_customBasePrice').value),
-        customPenaltyPerDay: parseInt(document.getElementById('reopt_customPenalty').value),
-        customTargetDeliveryDays: parseInt(document.getElementById('reopt_customTarget').value)
-      };
-
-      // Check which parameters are fixed (toggle checked) vs variable (toggle unchecked)
-      const fixedParams = {};
+      // Read policy decision values (all are variable and optional)
       const variableParams = {};
 
-      const paramMapping = {
-        'reorderPoint': 'reorderPoint',
-        'orderQuantity': 'orderQuantity',
-        'batchSize': 'standardBatchSize',
-        'mceAllocation': 'mceAllocationCustom',
-        'standardPrice': 'standardPrice',
-        'customBasePrice': 'customBasePrice',
-        'customPenalty': 'customPenaltyPerDay',
-        'customTarget': 'customTargetDeliveryDays'
-      };
+      const reorderPointVal = document.getElementById('reopt_reorderPoint').value;
+      const orderQuantityVal = document.getElementById('reopt_orderQuantity').value;
+      const batchSizeVal = document.getElementById('reopt_batchSize').value;
+      const mceAllocationVal = document.getElementById('reopt_mceAllocation').value;
+      const standardPriceVal = document.getElementById('reopt_standardPrice').value;
+      const customBasePriceVal = document.getElementById('reopt_customBasePrice').value;
+      const customPenaltyVal = document.getElementById('reopt_customPenalty').value;
+      const customTargetVal = document.getElementById('reopt_customTarget').value;
 
-      for (const [toggleId, paramKey] of Object.entries(paramMapping)) {
-        const isFixed = document.getElementById(`toggle_${toggleId}`).checked;
-        const value = strategyParams[paramKey];
-
-        if (isFixed) {
-          fixedParams[paramKey] = value;
-        } else {
-          variableParams[paramKey] = value;
-        }
+      // Only include policy decisions that have values (optional)
+      if (reorderPointVal !== '') {
+        variableParams.reorderPoint = parseInt(reorderPointVal);
+      }
+      if (orderQuantityVal !== '') {
+        variableParams.orderQuantity = parseInt(orderQuantityVal);
+      }
+      if (batchSizeVal !== '') {
+        variableParams.standardBatchSize = parseInt(batchSizeVal);
+      }
+      if (mceAllocationVal !== '') {
+        variableParams.mceAllocationCustom = parseFloat(mceAllocationVal) / 100;
+      }
+      if (standardPriceVal !== '') {
+        variableParams.standardPrice = parseInt(standardPriceVal);
+      }
+      if (customBasePriceVal !== '') {
+        variableParams.customBasePrice = parseInt(customBasePriceVal);
+      }
+      if (customPenaltyVal !== '') {
+        variableParams.customPenaltyPerDay = parseInt(customPenaltyVal);
+      }
+      if (customTargetVal !== '') {
+        variableParams.customTargetDeliveryDays = parseInt(customTargetVal);
       }
 
       // Add strategy configuration to config
-      config.fixedParams = fixedParams;
+      // No fixed params in new design - all policy decisions are variable
+      config.fixedParams = {};
       config.variableParams = variableParams;
 
-      console.log('Fixed parameters (hard constraints):', fixedParams);
-      console.log('Variable parameters (can be optimized):', variableParams);
+      if (Object.keys(variableParams).length > 0) {
+        console.log('Variable policy parameters (seeds for optimization):', variableParams);
+      } else {
+        console.log('No policy parameters specified - GA will explore all possibilities');
+      }
 
       try {
         const response = await fetch('/api/optimize', {
