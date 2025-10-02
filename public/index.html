@@ -524,11 +524,11 @@
         <div style="background: #1e293b; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem;">
           <h5 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.95rem;">Order Forecast Model</h5>
           <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
-            Stochastic order arrivals with demand shock on Day 172<br>
+            Three-phase demand pattern with gradual 46-day transition (Days 172-218)<br>
             <span style="color: #94a3b8; font-style: italic;">Predicts how many new custom orders arrive each day</span>
           </p>
           <div style="margin-bottom: 0.75rem;">
-            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 1 (Days 51-172)</p>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 1: Stable Low (Days 51-172)</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
               <div>
                 <label style="font-size: 0.85rem;">Mean Demand</label>
@@ -540,8 +540,15 @@
               </div>
             </div>
           </div>
+          <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: #0f172a; border-radius: 4px; border-left: 3px solid #3b82f6;">
+            <p style="margin: 0 0 0.25rem 0; font-size: 0.8rem; color: #60a5fa; font-weight: 600;">Phase 2: Transition (Days 172-218)</p>
+            <p style="margin: 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
+              Demand increases <strong>linearly</strong> from Phase 1 to Phase 3 values over 46 days.
+              Both mean and standard deviation interpolate automatically.
+            </p>
+          </div>
           <div>
-            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 2 (Days 173-400)</p>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #94a3b8;">Phase 3: Stable High (Days 218-400)</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
               <div>
                 <label style="font-size: 0.85rem;">Mean Demand</label>
