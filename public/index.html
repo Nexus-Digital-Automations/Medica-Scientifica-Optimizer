@@ -441,67 +441,25 @@
           </div>
         </div>
 
-        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Demand Schedule (permanent from day X onward)</h4>
+        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Custom Demand Schedule (Advanced - Optional)</h4>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.75rem; color: #64748b;">
+          Override custom demand on specific days. Standard demand always uses price-sensitive curve.
+        </p>
         <div id="demandScheduleEntries">
-          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
-            <div>
-              <label style="font-size: 0.85rem;">Starting Day</label>
-              <input type="number" class="demand-day" value="51" min="51" max="500">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Standard Demand</label>
-              <input type="number" class="demand-standard" value="10" min="0">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Custom Demand</label>
-              <input type="number" class="demand-custom" value="5" min="0">
-            </div>
-            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
-          </div>
-          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
-            <div>
-              <label style="font-size: 0.85rem;">Starting Day</label>
-              <input type="number" class="demand-day" value="172" min="51" max="500">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Standard Demand</label>
-              <input type="number" class="demand-standard" value="50" min="0">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Custom Demand</label>
-              <input type="number" class="demand-custom" value="20" min="0">
-            </div>
-            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
-          </div>
-          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
-            <div>
-              <label style="font-size: 0.85rem;">Starting Day</label>
-              <input type="number" class="demand-day" value="269" min="51" max="500">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Standard Demand</label>
-              <input type="number" class="demand-standard" value="47" min="0">
-            </div>
-            <div>
-              <label style="font-size: 0.85rem;">Custom Demand</label>
-              <input type="number" class="demand-custom" value="19" min="0">
-            </div>
-            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
-          </div>
         </div>
-        <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Demand Change</button>
+        <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Custom Demand Change</button>
 
         <!-- Standard Line Model -->
         <h4 style="margin: 1.5rem 0 0.3rem 0; color: #60a5fa; font-size: 1.15rem; font-weight: 600;">📊 Standard Line Model</h4>
         <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #94a3b8;">
-          High-volume product with price-sensitive demand
+          High-volume product with price-sensitive demand (NO phase changes or demand shocks)
         </p>
 
         <div style="background: #1e293b; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
           <h5 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.95rem;">Price Elasticity Model</h5>
           <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
             Linear demand curve: Q = Intercept + Slope × Price<br>
-            <span style="color: #94a3b8; font-style: italic;">Defines how many units customers buy at a given price</span>
+            <span style="color: #94a3b8; font-style: italic;">Defines how many units customers buy at a given price. Remains constant throughout simulation.</span>
           </p>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
             <div>
@@ -690,17 +648,13 @@
     function addDemandEntry() {
       const container = document.getElementById('demandScheduleEntries');
       const entryHtml = `
-        <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+        <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
           <div>
             <label style="font-size: 0.85rem;">Starting Day</label>
             <input type="number" class="demand-day" placeholder="e.g., 300" min="51" max="500">
           </div>
           <div>
-            <label style="font-size: 0.85rem;">Standard Demand (from this day on)</label>
-            <input type="number" class="demand-standard" placeholder="e.g., 40" min="0">
-          </div>
-          <div>
-            <label style="font-size: 0.85rem;">Custom Demand (from this day on)</label>
+            <label style="font-size: 0.85rem;">Custom Demand Override (from this day on)</label>
             <input type="number" class="demand-custom" placeholder="e.g., 15" min="0">
           </div>
           <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
@@ -790,19 +744,19 @@
     }
 
     // Build demand forecast from schedule (permanent from day X forward)
+    // Note: Only custom demand can be overridden - standard demand always uses price-sensitive curve
     function buildDemandSchedule() {
       const demandEntries = document.querySelectorAll('.demand-entry');
       const schedule = [];
 
       demandEntries.forEach(entry => {
         const day = entry.querySelector('.demand-day').value;
-        const standardDemand = entry.querySelector('.demand-standard').value;
         const customDemand = entry.querySelector('.demand-custom').value;
 
-        if (day && standardDemand !== '' && customDemand !== '') {
+        if (day && customDemand !== '') {
           schedule.push({
             day: parseInt(day),
-            standardDemand: parseInt(standardDemand),
+            standardDemand: null, // Always null - use price-sensitive curve
             customDemand: parseInt(customDemand)
           });
         }

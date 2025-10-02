@@ -59,7 +59,8 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
   // Phase 2 (Days 172-218): Linear increase transition period
   // Phase 3 (Days 218-400): Stable high demand
 
-  // STANDARD DEMAND: Price-sensitive throughout (linear demand curve)
+  // STANDARD DEMAND: Price-sensitive linear demand curve throughout entire simulation
+  // NO phase changes, NO demand shocks - remains constant formula: Q = intercept + slope × P
 
   // Phase 1: Days 51-172 - Stable baseline demand
   if (day <= 172) {
@@ -102,7 +103,7 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
   const baseCustomDemand = strategy.customDemandMean2; // Start from shock phase level
 
   return {
-    standard: standardDemand, // Price-sensitive demand throughout lifecycle
+    standard: standardDemand, // Price-sensitive demand - NO shocks or phase changes throughout lifecycle
     custom: Math.max(2, Math.floor(baseCustomDemand * Math.pow(declineRate, periods))),
   };
 }

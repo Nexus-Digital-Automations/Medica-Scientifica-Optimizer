@@ -70,6 +70,7 @@ function generateRandomStrategy(): Strategy {
     customDemandStdDev2: 6.5, // Phase 3 stable high standard deviation
 
     // FIXED STANDARD DEMAND CURVE (user input market conditions, NOT optimizable)
+    // NO phase changes or demand shocks - linear price-sensitive model throughout simulation
     standardDemandIntercept: 500, // Quantity demanded at price $0
     standardDemandSlope: -0.25, // Change in quantity per $1 price increase
 
