@@ -636,9 +636,10 @@
       </div>
 
       <div class="result-card">
-        <h2 style="text-align: center;">
-          <button class="export-btn-large" onclick="exportToCSV('complete')" style="width: 100%; padding: 1rem 2rem; font-size: 1.1rem;">📥 Export Complete Forecast CSV (All Days 51-500)</button>
+        <h2 style="text-align: center; margin-bottom: 0.5rem;">
+          <button class="export-btn-large" onclick="exportComprehensiveCSV()" style="width: 100%; padding: 1.5rem 2rem; font-size: 1.2rem; background: linear-gradient(135deg, #059669 0%, #047857 100%); font-weight: 700;">📊 Export COMPREHENSIVE CSV (All Days + All Metrics + Derived Financials)</button>
         </h2>
+        <p style="text-align: center; margin: 0; font-size: 0.85rem; color: #64748b; font-style: italic;">Includes: Daily data, recommended strategy, derived financial metrics, and action timeline</p>
       </div>
     </div>
   </div>
@@ -1481,23 +1482,62 @@
         csvContent += `#\n`;
         csvContent += `# ===============================================================================\n`;
         csvContent += `#\n`;
+        csvContent += `# DERIVED FINANCIAL METRICS (calculated per day):\n`;
+        csvContent += `#   Daily Profit = Revenue - Expenses - Interest Paid + Interest Earned\n`;
+        csvContent += `#   Cumulative Profit = Running sum of Daily Profit from day 51 onward\n`;
+        csvContent += `#   Profit Margin % = (Daily Profit / Revenue) × 100\n`;
+        csvContent += `#   Operating Cash Flow = Daily Profit (simplified)\n`;
+        csvContent += `#   Debt Ratio % = (Debt / (Cash + Debt)) × 100\n`;
+        csvContent += `#\n`;
         csvContent += `# DATA COLUMNS:\n`;
       }
 
-      // Create CSV header (add Actions column)
+      // Create CSV header (add derived financial metrics and Actions column)
       const headers = ['Day', ...allMetrics.map(m =>
         m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()
-      ), 'Action'];
+      ), 'Daily Profit', 'Cumulative Profit', 'Profit Margin %', 'Operating Cash Flow', 'Debt Ratio %', 'Action'];
       csvContent += headers.join(',') + '\n';
 
-      // Add data rows
+      // Add data rows with derived financial metrics
+      let cumulativeProfit = 0;
       filteredDays.forEach(dayItem => {
         const row = [dayItem.day];
+
+        // Get all basic metrics
+        const metrics = {};
         allMetrics.forEach(metric => {
           const dataPoint = globalHistory[metric].find(d => d.day === dayItem.day);
           const value = dataPoint?.value ?? 0;
+          metrics[metric] = value;
           row.push(typeof value === 'number' ? value.toFixed(2) : value);
         });
+
+        // Calculate derived financial metrics
+        const revenue = metrics.dailyRevenue || 0;
+        const expenses = metrics.dailyExpenses || 0;
+        const interestPaid = metrics.dailyInterestPaid || 0;
+        const interestEarned = metrics.dailyInterestEarned || 0;
+        const cash = metrics.dailyCash || 0;
+        const debt = metrics.dailyDebt || 0;
+
+        // Daily Profit = Revenue - Expenses - Interest Paid + Interest Earned
+        const dailyProfit = revenue - expenses - interestPaid + interestEarned;
+        cumulativeProfit += dailyProfit;
+
+        // Profit Margin % = (Daily Profit / Revenue) * 100
+        const profitMargin = revenue > 0 ? (dailyProfit / revenue) * 100 : 0;
+
+        // Operating Cash Flow = Daily Profit (simplified - actual OCF would include working capital changes)
+        const operatingCashFlow = dailyProfit;
+
+        // Debt Ratio % = (Debt / (Cash + Debt)) * 100
+        const debtRatio = (cash + debt) > 0 ? (debt / (cash + debt)) * 100 : 0;
+
+        row.push(dailyProfit.toFixed(2));
+        row.push(cumulativeProfit.toFixed(2));
+        row.push(profitMargin.toFixed(2));
+        row.push(operatingCashFlow.toFixed(2));
+        row.push(debtRatio.toFixed(2));
 
         // Add action for this day (if any)
         let actionDesc = '';
@@ -1734,6 +1774,163 @@
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
       link.setAttribute('download', 'medica-scientifica-action-timeline-comprehensive.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportComprehensiveCSV() {
+      if (!globalHistory || !globalBestStrategy) {
+        alert('No forecast data available. Please run optimization first.');
+        return;
+      }
+
+      const allMetrics = [
+        'dailyCash', 'dailyDebt', 'dailyNetWorth', 'dailyRevenue', 'dailyExpenses',
+        'dailyInterestPaid', 'dailyInterestEarned', 'dailyStandardProduction',
+        'dailyCustomProduction', 'dailyStandardWIP', 'dailyCustomWIP',
+        'dailyFinishedStandard', 'dailyFinishedCustom', 'dailyRawMaterial',
+        'dailyRawMaterialOrders', 'dailyRawMaterialCost', 'dailyExperts',
+        'dailyRookies', 'dailyRookiesInTraining', 'dailySalaryCost',
+        'dailyMCECount', 'dailyWMACount', 'dailyPUCCount', 'dailyStandardPrice',
+        'dailyCustomPrice', 'dailyCustomDeliveryTime'
+      ];
+
+      const allDays = globalHistory[allMetrics[0]].filter(d => d.day >= 51);
+      let csvContent = '';
+
+      // Add comprehensive metadata headers
+      if (globalConfig && globalRequestData) {
+        const timestamp = new Date().toISOString();
+        const startingState = globalRequestData.startingState;
+        const fixedParams = globalConfig.fixedParams;
+        const variableParams = globalConfig.variableParams;
+
+        csvContent += `# Medica Scientifica COMPREHENSIVE Optimization Results\n`;
+        csvContent += `# Generated: ${timestamp}\n`;
+        csvContent += `# Period: Complete Simulation (Days 51-500)\n`;
+        csvContent += `#\n`;
+        csvContent += `# OPTIMIZER CONFIGURATION:\n`;
+        csvContent += `# Population: ${globalConfig.populationSize}, Generations: ${globalConfig.generations}, Mutation Rate: ${(globalConfig.mutationRate * 100).toFixed(1)}%, Elite Count: ${globalConfig.eliteCount}\n`;
+        csvContent += `#\n`;
+        csvContent += `# MARKET MODEL (FIXED ENVIRONMENT):\n`;
+        csvContent += `# Custom Base Price: $${fixedParams.customBasePrice.toFixed(2)}, Target Delivery: ${fixedParams.customTargetDeliveryDays} days, Penalty Per Day: $${fixedParams.customPenaltyPerDay.toFixed(2)}\n`;
+        csvContent += `# Standard Demand Intercept: ${globalBestStrategy.standardDemandIntercept}, Slope: ${globalBestStrategy.standardDemandSlope}\n`;
+        csvContent += `#\n`;
+        csvContent += `# STARTING STATE:\n`;
+        csvContent += `# Day: ${startingState ? startingState.currentDay : 51}, Cash: $${startingState ? startingState.cash.toFixed(2) : '8206.12'}, Debt: $${startingState ? startingState.debt.toFixed(2) : '70000.00'}\n`;
+        csvContent += `# Machines: MCE=${startingState ? startingState.machines.MCE : 1}, WMA=${startingState ? startingState.machines.WMA : 1}, PUC=${startingState ? startingState.machines.PUC : 1}\n`;
+        csvContent += `# Workforce: Experts=${startingState ? startingState.workforce.experts : 1}, Rookies=${startingState ? startingState.workforce.rookies : 0}\n`;
+        csvContent += `#\n`;
+        csvContent += `# ===== RECOMMENDED STRATEGY (OPTIMAL PARAMETERS FOUND BY GENETIC ALGORITHM) =====\n`;
+        csvContent += `#\n`;
+        csvContent += `# INVENTORY MANAGEMENT POLICY:\n`;
+        csvContent += `#   Reorder Point: ${globalBestStrategy.reorderPoint} units (when to trigger raw material order)\n`;
+        csvContent += `#   Order Quantity: ${globalBestStrategy.orderQuantity} units (how much to order each time)\n`;
+        csvContent += `#\n`;
+        csvContent += `# PRODUCTION POLICY:\n`;
+        csvContent += `#   Standard Batch Size: ${globalBestStrategy.standardBatchSize} units (production lot size)\n`;
+        csvContent += `#   MCE Allocation to Custom: ${(globalBestStrategy.mceAllocationCustom * 100).toFixed(1)}% (${globalBestStrategy.mceAllocationCustom.toFixed(2)} decimal)\n`;
+        csvContent += `#   MCE Allocation to Standard: ${((1 - globalBestStrategy.mceAllocationCustom) * 100).toFixed(1)}%\n`;
+        csvContent += `#\n`;
+        csvContent += `# PRICING & LABOR POLICY:\n`;
+        csvContent += `#   Standard Product Price: $${globalBestStrategy.standardPrice} per unit\n`;
+        csvContent += `#   Daily Overtime Hours: ${globalBestStrategy.dailyOvertimeHours} hours (0-4 hours range)\n`;
+        csvContent += `#\n`;
+        csvContent += `# DEMAND MODEL PARAMETERS (MARKET CONDITIONS - NOT OPTIMIZABLE):\n`;
+        csvContent += `#   Custom Demand Phase 1 (Days 51-172): Mean=${globalBestStrategy.customDemandMean1}, StdDev=${globalBestStrategy.customDemandStdDev1}\n`;
+        csvContent += `#   Custom Demand Phase 2 (Days 172-218): Linear transition period\n`;
+        csvContent += `#   Custom Demand Phase 3 (Days 218-400): Mean=${globalBestStrategy.customDemandMean2}, StdDev=${globalBestStrategy.customDemandStdDev2}\n`;
+        csvContent += `#\n`;
+        csvContent += `# TIMED POLICY ADJUSTMENTS:\n`;
+        csvContent += `#   Total Actions: ${globalBestStrategy.timedActions.length} strategic adjustments scheduled\n`;
+        const actionBreakdown = {};
+        globalBestStrategy.timedActions.forEach(a => {
+          actionBreakdown[a.type] = (actionBreakdown[a.type] || 0) + 1;
+        });
+        Object.entries(actionBreakdown).forEach(([type, count]) => {
+          csvContent += `#     ${type}: ${count} action(s)\n`;
+        });
+        csvContent += `#\n`;
+        csvContent += `# ===============================================================================\n`;
+        csvContent += `#\n`;
+        csvContent += `# DERIVED FINANCIAL METRICS (calculated per day):\n`;
+        csvContent += `#   Daily Profit = Revenue - Expenses - Interest Paid + Interest Earned\n`;
+        csvContent += `#   Cumulative Profit = Running sum of Daily Profit from day 51 onward\n`;
+        csvContent += `#   Profit Margin % = (Daily Profit / Revenue) × 100\n`;
+        csvContent += `#   Operating Cash Flow = Daily Profit (simplified)\n`;
+        csvContent += `#   Debt Ratio % = (Debt / (Cash + Debt)) × 100\n`;
+        csvContent += `#\n`;
+        csvContent += `# DATA COLUMNS (26 base metrics + 5 derived financial metrics + actions):\n`;
+      }
+
+      // Create comprehensive CSV header
+      const headers = ['Day', ...allMetrics.map(m =>
+        m.replace('daily', '').replace(/([A-Z])/g, ' $1').trim()
+      ), 'Daily Profit', 'Cumulative Profit', 'Profit Margin %', 'Operating Cash Flow', 'Debt Ratio %', 'Action'];
+      csvContent += headers.join(',') + '\n';
+
+      // Add all data rows with derived financial metrics
+      let cumulativeProfit = 0;
+      allDays.forEach(dayItem => {
+        const row = [dayItem.day];
+
+        // Get all basic metrics
+        const metrics = {};
+        allMetrics.forEach(metric => {
+          const dataPoint = globalHistory[metric].find(d => d.day === dayItem.day);
+          const value = dataPoint?.value ?? 0;
+          metrics[metric] = value;
+          row.push(typeof value === 'number' ? value.toFixed(2) : value);
+        });
+
+        // Calculate derived financial metrics
+        const revenue = metrics.dailyRevenue || 0;
+        const expenses = metrics.dailyExpenses || 0;
+        const interestPaid = metrics.dailyInterestPaid || 0;
+        const interestEarned = metrics.dailyInterestEarned || 0;
+        const cash = metrics.dailyCash || 0;
+        const debt = metrics.dailyDebt || 0;
+
+        const dailyProfit = revenue - expenses - interestPaid + interestEarned;
+        cumulativeProfit += dailyProfit;
+        const profitMargin = revenue > 0 ? (dailyProfit / revenue) * 100 : 0;
+        const operatingCashFlow = dailyProfit;
+        const debtRatio = (cash + debt) > 0 ? (debt / (cash + debt)) * 100 : 0;
+
+        row.push(dailyProfit.toFixed(2));
+        row.push(cumulativeProfit.toFixed(2));
+        row.push(profitMargin.toFixed(2));
+        row.push(operatingCashFlow.toFixed(2));
+        row.push(debtRatio.toFixed(2));
+
+        // Add action for this day (if any)
+        let actionDesc = '';
+        const action = globalBestStrategy.timedActions.find(a => a.day === dayItem.day);
+        if (action) {
+          switch(action.type) {
+            case 'TAKE_LOAN': actionDesc = `Take loan of $${action.amount}`; break;
+            case 'HIRE_ROOKIE': actionDesc = `Hire ${action.count} rookie(s)`; break;
+            case 'BUY_MACHINE': actionDesc = `Buy ${action.count} ${action.machineType} machine(s)`; break;
+            case 'ORDER_MATERIALS': actionDesc = `Order ${action.quantity} units of raw materials`; break;
+            case 'ADJUST_PRICE': actionDesc = `Adjust ${action.productType} price to $${action.newPrice}`; break;
+            case 'ADJUST_MCE_ALLOCATION': actionDesc = `Adjust MCE allocation to ${(action.newAllocation * 100).toFixed(1)}% custom`; break;
+            case 'ADJUST_BATCH_SIZE': actionDesc = `Adjust standard batch size to ${action.newSize} units`; break;
+            default: actionDesc = action.type;
+          }
+        }
+        row.push(`"${actionDesc}"`);
+
+        csvContent += row.join(',') + '\n';
+      });
+
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'medica-scientifica-comprehensive-export.csv');
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
