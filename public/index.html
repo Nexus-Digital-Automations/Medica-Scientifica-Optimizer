@@ -1259,6 +1259,15 @@
           case 'HIRE_ROOKIE': desc = `Hire ${action.count} rookie(s)`; break;
           case 'BUY_MACHINE': desc = `Buy ${action.count} ${action.machineType} machine(s)`; break;
           case 'ORDER_MATERIALS': desc = `Order ${action.quantity} units of raw materials`; break;
+          case 'ADJUST_PRICE':
+            desc = `Adjust ${action.productType} price to $${action.newPrice}`;
+            break;
+          case 'ADJUST_MCE_ALLOCATION':
+            desc = `Adjust MCE allocation to ${(action.newAllocation * 100).toFixed(1)}% custom`;
+            break;
+          case 'ADJUST_BATCH_SIZE':
+            desc = `Adjust standard batch size to ${action.newSize} units`;
+            break;
           default: desc = action.type;
         }
         return `<div class="action-item"><span class="action-day">Day ${action.day}:</span>${desc}</div>`;
@@ -1502,6 +1511,9 @@
               case 'HIRE_ROOKIE': actionDesc = `Hire ${action.count} rookie(s)`; break;
               case 'BUY_MACHINE': actionDesc = `Buy ${action.count} ${action.machineType} machine(s)`; break;
               case 'ORDER_MATERIALS': actionDesc = `Order ${action.quantity} units of raw materials`; break;
+              case 'ADJUST_PRICE': actionDesc = `Adjust ${action.productType} price to $${action.newPrice}`; break;
+              case 'ADJUST_MCE_ALLOCATION': actionDesc = `Adjust MCE allocation to ${(action.newAllocation * 100).toFixed(1)}% custom`; break;
+              case 'ADJUST_BATCH_SIZE': actionDesc = `Adjust standard batch size to ${action.newSize} units`; break;
               default: actionDesc = action.type;
             }
           }
@@ -1576,6 +1588,18 @@
           case 'ORDER_MATERIALS':
             desc = `Order ${action.quantity} units of raw materials`;
             details = action.quantity;
+            break;
+          case 'ADJUST_PRICE':
+            desc = `Adjust ${action.productType} price to $${action.newPrice}`;
+            details = `${action.productType}:${action.newPrice}`;
+            break;
+          case 'ADJUST_MCE_ALLOCATION':
+            desc = `Adjust MCE allocation to ${(action.newAllocation * 100).toFixed(1)}% custom`;
+            details = action.newAllocation.toFixed(3);
+            break;
+          case 'ADJUST_BATCH_SIZE':
+            desc = `Adjust standard batch size to ${action.newSize} units`;
+            details = action.newSize;
             break;
           default:
             desc = action.type;

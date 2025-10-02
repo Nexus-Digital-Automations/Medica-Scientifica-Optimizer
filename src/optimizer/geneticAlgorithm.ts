@@ -81,12 +81,14 @@ function generateRandomStrategy(): Strategy {
 
 /**
  * Generates random timed actions for strategy DNA
+ * Now includes policy adjustment actions for adaptive optimization
  */
 function generateRandomTimedActions(): StrategyAction[] {
   const actions: StrategyAction[] = [];
-  const numActions = Math.floor(Math.random() * 10) + 3; // 3-12 actions
 
-  for (let i = 0; i < numActions; i++) {
+  // Generate resource acquisition actions (loans, hiring, machines, materials)
+  const numResourceActions = Math.floor(Math.random() * 10) + 3; // 3-12 actions
+  for (let i = 0; i < numResourceActions; i++) {
     const day = Math.floor(Math.random() * (CONSTANTS.SIMULATION_END_DAY - CONSTANTS.SIMULATION_START_DAY)) +
       CONSTANTS.SIMULATION_START_DAY;
 
@@ -122,6 +124,89 @@ function generateRandomTimedActions(): StrategyAction[] {
         type: 'ORDER_MATERIALS',
         quantity: Math.floor(Math.random() * 500) + 200,
       });
+    }
+  }
+
+  // ADAPTIVE POLICY ADJUSTMENTS - Enable optimizer to change policies across THREE strategic periods
+  // Period 1: Days 160-185 (Demand Shock - custom demand increases)
+  // Period 2: Days 450-465 (Runoff Start - final wind-down begins)
+  // Period 3: Days 75-450 (Active Management - random optimization opportunities)
+
+  if (Math.random() < 0.8) { // 80% chance to include policy adjustments
+    const numPolicyAdjustments = Math.floor(Math.random() * 4) + 2; // 2-5 adjustments
+
+    for (let i = 0; i < numPolicyAdjustments; i++) {
+      // Strategic period selection with proper bias
+      let adjustmentDay: number;
+      let isRunoffPeriod = false;
+      const periodChoice = Math.random();
+
+      if (periodChoice < 0.35) {
+        // 35% - Demand shock period (Days 160-185)
+        adjustmentDay = Math.floor(Math.random() * 26) + 160;
+      } else if (periodChoice < 0.65) {
+        // 30% - Runoff start period (Days 450-465)
+        adjustmentDay = Math.floor(Math.random() * 16) + 450;
+        isRunoffPeriod = true;
+      } else {
+        // 35% - Random throughout active management (Days 75-450)
+        adjustmentDay = Math.floor(Math.random() * 376) + 75;
+      }
+
+      // Period-aware policy selection
+      const policyType = Math.random();
+
+      if (isRunoffPeriod) {
+        // Runoff period: Prioritize liquidation and capacity reduction
+        if (policyType < 0.5) {
+          // 50% - Adjust Standard Price (aggressive liquidation pricing)
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_PRICE',
+            productType: 'standard',
+            newPrice: Math.floor(Math.random() * 300) + 500, // $500-$800 (lower for liquidation)
+          });
+        } else if (policyType < 0.85) {
+          // 35% - Adjust MCE Allocation (reduce custom as backlog clears)
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_MCE_ALLOCATION',
+            newAllocation: Math.random() * 0.4 + 0.2, // 20%-60% to custom (lower range)
+          });
+        } else {
+          // 15% - Adjust Batch Size (minimize end-of-period waste)
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_BATCH_SIZE',
+            newSize: Math.floor(Math.random() * 15) + 5, // 5-20 units (smaller batches)
+          });
+        }
+      } else {
+        // Active management periods: All policy types equally valuable
+        if (policyType < 0.35) {
+          // 35% - Adjust Standard Price
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_PRICE',
+            productType: 'standard',
+            newPrice: Math.floor(Math.random() * 400) + 600, // $600-$1000
+          });
+        } else if (policyType < 0.65) {
+          // 30% - Adjust MCE Allocation
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_MCE_ALLOCATION',
+            newAllocation: Math.random() * 0.5 + 0.5, // 50%-100% to custom
+          });
+        } else {
+          // 35% - Adjust Batch Size
+          actions.push({
+            day: adjustmentDay,
+            type: 'ADJUST_BATCH_SIZE',
+            newSize: Math.floor(Math.random() * 30) + 10, // 10-40 units
+          });
+        }
+      }
     }
   }
 
@@ -235,6 +320,12 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
           action.count = Math.floor(Math.random() * 4) + 1; // 1-4 rookies
         } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
           action.quantity = Math.floor(Math.random() * 700) + 200; // 200-900 units
+        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+          action.newPrice = Math.floor(Math.random() * 400) + 600; // $600-$1000
+        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+          action.newAllocation = Math.random() * 0.5 + 0.5; // 50%-100% to custom
+        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+          action.newSize = Math.floor(Math.random() * 30) + 10; // 10-40 units
         }
 
         mutated.timedActions.sort((a, b) => a.day - b.day);
@@ -264,6 +355,16 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
           const variation = action.quantity * 0.3;
           action.quantity = Math.floor(action.quantity + (Math.random() * variation * 2 - variation));
           action.quantity = Math.max(100, Math.min(1000, action.quantity));
+        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+          const variation = action.newPrice * 0.3;
+          action.newPrice = Math.floor(action.newPrice + (Math.random() * variation * 2 - variation));
+          action.newPrice = Math.max(500, Math.min(1200, action.newPrice));
+        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+          action.newAllocation += (Math.random() - 0.5) * 0.2; // ±10% variation
+          action.newAllocation = Math.max(0.3, Math.min(1.0, action.newAllocation));
+        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+          action.newSize += Math.floor(Math.random() * 11) - 5; // ±5 units
+          action.newSize = Math.max(5, Math.min(50, action.newSize));
         }
 
         mutated.timedActions.sort((a, b) => a.day - b.day);
