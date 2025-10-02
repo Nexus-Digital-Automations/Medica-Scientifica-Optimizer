@@ -48,24 +48,30 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
 
   // Default business case demand curve (data-driven model using strategy parameters)
 
+  // Calculate standard demand using linear demand curve: Q = intercept + slope * P
+  const standardDemand = Math.max(
+    0,
+    Math.round(strategy.standardDemandIntercept + strategy.standardDemandSlope * strategy.standardPrice)
+  );
+
   // Days 51-172: Baseline demand phase
   // Custom: Normal distribution using strategy parameters for phase 1
-  // Standard: Unlimited (production-constrained, not market-constrained)
+  // Standard: Linear demand curve based on price
   if (day < 173) {
     const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean1, strategy.customDemandStdDev1));
     return {
-      standard: 999999, // Effectively unlimited - can sell everything produced
+      standard: standardDemand,
       custom: customDemand,
     };
   }
 
   // Days 173-400: Demand shock phase
   // Custom: Normal distribution using strategy parameters for phase 2
-  // Standard: Still unlimited
+  // Standard: Linear demand curve based on price
   if (day <= 400) {
     const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean2, strategy.customDemandStdDev2));
     return {
-      standard: 999999, // Effectively unlimited - can sell everything produced
+      standard: standardDemand,
       custom: customDemand,
     };
   }
@@ -78,7 +84,7 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
   const baseCustomDemand = strategy.customDemandMean2; // Start from shock phase level
 
   return {
-    standard: 999999, // Unlimited until final shutdown
+    standard: standardDemand, // Price-sensitive demand throughout lifecycle
     custom: Math.max(2, Math.floor(baseCustomDemand * Math.pow(declineRate, periods))),
   };
 }

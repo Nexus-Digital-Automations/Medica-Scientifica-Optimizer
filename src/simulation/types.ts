@@ -160,6 +160,10 @@ export interface Strategy {
   customDemandMean2: number;     // Phase 2 (days 173-400) mean demand
   customDemandStdDev2: number;   // Phase 2 standard deviation
 
+  // Standard Product Demand Curve (linear: Q = intercept + slope * P)
+  standardDemandIntercept: number;  // Quantity demanded at price $0
+  standardDemandSlope: number;      // Change in quantity per $1 price increase (negative)
+
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];
 }

@@ -29,6 +29,8 @@ export interface StrategyOverrides {
   customDemandStdDev1?: number;
   customDemandMean2?: number;
   customDemandStdDev2?: number;
+  standardDemandIntercept?: number;
+  standardDemandSlope?: number;
 }
 
 export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
@@ -61,6 +63,10 @@ function generateRandomStrategy(): Strategy {
     customDemandStdDev1: 5, // Phase 1 standard deviation
     customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand
     customDemandStdDev2: 6.5, // Phase 2 standard deviation
+
+    // FIXED STANDARD DEMAND CURVE (user input market conditions, NOT optimizable)
+    standardDemandIntercept: 500, // Quantity demanded at price $0
+    standardDemandSlope: -0.25, // Change in quantity per $1 price increase
 
     timedActions: generateRandomTimedActions(),
   };
@@ -140,6 +146,10 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
     customDemandStdDev1: 5,
     customDemandMean2: 32.5,
     customDemandStdDev2: 6.5,
+
+    // FIXED standard demand curve (user input, NOT crossed over)
+    standardDemandIntercept: 500,
+    standardDemandSlope: -0.25,
 
     // Mix timed actions (take some from each parent)
     timedActions: [
@@ -278,6 +288,8 @@ function generateConstrainedStrategy(
     customDemandStdDev1: fixedParams?.customDemandStdDev1 ?? (variableParams?.customDemandStdDev1 ?? base.customDemandStdDev1),
     customDemandMean2: fixedParams?.customDemandMean2 ?? (variableParams?.customDemandMean2 ?? base.customDemandMean2),
     customDemandStdDev2: fixedParams?.customDemandStdDev2 ?? (variableParams?.customDemandStdDev2 ?? base.customDemandStdDev2),
+    standardDemandIntercept: fixedParams?.standardDemandIntercept ?? (variableParams?.standardDemandIntercept ?? base.standardDemandIntercept),
+    standardDemandSlope: fixedParams?.standardDemandSlope ?? (variableParams?.standardDemandSlope ?? base.standardDemandSlope),
     timedActions: base.timedActions,
   };
 }
@@ -299,6 +311,12 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
     customBasePrice: fixedParams.customBasePrice ?? strategy.customBasePrice,
     customPenaltyPerDay: fixedParams.customPenaltyPerDay ?? strategy.customPenaltyPerDay,
     customTargetDeliveryDays: fixedParams.customTargetDeliveryDays ?? strategy.customTargetDeliveryDays,
+    customDemandMean1: fixedParams.customDemandMean1 ?? strategy.customDemandMean1,
+    customDemandStdDev1: fixedParams.customDemandStdDev1 ?? strategy.customDemandStdDev1,
+    customDemandMean2: fixedParams.customDemandMean2 ?? strategy.customDemandMean2,
+    customDemandStdDev2: fixedParams.customDemandStdDev2 ?? strategy.customDemandStdDev2,
+    standardDemandIntercept: fixedParams.standardDemandIntercept ?? strategy.standardDemandIntercept,
+    standardDemandSlope: fixedParams.standardDemandSlope ?? strategy.standardDemandSlope,
   };
 }
 

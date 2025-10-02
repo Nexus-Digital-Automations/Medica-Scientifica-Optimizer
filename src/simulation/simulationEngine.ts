@@ -84,8 +84,48 @@ function calculateInventoryWriteOff(state: SimulationState): number {
  * Executes timed actions for the current day
  */
 function executeTimedActions(state: SimulationState, strategy: Strategy): StrategyAction[] {
-  const actionsToday = strategy.timedActions.filter((action) => action.day === state.currentDay);
+  let actionsToday = strategy.timedActions.filter((action) => action.day === state.currentDay);
   const executedActions: StrategyAction[] = [];
+
+  // Merge TAKE_LOAN actions on the same day into a single loan
+  const totalLoanAmount = actionsToday
+    .filter((a): a is import('./types.js').TakeLoanAction => a.type === 'TAKE_LOAN')
+    .reduce((sum, a) => sum + a.amount, 0);
+
+  if (totalLoanAmount > 0) {
+    actionsToday = actionsToday.filter((a) => a.type !== 'TAKE_LOAN');
+    actionsToday.push({ day: state.currentDay, type: 'TAKE_LOAN', amount: totalLoanAmount });
+  }
+
+  // Merge HIRE_ROOKIE actions on the same day
+  const totalRookiesToHire = actionsToday
+    .filter((a): a is import('./types.js').HireRookieAction => a.type === 'HIRE_ROOKIE')
+    .reduce((sum, a) => sum + a.count, 0);
+
+  if (totalRookiesToHire > 0) {
+    actionsToday = actionsToday.filter((a) => a.type !== 'HIRE_ROOKIE');
+    actionsToday.push({ day: state.currentDay, type: 'HIRE_ROOKIE', count: totalRookiesToHire });
+  }
+
+  // Merge HIRE_EXPERT actions on the same day
+  const totalExpertsToHire = actionsToday
+    .filter((a): a is import('./types.js').HireExpertAction => a.type === 'HIRE_EXPERT')
+    .reduce((sum, a) => sum + a.count, 0);
+
+  if (totalExpertsToHire > 0) {
+    actionsToday = actionsToday.filter((a) => a.type !== 'HIRE_EXPERT');
+    actionsToday.push({ day: state.currentDay, type: 'HIRE_EXPERT', count: totalExpertsToHire });
+  }
+
+  // Merge ORDER_MATERIALS actions on the same day
+  const totalMaterialsToOrder = actionsToday
+    .filter((a): a is import('./types.js').OrderMaterialsAction => a.type === 'ORDER_MATERIALS')
+    .reduce((sum, a) => sum + a.quantity, 0);
+
+  if (totalMaterialsToOrder > 0) {
+    actionsToday = actionsToday.filter((a) => a.type !== 'ORDER_MATERIALS');
+    actionsToday.push({ day: state.currentDay, type: 'ORDER_MATERIALS', quantity: totalMaterialsToOrder });
+  }
 
   for (const action of actionsToday) {
     switch (action.type) {

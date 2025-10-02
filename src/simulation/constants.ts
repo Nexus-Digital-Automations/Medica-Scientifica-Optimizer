@@ -168,6 +168,10 @@ export const DEFAULT_STRATEGY: Strategy = {
   customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand - 30% increase
   customDemandStdDev2: 6.5, // Phase 2 standard deviation
 
+  // Standard Product Demand Curve (linear: Q = intercept + slope * P)
+  standardDemandIntercept: 500, // Theoretical demand at price $0
+  standardDemandSlope: -0.25, // Lose 1 unit demand per $4 price increase
+
   // Timed Actions (will be evolved by genetic algorithm)
   timedActions: [],
 };

@@ -540,6 +540,21 @@
             </div>
           </div>
         </div>
+
+        <h4 style="margin: 1.5rem 0 0.5rem 0; color: #94a3b8; font-size: 0.95rem;">Standard Product Demand Curve (Linear: Q = Intercept + Slope × Price)</h4>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; color: #64748b;">
+          Define the linear demand curve for standard products - how quantity sold responds to price changes (Q = Intercept + Slope × Price)
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.85rem;">Demand Intercept (Q at P=$0)</label>
+            <input type="number" id="env_standardDemandIntercept" value="500" min="0" step="1">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Demand Slope (ΔQ per $1)</label>
+            <input type="number" id="env_standardDemandSlope" value="-0.25" max="0" step="0.01">
+          </div>
+        </div>
       </div>
 
       <!-- Category 3: Policy Decisions (Always Variable, Optional, No Defaults) -->
@@ -841,7 +856,9 @@
         customDemandMean1: parseFloat(document.getElementById('env_demandMean1').value) || 25,
         customDemandStdDev1: parseFloat(document.getElementById('env_demandStdDev1').value) || 5,
         customDemandMean2: parseFloat(document.getElementById('env_demandMean2').value) || 32.5,
-        customDemandStdDev2: parseFloat(document.getElementById('env_demandStdDev2').value) || 6.5
+        customDemandStdDev2: parseFloat(document.getElementById('env_demandStdDev2').value) || 6.5,
+        standardDemandIntercept: parseFloat(document.getElementById('env_standardDemandIntercept').value) || 500,
+        standardDemandSlope: parseFloat(document.getElementById('env_standardDemandSlope').value) || -0.25
       };
 
       // Read policy decision values (all are variable and optional)
@@ -1027,7 +1044,7 @@
               <div class="metric-value">$${fixedParams.customPenaltyPerDay.toFixed(2)}</div>
             </div>
           </div>
-          <h3 style="color: #60a5fa; margin: 1rem 0 0.75rem 0; font-size: 1rem;">Demand Model Parameters (Fixed)</h3>
+          <h3 style="color: #60a5fa; margin: 1rem 0 0.75rem 0; font-size: 1rem;">Custom Demand Model Parameters (Fixed)</h3>
           <div class="metric-grid">
             <div class="metric">
               <div class="metric-label">Phase 1 Mean (Days 51-172)</div>
@@ -1044,6 +1061,17 @@
             <div class="metric">
               <div class="metric-label">Phase 2 Std Dev</div>
               <div class="metric-value">${fixedParams.customDemandStdDev2}</div>
+            </div>
+          </div>
+          <h3 style="color: #60a5fa; margin: 1rem 0 0.75rem 0; font-size: 1rem;">Standard Demand Curve (Fixed)</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Demand Intercept</div>
+              <div class="metric-value">${fixedParams.standardDemandIntercept}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Demand Slope</div>
+              <div class="metric-value">${fixedParams.standardDemandSlope}</div>
             </div>
           </div>
         </div>
