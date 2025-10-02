@@ -1,10 +1,15 @@
 /**
  * HR Module - Handles workforce management with full type safety
- * Manages hiring, training, promotions, and salary calculations
+ * Manages hiring, training, promotions, salary calculations, and employee turnover
+ * Includes data-driven quit risk model for sustained overtime
  */
 
-import type { SimulationState } from './types.js';
+import type { SimulationState, EmployeeOvertimeRecord } from './types.js';
 import { CONSTANTS } from './constants.js';
+
+// Quit risk constants (data-driven estimates)
+const OVERTIME_TRIGGER_DAYS = 5; // Consecutive days before quit risk activates
+const QUIT_PROBABILITY_AFTER_TRIGGER = 0.1; // 10% chance per day after trigger
 
 export interface HireResult {
   type: 'ROOKIE' | 'EXPERT';
@@ -70,6 +75,13 @@ export function hireRookie(state: SimulationState): HireResult {
     daysRemaining: CONSTANTS.ROOKIE_TRAINING_TIME,
   });
 
+  // Initialize overtime tracking for new employee
+  state.workforce.employeeOvertimeTracking.push({
+    employeeId: `rookie-${state.currentDay}-${state.workforce.rookies}`,
+    employeeType: 'rookie',
+    consecutiveOvertimeDays: 0,
+  });
+
   return {
     type: 'ROOKIE',
     hireDay: state.currentDay,
@@ -83,6 +95,13 @@ export function hireRookie(state: SimulationState): HireResult {
  */
 export function hireExpert(state: SimulationState): HireResult {
   state.workforce.experts += 1;
+
+  // Initialize overtime tracking for new employee
+  state.workforce.employeeOvertimeTracking.push({
+    employeeId: `expert-${state.currentDay}-${state.workforce.experts}`,
+    employeeType: 'expert',
+    consecutiveOvertimeDays: 0,
+  });
 
   return {
     type: 'EXPERT',
@@ -212,4 +231,56 @@ export function checkWorkforceCapacity(state: SimulationState, requiredProductiv
     shortfall: Math.max(0, requiredProductivity - current.totalProductivity),
     utilizationRate: requiredProductivity > 0 ? current.totalProductivity / requiredProductivity : 1,
   };
+}
+
+/**
+ * Updates overtime tracking for employees working overtime
+ * Call this when employees work overtime (implementation dependent on production module)
+ */
+export function trackOvertime(state: SimulationState, workedOvertime: boolean): void {
+  if (workedOvertime) {
+    // Increment consecutive overtime days for all employees
+    state.workforce.employeeOvertimeTracking.forEach((record) => {
+      record.consecutiveOvertimeDays += 1;
+    });
+  } else {
+    // Reset overtime tracking for all employees (no overtime worked)
+    state.workforce.employeeOvertimeTracking.forEach((record) => {
+      record.consecutiveOvertimeDays = 0;
+    });
+  }
+}
+
+/**
+ * Processes employee quit risk based on sustained overtime
+ * Data-driven model: 10% quit chance after 5 consecutive days of overtime
+ * Returns number of employees who quit
+ */
+export function processEmployeeQuitRisk(state: SimulationState): { expertsQuit: number; rookiesQuit: number } {
+  let expertsQuit = 0;
+  let rookiesQuit = 0;
+
+  // Filter out employees who quit
+  state.workforce.employeeOvertimeTracking = state.workforce.employeeOvertimeTracking.filter((record) => {
+    // Check if employee has worked overtime for trigger threshold
+    if (record.consecutiveOvertimeDays >= OVERTIME_TRIGGER_DAYS) {
+      // Apply quit probability
+      if (Math.random() < QUIT_PROBABILITY_AFTER_TRIGGER) {
+        // Employee quits
+        if (record.employeeType === 'expert') {
+          state.workforce.experts = Math.max(0, state.workforce.experts - 1);
+          expertsQuit += 1;
+        } else {
+          state.workforce.rookies = Math.max(0, state.workforce.rookies - 1);
+          rookiesQuit += 1;
+          // Remove from training if in training
+          state.workforce.rookiesInTraining = state.workforce.rookiesInTraining.slice(0, -1);
+        }
+        return false; // Remove from tracking
+      }
+    }
+    return true; // Keep employee
+  });
+
+  return { expertsQuit, rookiesQuit };
 }

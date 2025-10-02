@@ -82,6 +82,7 @@ export const INITIAL_STATE: SimulationState = {
     experts: 1,
     rookies: 0,
     rookiesInTraining: [], // Array of {hireDay, remainingDays}
+    employeeOvertimeTracking: [], // Track overtime for quit risk model
   },
 
   // Capital Equipment
@@ -144,7 +145,7 @@ export const INITIAL_STATE: SimulationState = {
  */
 export const DEFAULT_STRATEGY: Strategy = {
   // Inventory Management Policy
-  reorderPoint: 180, // units
+  reorderPoint: 200, // units (data-driven: prevents stockouts that occurred at 169 units historically)
   orderQuantity: 400, // units per order
 
   // Production Policy

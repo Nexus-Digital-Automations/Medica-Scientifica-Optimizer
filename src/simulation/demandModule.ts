@@ -1,6 +1,7 @@
 /**
  * Demand Module - Models realistic market demand constraints
  * Implements demand forecasting based on business case timeline
+ * Uses data-driven demand model with normal distribution for custom line
  */
 
 export interface DemandForecast {
@@ -12,6 +13,18 @@ export interface DemandForecast {
 export interface DemandLimits {
   standard: number;
   custom: number;
+}
+
+/**
+ * Box-Muller transform to generate normally distributed random numbers
+ * Returns a value from a normal distribution with given mean and standard deviation
+ */
+function generateNormalRandom(mean: number, stdDev: number): number {
+  // Box-Muller transform
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+  return Math.round(mean + z0 * stdDev);
 }
 
 /**
@@ -30,32 +43,40 @@ export function getDemandForDay(day: number, customForecast?: DemandForecast[]):
     }
   }
 
-  // Default business case demand curve
-  // Days 51-171: Low steady demand (market development phase)
-  if (day < 172) {
+  // Default business case demand curve (data-driven model)
+
+  // Days 51-172: Baseline demand phase
+  // Custom: Normal distribution (mean=25, std=5) based on historical analysis
+  // Standard: Unlimited (production-constrained, not market-constrained)
+  if (day < 173) {
+    const customDemand = Math.max(0, generateNormalRandom(25, 5));
     return {
-      standard: 10, // Low initial standard demand
-      custom: 5, // Low initial custom demand
+      standard: 999999, // Effectively unlimited - can sell everything produced
+      custom: customDemand,
     };
   }
 
-  // Days 172-268: High demand (active management period)
-  if (day < 269) {
+  // Days 173-400: Demand shock phase (30% increase)
+  // Custom: Normal distribution (mean=32.5, std=6.5) - 30% increase from baseline
+  // Standard: Still unlimited
+  if (day <= 400) {
+    const customDemand = Math.max(0, generateNormalRandom(32.5, 6.5));
     return {
-      standard: 50, // High active period standard demand
-      custom: 20, // High active period custom demand
+      standard: 999999, // Effectively unlimited - can sell everything produced
+      custom: customDemand,
     };
   }
 
-  // Days 269-500: Declining runoff period (plant shutdown approaching)
+  // Days 401-500: Declining runoff period (plant shutdown approaching)
   // Demand declines gradually as market knows business is closing
-  const daysIntoRunoff = day - 269;
+  const daysIntoRunoff = day - 400;
   const declineRate = 0.95; // 5% decline every 30 days
   const periods = daysIntoRunoff / 30;
+  const baseCustomDemand = 32.5; // Start from shock phase level
 
   return {
-    standard: Math.max(5, Math.floor(50 * Math.pow(declineRate, periods))),
-    custom: Math.max(2, Math.floor(20 * Math.pow(declineRate, periods))),
+    standard: 999999, // Unlimited until final shutdown
+    custom: Math.max(2, Math.floor(baseCustomDemand * Math.pow(declineRate, periods))),
   };
 }
 

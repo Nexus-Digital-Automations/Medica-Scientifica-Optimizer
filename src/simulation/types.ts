@@ -53,11 +53,18 @@ export interface Workforce {
   experts: number;
   rookies: number;
   rookiesInTraining: RookieInTraining[];
+  employeeOvertimeTracking: EmployeeOvertimeRecord[]; // Track overtime for quit risk
 }
 
 export interface RookieInTraining {
   hireDay: number;
   daysRemaining: number;
+}
+
+export interface EmployeeOvertimeRecord {
+  employeeId: string;
+  employeeType: 'expert' | 'rookie';
+  consecutiveOvertimeDays: number;
 }
 
 export interface Machines {
