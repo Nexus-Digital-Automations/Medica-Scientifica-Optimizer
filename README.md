@@ -16,6 +16,7 @@ A sophisticated genetic algorithm-based optimizer for the Medica Scientifica fac
 - Financial modeling (Loans, debt, interest, cash management)
 - Inventory management with reorder points
 - Dynamic pricing based on delivery performance
+- Configurable demand modeling with phase-based distributions
 - Resource allocation and bottleneck optimization
 
 ### Genetic Algorithm Optimizer
@@ -119,6 +120,7 @@ src/
 │   ├── inventoryModule.ts     # Raw material management
 │   ├── productionModule.ts    # Production line simulation
 │   ├── pricingModule.ts       # Pricing and sales
+│   ├── demandModule.ts        # Market demand modeling
 │   └── simulationEngine.ts    # Main simulation orchestrator
 ├── optimizer/
 │   └── geneticAlgorithm.ts    # Genetic algorithm optimizer
@@ -146,6 +148,14 @@ Defined in `src/simulation/constants.ts`:
 - Production capacities and times
 - Machine costs
 - Workforce productivity
+
+### Market Demand Parameters
+
+Configurable via the web UI:
+- **Phase 1 (Days 51-172)**: Mean demand and standard deviation (defaults: 25, 5)
+- **Phase 2 (Days 173-400)**: Mean demand and standard deviation (defaults: 32.5, 6.5)
+- Uses normal distribution (Box-Muller transform) for realistic demand variation
+- Treated as fixed market conditions (not optimized by genetic algorithm)
 
 ## 🎯 Use Cases
 
