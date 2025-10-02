@@ -1,0 +1,28 @@
+{
+  "project": "Medica Scientifica Optimizer",
+  "features": [],
+  "agents": {},
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-10-01T21:47:47.934Z",
+    "updated": "2025-10-01T21:47:47.934Z",
+    "total_features": 0,
+    "approval_history": []
+  },
+  "workflow_config": {
+    "require_approval": true,
+    "auto_reject_timeout_hours": 168,
+    "allowed_statuses": [
+      "suggested",
+      "approved",
+      "rejected",
+      "implemented"
+    ],
+    "required_fields": [
+      "title",
+      "description",
+      "business_value",
+      "category"
+    ]
+  }
+}

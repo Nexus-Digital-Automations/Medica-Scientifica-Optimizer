@@ -278,6 +278,81 @@
       font-size: 1.3rem;
       font-weight: 600;
     }
+
+    /* Toggle switch for strategy parameters */
+    .param-field-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .param-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #334155;
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #3b82f6;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    .toggle-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      user-select: none;
+    }
+
+    .toggle-switch input:checked ~ .toggle-label-fixed {
+      font-weight: 600;
+      color: #60a5fa;
+    }
+
+    .toggle-switch input:not(:checked) ~ .toggle-label-variable {
+      font-weight: 600;
+      color: #a78bfa;
+    }
   </style>
 </head>
 <body>
@@ -311,9 +386,10 @@
         <span style="font-size: 0.8rem; font-weight: normal; color: #94a3b8; margin-left: 0.5rem;">All values pre-filled with defaults - modify as needed</span>
       </h3>
 
-      <!-- Section A: Simulation Starting Point -->
+      <!-- Section A: Environment Parameters (Static) -->
       <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 1rem 0; color: #cbd5e1; font-size: 1rem;">📍 Simulation Starting Point</h4>
+        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">🌍 Environment Parameters (Static)</h4>
+        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">The current state of your factory - these values are fixed and represent your starting conditions</p>
         <div class="control-group">
           <div>
             <label>Starting Day</label>
@@ -366,42 +442,125 @@
         </div>
       </div>
 
-      <!-- Section B: Strategy Parameters -->
+      <!-- Section B: Strategy Parameters (With Toggles) -->
       <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
-        <h4 style="margin: 0 0 1rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters</h4>
+        <h4 style="margin: 0 0 0.3rem 0; color: #cbd5e1; font-size: 1rem;">⚙️ Strategy Parameters (Toggle Fixed/Variable)</h4>
+        <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #94a3b8;">
+          <span style="color: #60a5fa;">■ Fixed</span> = GA respects this exact value (hard constraint) |
+          <span style="color: #a78bfa;">■ Variable</span> = GA can optimize this parameter
+        </p>
         <div class="control-group">
-          <div>
-            <label>Reorder Point (units)</label>
+          <!-- Reorder Point -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_reorderPoint">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Reorder Point (units)</label>
+            </div>
             <input type="number" id="reopt_reorderPoint" value="180" min="0">
           </div>
-          <div>
-            <label>Order Quantity (units)</label>
+
+          <!-- Order Quantity -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_orderQuantity">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Order Quantity (units)</label>
+            </div>
             <input type="number" id="reopt_orderQuantity" value="400" min="0">
           </div>
-          <div>
-            <label>Standard Batch Size (units)</label>
+
+          <!-- Standard Batch Size -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_batchSize">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Standard Batch Size (units)</label>
+            </div>
             <input type="number" id="reopt_batchSize" value="20" min="1">
           </div>
-          <div>
-            <label>MCE Allocation to Custom (%)</label>
+
+          <!-- MCE Allocation -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_mceAllocation">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">MCE Allocation to Custom (%)</label>
+            </div>
             <input type="number" id="reopt_mceAllocation" value="70" min="0" max="100">
           </div>
         </div>
+
         <div class="control-group" style="margin-top: 0.5rem;">
-          <div>
-            <label>Standard Price ($)</label>
+          <!-- Standard Price -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_standardPrice">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Standard Price ($)</label>
+            </div>
             <input type="number" id="reopt_standardPrice" value="750" min="0" step="1">
           </div>
-          <div>
-            <label>Custom Base Price ($)</label>
+
+          <!-- Custom Base Price -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_customBasePrice">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Custom Base Price ($)</label>
+            </div>
             <input type="number" id="reopt_customBasePrice" value="1200" min="0" step="1">
           </div>
-          <div>
-            <label>Custom Penalty Per Day ($)</label>
+
+          <!-- Custom Penalty Per Day -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_customPenalty">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Custom Penalty Per Day ($)</label>
+            </div>
             <input type="number" id="reopt_customPenalty" value="10" min="0" step="1">
           </div>
-          <div>
-            <label>Custom Target Delivery (days)</label>
+
+          <!-- Custom Target Delivery -->
+          <div class="param-field-wrapper">
+            <div class="param-toggle-row">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle_customTarget">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label toggle-label-variable">Variable</span>
+              <span class="toggle-label toggle-label-fixed">Fixed</span>
+              <label style="flex: 1; margin: 0;">Custom Target Delivery (days)</label>
+            </div>
             <input type="number" id="reopt_customTarget" value="10" min="1">
           </div>
         </div>
@@ -717,28 +876,50 @@
         console.log('Using custom demand schedule with', demandForecast.length, 'total days defined');
       }
 
-      // Override GA config with strategy parameters if different from defaults
-      const reorderPoint = parseInt(document.getElementById('reopt_reorderPoint').value);
-      const orderQuantity = parseInt(document.getElementById('reopt_orderQuantity').value);
-      const batchSize = parseInt(document.getElementById('reopt_batchSize').value);
-      const mceAllocation = parseFloat(document.getElementById('reopt_mceAllocation').value) / 100; // Convert % to decimal
-      const standardPrice = parseInt(document.getElementById('reopt_standardPrice').value);
-      const customBasePrice = parseInt(document.getElementById('reopt_customBasePrice').value);
-      const customPenalty = parseInt(document.getElementById('reopt_customPenalty').value);
-      const customTarget = parseInt(document.getElementById('reopt_customTarget').value);
-
-      // Add strategy overrides to config (GA will use these as starting points/constraints)
-      config.strategyOverrides = {
-        reorderPoint,
-        orderQuantity,
-        standardBatchSize: batchSize,
-        mceAllocationCustom: mceAllocation,
-        standardPrice,
-        customBasePrice,
-        customPenaltyPerDay: customPenalty,
-        customTargetDeliveryDays: customTarget
+      // Read strategy parameter values and toggle states
+      const strategyParams = {
+        reorderPoint: parseInt(document.getElementById('reopt_reorderPoint').value),
+        orderQuantity: parseInt(document.getElementById('reopt_orderQuantity').value),
+        standardBatchSize: parseInt(document.getElementById('reopt_batchSize').value),
+        mceAllocationCustom: parseFloat(document.getElementById('reopt_mceAllocation').value) / 100,
+        standardPrice: parseInt(document.getElementById('reopt_standardPrice').value),
+        customBasePrice: parseInt(document.getElementById('reopt_customBasePrice').value),
+        customPenaltyPerDay: parseInt(document.getElementById('reopt_customPenalty').value),
+        customTargetDeliveryDays: parseInt(document.getElementById('reopt_customTarget').value)
       };
-      console.log('Strategy parameter overrides:', config.strategyOverrides);
+
+      // Check which parameters are fixed (toggle checked) vs variable (toggle unchecked)
+      const fixedParams = {};
+      const variableParams = {};
+
+      const paramMapping = {
+        'reorderPoint': 'reorderPoint',
+        'orderQuantity': 'orderQuantity',
+        'batchSize': 'standardBatchSize',
+        'mceAllocation': 'mceAllocationCustom',
+        'standardPrice': 'standardPrice',
+        'customBasePrice': 'customBasePrice',
+        'customPenalty': 'customPenaltyPerDay',
+        'customTarget': 'customTargetDeliveryDays'
+      };
+
+      for (const [toggleId, paramKey] of Object.entries(paramMapping)) {
+        const isFixed = document.getElementById(`toggle_${toggleId}`).checked;
+        const value = strategyParams[paramKey];
+
+        if (isFixed) {
+          fixedParams[paramKey] = value;
+        } else {
+          variableParams[paramKey] = value;
+        }
+      }
+
+      // Add strategy configuration to config
+      config.fixedParams = fixedParams;
+      config.variableParams = variableParams;
+
+      console.log('Fixed parameters (hard constraints):', fixedParams);
+      console.log('Variable parameters (can be optimized):', variableParams);
 
       try {
         const response = await fetch('/api/optimize', {

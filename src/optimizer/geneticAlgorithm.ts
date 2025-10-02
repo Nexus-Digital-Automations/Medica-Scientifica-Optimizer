@@ -226,22 +226,49 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
 }
 
 /**
- * Generates a strategy with user-provided overrides as base values
- * Used to seed the initial population with user's preferred parameters
+ * Generates a strategy with fixed parameters (hard constraints) and variable parameter seeds
+ * Fixed parameters are NEVER changed by the GA (hard constraints)
+ * Variable parameters are used as seeds but can be optimized
  */
-function generateSeededStrategy(overrides: StrategyOverrides): Strategy {
+function generateConstrainedStrategy(
+  fixedParams?: StrategyOverrides,
+  variableParams?: StrategyOverrides
+): Strategy {
   const base = generateRandomStrategy();
 
+  // Apply fixed parameters (hard constraints - NEVER change these)
+  // Apply variable parameters as starting points (can be optimized)
+  // Anything not specified is fully random
   return {
-    reorderPoint: overrides.reorderPoint ?? base.reorderPoint,
-    orderQuantity: overrides.orderQuantity ?? base.orderQuantity,
-    standardBatchSize: overrides.standardBatchSize ?? base.standardBatchSize,
-    mceAllocationCustom: overrides.mceAllocationCustom ?? base.mceAllocationCustom,
-    standardPrice: overrides.standardPrice ?? base.standardPrice,
-    customBasePrice: overrides.customBasePrice ?? base.customBasePrice,
-    customPenaltyPerDay: overrides.customPenaltyPerDay ?? base.customPenaltyPerDay,
-    customTargetDeliveryDays: overrides.customTargetDeliveryDays ?? base.customTargetDeliveryDays,
-    timedActions: base.timedActions, // Use random timed actions
+    reorderPoint: fixedParams?.reorderPoint ?? (variableParams?.reorderPoint ?? base.reorderPoint),
+    orderQuantity: fixedParams?.orderQuantity ?? (variableParams?.orderQuantity ?? base.orderQuantity),
+    standardBatchSize: fixedParams?.standardBatchSize ?? (variableParams?.standardBatchSize ?? base.standardBatchSize),
+    mceAllocationCustom: fixedParams?.mceAllocationCustom ?? (variableParams?.mceAllocationCustom ?? base.mceAllocationCustom),
+    standardPrice: fixedParams?.standardPrice ?? (variableParams?.standardPrice ?? base.standardPrice),
+    customBasePrice: fixedParams?.customBasePrice ?? (variableParams?.customBasePrice ?? base.customBasePrice),
+    customPenaltyPerDay: fixedParams?.customPenaltyPerDay ?? (variableParams?.customPenaltyPerDay ?? base.customPenaltyPerDay),
+    customTargetDeliveryDays: fixedParams?.customTargetDeliveryDays ?? (variableParams?.customTargetDeliveryDays ?? base.customTargetDeliveryDays),
+    timedActions: base.timedActions,
+  };
+}
+
+/**
+ * Applies fixed parameter constraints to a strategy after mutation/crossover
+ * This ensures fixed parameters are NEVER changed by the GA
+ */
+function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrides): Strategy {
+  if (!fixedParams) return strategy;
+
+  return {
+    ...strategy,
+    reorderPoint: fixedParams.reorderPoint ?? strategy.reorderPoint,
+    orderQuantity: fixedParams.orderQuantity ?? strategy.orderQuantity,
+    standardBatchSize: fixedParams.standardBatchSize ?? strategy.standardBatchSize,
+    mceAllocationCustom: fixedParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+    standardPrice: fixedParams.standardPrice ?? strategy.standardPrice,
+    customBasePrice: fixedParams.customBasePrice ?? strategy.customBasePrice,
+    customPenaltyPerDay: fixedParams.customPenaltyPerDay ?? strategy.customPenaltyPerDay,
+    customTargetDeliveryDays: fixedParams.customTargetDeliveryDays ?? strategy.customTargetDeliveryDays,
   };
 }
 
@@ -251,35 +278,47 @@ function generateSeededStrategy(overrides: StrategyOverrides): Strategy {
  * @param onProgress - Optional progress callback
  * @param startingState - Optional starting state for mid-course re-optimization
  * @param demandForecast - Optional custom demand forecast
- * @param strategyOverrides - Optional strategy parameter overrides to seed initial population
+ * @param fixedParams - Fixed parameters (hard constraints that GA must respect)
+ * @param variableParams - Variable parameters (seeds for optimization, GA can change these)
  */
 export async function optimize(
   config: GeneticAlgorithmConfig = DEFAULT_GA_CONFIG,
   onProgress?: (generation: number, stats: PopulationStats) => void,
   startingState?: SimulationState,
   demandForecast?: DemandForecast[],
-  strategyOverrides?: StrategyOverrides
+  fixedParams?: StrategyOverrides,
+  variableParams?: StrategyOverrides
 ): Promise<OptimizationResult> {
   console.log('🧬 Starting genetic algorithm optimization...');
   console.log(`Population: ${config.populationSize}, Generations: ${config.generations}`);
 
-  // Initialize population with strategy overrides if provided
+  if (fixedParams && Object.keys(fixedParams).length > 0) {
+    console.log('🔒 Fixed parameters will be enforced as hard constraints');
+  }
+  if (variableParams && Object.keys(variableParams).length > 0) {
+    console.log('🔄 Variable parameters will seed initial population but can be optimized');
+  }
+
+  // Initialize population with fixed/variable parameter constraints
   let population: Strategy[] = [];
-  if (strategyOverrides) {
-    console.log('🎯 Seeding initial population with user strategy parameters');
-    // First half: seeded with user's parameters (with slight variations)
+  const hasConstraints = (fixedParams && Object.keys(fixedParams).length > 0) ||
+                        (variableParams && Object.keys(variableParams).length > 0);
+
+  if (hasConstraints) {
+    // First half: seeded with user's parameters (variable params with slight variations)
     const seedCount = Math.floor(config.populationSize / 2);
     for (let i = 0; i < seedCount; i++) {
-      const seeded = generateSeededStrategy(strategyOverrides);
-      // Apply slight mutations to create diversity while keeping user's values as base
-      population.push(mutate(seeded, 0.1)); // 10% mutation for diversity
+      const seeded = generateConstrainedStrategy(fixedParams, variableParams);
+      // Apply slight mutations to create diversity (fixed params will be preserved)
+      const mutated = mutate(seeded, 0.1);
+      population.push(applyFixedConstraints(mutated, fixedParams)); // Enforce fixed constraints
     }
-    // Second half: completely random for exploration
+    // Second half: random exploration (still respecting fixed constraints)
     for (let i = seedCount; i < config.populationSize; i++) {
-      population.push(generateRandomStrategy());
+      population.push(generateConstrainedStrategy(fixedParams, undefined));
     }
   } else {
-    // No overrides: fully random population
+    // No constraints: fully random population
     for (let i = 0; i < config.populationSize; i++) {
       population.push(generateRandomStrategy());
     }
@@ -376,6 +415,8 @@ export async function optimize(
       }
 
       child = mutate(child, config.mutationRate);
+      // CRITICAL: Enforce fixed parameter constraints after mutation
+      child = applyFixedConstraints(child, fixedParams);
       newPopulation.push(child);
       breedCount++;
     }
