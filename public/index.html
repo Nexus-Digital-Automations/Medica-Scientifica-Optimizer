@@ -646,8 +646,9 @@
       <div class="result-card">
         <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <span>📅 Prescribed Action Timeline</span>
-          <button class="export-btn" onclick="exportActionsToCSV()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📥 Export Action Timeline CSV</button>
+          <button class="export-btn" onclick="exportActionsToCSV()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📥 Export Comprehensive Action Timeline CSV</button>
         </h2>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">Each action includes complete business context: financials, production, inventory, workforce, machines, and pricing at the moment of decision.</p>
         <div class="timeline" id="actionTimeline"></div>
       </div>
 
@@ -1536,8 +1537,8 @@
     }
 
     function exportActionsToCSV() {
-      if (!globalBestStrategy) {
-        alert('No strategy data available. Please run optimization first.');
+      if (!globalBestStrategy || !globalHistory) {
+        alert('No strategy or history data available. Please run optimization first.');
         return;
       }
 
@@ -1549,7 +1550,7 @@
         const startingState = globalRequestData.startingState;
         const fixedParams = globalConfig.fixedParams;
 
-        csvContent += `# Medica Scientifica Action Timeline\n`;
+        csvContent += `# Medica Scientifica Comprehensive Action Timeline with Full Business Context\n`;
         csvContent += `# Generated: ${timestamp}\n`;
         csvContent += `#\n`;
         csvContent += `# OPTIMIZER CONFIGURATION:\n`;
@@ -1561,13 +1562,57 @@
         csvContent += `# STARTING STATE:\n`;
         csvContent += `# Day: ${startingState ? startingState.currentDay : 51}, Cash: $${startingState ? startingState.cash.toFixed(2) : '8206.12'}, Debt: $${startingState ? startingState.debt.toFixed(2) : '70000.00'}\n`;
         csvContent += `#\n`;
-        csvContent += `# PRESCRIBED ACTIONS:\n`;
+        csvContent += `# CURRENT POLICY SETTINGS:\n`;
+        csvContent += `# Reorder Point: ${globalBestStrategy.reorderPoint}, Order Quantity: ${globalBestStrategy.orderQuantity}\n`;
+        csvContent += `# Standard Batch Size: ${globalBestStrategy.standardBatchSize}, MCE Allocation Custom: ${(globalBestStrategy.mceAllocationCustom * 100).toFixed(1)}%\n`;
+        csvContent += `# Standard Price: $${globalBestStrategy.standardPrice}, Daily Overtime: ${globalBestStrategy.dailyOvertimeHours} hours\n`;
+        csvContent += `#\n`;
+        csvContent += `# COMPREHENSIVE ACTION TIMELINE (includes full business context for each action):\n`;
       }
 
-      // Create CSV header
-      csvContent += 'Day,Action Type,Description,Amount/Count/Machine Type\n';
+      // Create comprehensive CSV header with all business metrics
+      const headers = [
+        'Day',
+        'Action Type',
+        'Action Description',
+        'Action Details',
+        // Financial State
+        'Cash',
+        'Debt',
+        'Net Worth',
+        'Daily Revenue',
+        'Daily Expenses',
+        'Interest Paid',
+        'Interest Earned',
+        // Production State
+        'Standard Produced',
+        'Custom Produced',
+        'Standard WIP',
+        'Custom WIP',
+        'Finished Standard',
+        'Finished Custom',
+        // Inventory State
+        'Raw Materials',
+        'Material Orders',
+        'Material Cost',
+        // Workforce State
+        'Expert Workers',
+        'Rookie Workers',
+        'Rookies Training',
+        'Salary Cost',
+        // Machine State
+        'MCE Machines',
+        'WMA Machines',
+        'PUC Machines',
+        // Pricing State
+        'Standard Price',
+        'Custom Price',
+        'Avg Delivery Time'
+      ];
 
-      // Add action rows
+      csvContent += headers.join(',') + '\n';
+
+      // Add action rows with complete business context
       globalBestStrategy.timedActions.forEach(action => {
         let desc = '';
         let details = '';
@@ -1579,6 +1624,10 @@
             break;
           case 'HIRE_ROOKIE':
             desc = `Hire ${action.count} rookie(s)`;
+            details = action.count;
+            break;
+          case 'HIRE_EXPERT':
+            desc = `Hire ${action.count} expert(s)`;
             details = action.count;
             break;
           case 'BUY_MACHINE':
@@ -1606,7 +1655,52 @@
             details = '';
         }
 
-        csvContent += `${action.day},${action.type},"${desc}",${details}\n`;
+        // Get all metrics for this day from history
+        const getMetric = (metricName) => {
+          const metric = globalHistory[metricName]?.find(m => m.day === action.day);
+          return metric?.value ?? 0;
+        };
+
+        const row = [
+          action.day,
+          action.type,
+          `"${desc}"`,
+          details,
+          // Financial State
+          getMetric('dailyCash').toFixed(2),
+          getMetric('dailyDebt').toFixed(2),
+          getMetric('dailyNetWorth').toFixed(2),
+          getMetric('dailyRevenue').toFixed(2),
+          getMetric('dailyExpenses').toFixed(2),
+          getMetric('dailyInterestPaid').toFixed(2),
+          getMetric('dailyInterestEarned').toFixed(2),
+          // Production State
+          getMetric('dailyStandardProduction').toFixed(0),
+          getMetric('dailyCustomProduction').toFixed(0),
+          getMetric('dailyStandardWIP').toFixed(0),
+          getMetric('dailyCustomWIP').toFixed(0),
+          getMetric('dailyFinishedStandard').toFixed(0),
+          getMetric('dailyFinishedCustom').toFixed(0),
+          // Inventory State
+          getMetric('dailyRawMaterial').toFixed(0),
+          getMetric('dailyRawMaterialOrders').toFixed(0),
+          getMetric('dailyRawMaterialCost').toFixed(2),
+          // Workforce State
+          getMetric('dailyExperts').toFixed(0),
+          getMetric('dailyRookies').toFixed(0),
+          getMetric('dailyRookiesInTraining').toFixed(0),
+          getMetric('dailySalaryCost').toFixed(2),
+          // Machine State
+          getMetric('dailyMCECount').toFixed(0),
+          getMetric('dailyWMACount').toFixed(0),
+          getMetric('dailyPUCCount').toFixed(0),
+          // Pricing State
+          getMetric('dailyStandardPrice').toFixed(2),
+          getMetric('dailyCustomPrice').toFixed(2),
+          getMetric('dailyCustomDeliveryTime').toFixed(2)
+        ];
+
+        csvContent += row.join(',') + '\n';
       });
 
       // Create download link
@@ -1614,7 +1708,7 @@
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', 'medica-scientifica-action-timeline.csv');
+      link.setAttribute('download', 'medica-scientifica-action-timeline-comprehensive.csv');
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
