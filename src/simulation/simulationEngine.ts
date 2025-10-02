@@ -18,6 +18,8 @@ import {
   calculateDailySalaryCost,
   hireRookie,
   hireExpert,
+  trackOvertime,
+  processEmployeeQuitRisk,
 } from './hrModule.js';
 import {
   processArrivingOrders,
@@ -228,10 +230,15 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   // Step 3: Process workforce (training, promotions)
   processRookieTraining(state);
 
-  // Step 4: Pay salaries
-  const salaryCost = calculateDailySalaryCost(state);
+  // Step 4: Pay salaries (including overtime if policy is set)
+  const salaryCost = calculateDailySalaryCost(state, true, strategy.dailyOvertimeHours);
   dailyMetrics.salaryCost = salaryCost.totalSalary;
   processPayment(state, salaryCost.totalSalary, 'Daily salaries');
+
+  // Step 4.5: Track overtime and process employee quit risk
+  const workedOvertime = strategy.dailyOvertimeHours > 0;
+  trackOvertime(state, workedOvertime);
+  processEmployeeQuitRisk(state, strategy.overtimeTriggerDays, strategy.dailyQuitProbability);
 
   // Step 5: Apply interest
   dailyMetrics.interestPaid = applyDebtInterest(state);

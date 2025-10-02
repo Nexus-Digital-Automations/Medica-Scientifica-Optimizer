@@ -7,10 +7,6 @@
 import type { SimulationState } from './types.js';
 import { CONSTANTS } from './constants.js';
 
-// Quit risk constants (data-driven estimates)
-const OVERTIME_TRIGGER_DAYS = 5; // Consecutive days before quit risk activates
-const QUIT_PROBABILITY_AFTER_TRIGGER = 0.1; // 10% chance per day after trigger
-
 export interface HireResult {
   type: 'ROOKIE' | 'EXPERT';
   hireDay: number;
@@ -253,19 +249,23 @@ export function trackOvertime(state: SimulationState, workedOvertime: boolean): 
 
 /**
  * Processes employee quit risk based on sustained overtime
- * Data-driven model: 10% quit chance after 5 consecutive days of overtime
+ * Uses strategy parameters for quit risk model
  * Returns number of employees who quit
  */
-export function processEmployeeQuitRisk(state: SimulationState): { expertsQuit: number; rookiesQuit: number } {
+export function processEmployeeQuitRisk(
+  state: SimulationState,
+  overtimeTriggerDays: number,
+  dailyQuitProbability: number
+): { expertsQuit: number; rookiesQuit: number } {
   let expertsQuit = 0;
   let rookiesQuit = 0;
 
   // Filter out employees who quit
   state.workforce.employeeOvertimeTracking = state.workforce.employeeOvertimeTracking.filter((record) => {
     // Check if employee has worked overtime for trigger threshold
-    if (record.consecutiveOvertimeDays >= OVERTIME_TRIGGER_DAYS) {
+    if (record.consecutiveOvertimeDays >= overtimeTriggerDays) {
       // Apply quit probability
-      if (Math.random() < QUIT_PROBABILITY_AFTER_TRIGGER) {
+      if (Math.random() < dailyQuitProbability) {
         // Employee quits
         if (record.employeeType === 'expert') {
           state.workforce.experts = Math.max(0, state.workforce.experts - 1);

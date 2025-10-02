@@ -158,6 +158,7 @@ export const DEFAULT_STRATEGY: Strategy = {
 
   // Pricing Policy
   standardPrice: 750, // $ per unit
+  dailyOvertimeHours: 0, // hours per day (0-4 hours, at 1.5x cost)
   customBasePrice: 106.56, // $ base price (from historical data regression analysis)
   customPenaltyPerDay: 0.27, // $ penalty for each day over target (from regression slope)
   customTargetDeliveryDays: 5, // target delivery time (data-driven optimal)
@@ -171,6 +172,10 @@ export const DEFAULT_STRATEGY: Strategy = {
   // Standard Product Demand Curve (linear: Q = intercept + slope * P)
   standardDemandIntercept: 500, // Theoretical demand at price $0
   standardDemandSlope: -0.25, // Lose 1 unit demand per $4 price increase
+
+  // Quit Risk Model (employee reaction to overtime)
+  overtimeTriggerDays: 5, // Consecutive overtime days before quit risk begins
+  dailyQuitProbability: 0.10, // 10% daily quit chance once overworked
 
   // Timed Actions (will be evolved by genetic algorithm)
   timedActions: [],

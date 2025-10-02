@@ -52,6 +52,7 @@ function generateRandomStrategy(): Strategy {
     standardBatchSize: Math.floor(Math.random() * 30) + 10, // 10-40 (OPTIMIZABLE - production policy)
     mceAllocationCustom: Math.random() * 0.5 + 0.5, // 0.5-1.0 (OPTIMIZABLE - capacity allocation)
     standardPrice: Math.floor(Math.random() * 400) + 600, // 600-1000 (OPTIMIZABLE - pricing decision)
+    dailyOvertimeHours: Math.floor(Math.random() * 5), // 0-4 hours (OPTIMIZABLE - overtime policy)
 
     // FIXED MARKET CONDITIONS (data-driven from regression analysis, NOT optimizable)
     customBasePrice: 106.56, // From historical regression baseline at 5-day target
@@ -67,6 +68,10 @@ function generateRandomStrategy(): Strategy {
     // FIXED STANDARD DEMAND CURVE (user input market conditions, NOT optimizable)
     standardDemandIntercept: 500, // Quantity demanded at price $0
     standardDemandSlope: -0.25, // Change in quantity per $1 price increase
+
+    // FIXED QUIT RISK MODEL (environment variables, NOT optimizable)
+    overtimeTriggerDays: 5, // Consecutive overtime days before quit risk begins
+    dailyQuitProbability: 0.10, // 10% daily quit chance once overworked
 
     timedActions: generateRandomTimedActions(),
   };
@@ -135,6 +140,7 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
     standardBatchSize: Math.random() < 0.5 ? parent1.standardBatchSize : parent2.standardBatchSize,
     mceAllocationCustom: Math.random() < 0.5 ? parent1.mceAllocationCustom : parent2.mceAllocationCustom,
     standardPrice: Math.random() < 0.5 ? parent1.standardPrice : parent2.standardPrice,
+    dailyOvertimeHours: Math.random() < 0.5 ? parent1.dailyOvertimeHours : parent2.dailyOvertimeHours,
 
     // FIXED market conditions (data-driven, NOT crossed over)
     customBasePrice: 106.56,
@@ -150,6 +156,10 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
     // FIXED standard demand curve (user input, NOT crossed over)
     standardDemandIntercept: 500,
     standardDemandSlope: -0.25,
+
+    // FIXED quit risk model (environment variables, NOT crossed over)
+    overtimeTriggerDays: 5,
+    dailyQuitProbability: 0.10,
 
     // Mix timed actions (take some from each parent)
     timedActions: [
@@ -189,9 +199,15 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
     mutated.standardPrice = Math.max(500, Math.min(1200, mutated.standardPrice));
   }
 
-  // Custom pricing (customBasePrice, customPenaltyPerDay, customTargetDeliveryDays)
-  // and demand model (customDemandMean1, customDemandStdDev1, customDemandMean2, customDemandStdDev2)
-  // are FIXED market conditions and are NEVER mutated
+  if (Math.random() < mutationRate) {
+    mutated.dailyOvertimeHours += (Math.random() < 0.5 ? 1 : -1);
+    mutated.dailyOvertimeHours = Math.max(0, Math.min(4, mutated.dailyOvertimeHours));
+  }
+
+  // Custom pricing (customBasePrice, customPenaltyPerDay, customTargetDeliveryDays),
+  // demand model (customDemandMean1, customDemandStdDev1, customDemandMean2, customDemandStdDev2),
+  // and quit risk model (overtimeTriggerDays, dailyQuitProbability)
+  // are FIXED market/environment conditions and are NEVER mutated
 
   // Mutate timed actions with hybrid approach (90% gentle, 10% wild)
   if (Math.random() < mutationRate) {
@@ -290,6 +306,9 @@ function generateConstrainedStrategy(
     customDemandStdDev2: fixedParams?.customDemandStdDev2 ?? (variableParams?.customDemandStdDev2 ?? base.customDemandStdDev2),
     standardDemandIntercept: fixedParams?.standardDemandIntercept ?? (variableParams?.standardDemandIntercept ?? base.standardDemandIntercept),
     standardDemandSlope: fixedParams?.standardDemandSlope ?? (variableParams?.standardDemandSlope ?? base.standardDemandSlope),
+    dailyOvertimeHours: base.dailyOvertimeHours,
+    overtimeTriggerDays: base.overtimeTriggerDays,
+    dailyQuitProbability: base.dailyQuitProbability,
     timedActions: base.timedActions,
   };
 }

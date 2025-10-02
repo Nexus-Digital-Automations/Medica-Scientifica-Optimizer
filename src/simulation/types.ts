@@ -150,6 +150,7 @@ export interface Strategy {
   standardBatchSize: number;
   mceAllocationCustom: number; // 0.0 to 1.0
   standardPrice: number;
+  dailyOvertimeHours: number; // 0 to 4 hours per day at 1.5x cost
   customBasePrice: number;
   customPenaltyPerDay: number;
   customTargetDeliveryDays: number;
@@ -163,6 +164,10 @@ export interface Strategy {
   // Standard Product Demand Curve (linear: Q = intercept + slope * P)
   standardDemandIntercept: number;  // Quantity demanded at price $0
   standardDemandSlope: number;      // Change in quantity per $1 price increase (negative)
+
+  // Quit Risk Model (employee reaction to overtime)
+  overtimeTriggerDays: number;      // Consecutive overtime days before quit risk begins
+  dailyQuitProbability: number;     // Daily probability of quitting once overworked (0-1)
 
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];

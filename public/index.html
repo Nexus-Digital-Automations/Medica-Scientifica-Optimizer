@@ -586,6 +586,10 @@
             <label style="font-size: 0.85rem;">Standard Product Price ($)</label>
             <input type="number" id="reopt_standardPrice" placeholder="Optional" min="0" step="1">
           </div>
+          <div>
+            <label style="font-size: 0.85rem;">Daily Overtime Hours (0-4)</label>
+            <input type="number" id="reopt_dailyOvertimeHours" placeholder="Optional" min="0" max="4" step="1">
+          </div>
         </div>
       </div>
 
@@ -869,6 +873,7 @@
       const batchSizeVal = document.getElementById('reopt_batchSize').value;
       const mceAllocationVal = document.getElementById('reopt_mceAllocation').value;
       const standardPriceVal = document.getElementById('reopt_standardPrice').value;
+      const dailyOvertimeHoursVal = document.getElementById('reopt_dailyOvertimeHours').value;
 
       // Only include policy decisions that have values (optional)
       if (reorderPointVal !== '') {
@@ -885,6 +890,9 @@
       }
       if (standardPriceVal !== '') {
         variableParams.standardPrice = parseInt(standardPriceVal);
+      }
+      if (dailyOvertimeHoursVal !== '') {
+        variableParams.dailyOvertimeHours = parseInt(dailyOvertimeHoursVal);
       }
 
       // Add strategy configuration to config
@@ -1144,6 +1152,14 @@
             </div>
           `;
         }
+        if (variableParams.dailyOvertimeHours !== undefined) {
+          inputConfigHTML += `
+            <div class="metric">
+              <div class="metric-label">Daily Overtime (seed)</div>
+              <div class="metric-value">${variableParams.dailyOvertimeHours} hours</div>
+            </div>
+          `;
+        }
 
         inputConfigHTML += '</div>';
       } else {
@@ -1195,6 +1211,10 @@
         <div class="metric">
           <div class="metric-label">Standard Product Price</div>
           <div class="metric-value">$${bestStrategy.standardPrice}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Daily Overtime Hours</div>
+          <div class="metric-value">${bestStrategy.dailyOvertimeHours} hours</div>
         </div>
         <div class="metric">
           <div class="metric-label">Custom Base Price</div>
@@ -1426,6 +1446,7 @@
           if (variableParams.standardBatchSize !== undefined) seedsList.push(`Batch Size: ${variableParams.standardBatchSize}`);
           if (variableParams.mceAllocationCustom !== undefined) seedsList.push(`MCE Allocation: ${(variableParams.mceAllocationCustom * 100).toFixed(1)}%`);
           if (variableParams.standardPrice !== undefined) seedsList.push(`Standard Price: $${variableParams.standardPrice}`);
+          if (variableParams.dailyOvertimeHours !== undefined) seedsList.push(`Daily Overtime: ${variableParams.dailyOvertimeHours} hours`);
           csvContent += `# ${seedsList.join(', ')}\n`;
         } else {
           csvContent += `# No policy seeds - optimizer explored all operational possibilities\n`;
