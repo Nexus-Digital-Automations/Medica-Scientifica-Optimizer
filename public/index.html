@@ -1445,6 +1445,42 @@
         }
 
         csvContent += `#\n`;
+        csvContent += `# ===== RECOMMENDED STRATEGY (OPTIMAL PARAMETERS FOUND BY GENETIC ALGORITHM) =====\n`;
+        if (globalBestStrategy) {
+          csvContent += `#\n`;
+          csvContent += `# INVENTORY MANAGEMENT POLICY:\n`;
+          csvContent += `#   Reorder Point: ${globalBestStrategy.reorderPoint} units (when to trigger raw material order)\n`;
+          csvContent += `#   Order Quantity: ${globalBestStrategy.orderQuantity} units (how much to order each time)\n`;
+          csvContent += `#\n`;
+          csvContent += `# PRODUCTION POLICY:\n`;
+          csvContent += `#   Standard Batch Size: ${globalBestStrategy.standardBatchSize} units (production lot size)\n`;
+          csvContent += `#   MCE Allocation to Custom: ${(globalBestStrategy.mceAllocationCustom * 100).toFixed(1)}% (${globalBestStrategy.mceAllocationCustom.toFixed(2)} decimal)\n`;
+          csvContent += `#   MCE Allocation to Standard: ${((1 - globalBestStrategy.mceAllocationCustom) * 100).toFixed(1)}%\n`;
+          csvContent += `#\n`;
+          csvContent += `# PRICING & LABOR POLICY:\n`;
+          csvContent += `#   Standard Product Price: $${globalBestStrategy.standardPrice} per unit\n`;
+          csvContent += `#   Daily Overtime Hours: ${globalBestStrategy.dailyOvertimeHours} hours (0-4 hours range)\n`;
+          csvContent += `#\n`;
+          csvContent += `# DEMAND MODEL PARAMETERS (MARKET CONDITIONS - NOT OPTIMIZABLE):\n`;
+          csvContent += `#   Custom Demand Phase 1 (Days 51-172): Mean=${globalBestStrategy.customDemandMean1}, StdDev=${globalBestStrategy.customDemandStdDev1}\n`;
+          csvContent += `#   Custom Demand Phase 2 (Days 172-218): Linear transition period\n`;
+          csvContent += `#   Custom Demand Phase 3 (Days 218-400): Mean=${globalBestStrategy.customDemandMean2}, StdDev=${globalBestStrategy.customDemandStdDev2}\n`;
+          csvContent += `#   Standard Demand Curve: Intercept=${globalBestStrategy.standardDemandIntercept}, Slope=${globalBestStrategy.standardDemandSlope}\n`;
+          csvContent += `#\n`;
+          csvContent += `# TIMED POLICY ADJUSTMENTS:\n`;
+          csvContent += `#   Total Actions: ${globalBestStrategy.timedActions.length} strategic adjustments scheduled\n`;
+          const actionBreakdown = {};
+          globalBestStrategy.timedActions.forEach(a => {
+            actionBreakdown[a.type] = (actionBreakdown[a.type] || 0) + 1;
+          });
+          Object.entries(actionBreakdown).forEach(([type, count]) => {
+            csvContent += `#     ${type}: ${count} action(s)\n`;
+          });
+        }
+
+        csvContent += `#\n`;
+        csvContent += `# ===============================================================================\n`;
+        csvContent += `#\n`;
         csvContent += `# DATA COLUMNS:\n`;
       }
 
@@ -1523,10 +1559,38 @@
         csvContent += `# STARTING STATE:\n`;
         csvContent += `# Day: ${startingState ? startingState.currentDay : 51}, Cash: $${startingState ? startingState.cash.toFixed(2) : '8206.12'}, Debt: $${startingState ? startingState.debt.toFixed(2) : '70000.00'}\n`;
         csvContent += `#\n`;
-        csvContent += `# CURRENT POLICY SETTINGS:\n`;
-        csvContent += `# Reorder Point: ${globalBestStrategy.reorderPoint}, Order Quantity: ${globalBestStrategy.orderQuantity}\n`;
-        csvContent += `# Standard Batch Size: ${globalBestStrategy.standardBatchSize}, MCE Allocation Custom: ${(globalBestStrategy.mceAllocationCustom * 100).toFixed(1)}%\n`;
-        csvContent += `# Standard Price: $${globalBestStrategy.standardPrice}, Daily Overtime: ${globalBestStrategy.dailyOvertimeHours} hours\n`;
+        csvContent += `# ===== RECOMMENDED STRATEGY (OPTIMAL PARAMETERS FOUND BY GENETIC ALGORITHM) =====\n`;
+        csvContent += `#\n`;
+        csvContent += `# INVENTORY MANAGEMENT POLICY:\n`;
+        csvContent += `#   Reorder Point: ${globalBestStrategy.reorderPoint} units (when to trigger raw material order)\n`;
+        csvContent += `#   Order Quantity: ${globalBestStrategy.orderQuantity} units (how much to order each time)\n`;
+        csvContent += `#\n`;
+        csvContent += `# PRODUCTION POLICY:\n`;
+        csvContent += `#   Standard Batch Size: ${globalBestStrategy.standardBatchSize} units (production lot size)\n`;
+        csvContent += `#   MCE Allocation to Custom: ${(globalBestStrategy.mceAllocationCustom * 100).toFixed(1)}% (${globalBestStrategy.mceAllocationCustom.toFixed(2)} decimal)\n`;
+        csvContent += `#   MCE Allocation to Standard: ${((1 - globalBestStrategy.mceAllocationCustom) * 100).toFixed(1)}%\n`;
+        csvContent += `#\n`;
+        csvContent += `# PRICING & LABOR POLICY:\n`;
+        csvContent += `#   Standard Product Price: $${globalBestStrategy.standardPrice} per unit\n`;
+        csvContent += `#   Daily Overtime Hours: ${globalBestStrategy.dailyOvertimeHours} hours (0-4 hours range)\n`;
+        csvContent += `#\n`;
+        csvContent += `# DEMAND MODEL PARAMETERS (MARKET CONDITIONS - NOT OPTIMIZABLE):\n`;
+        csvContent += `#   Custom Demand Phase 1 (Days 51-172): Mean=${globalBestStrategy.customDemandMean1}, StdDev=${globalBestStrategy.customDemandStdDev1}\n`;
+        csvContent += `#   Custom Demand Phase 2 (Days 172-218): Linear transition period\n`;
+        csvContent += `#   Custom Demand Phase 3 (Days 218-400): Mean=${globalBestStrategy.customDemandMean2}, StdDev=${globalBestStrategy.customDemandStdDev2}\n`;
+        csvContent += `#   Standard Demand Curve: Intercept=${globalBestStrategy.standardDemandIntercept}, Slope=${globalBestStrategy.standardDemandSlope}\n`;
+        csvContent += `#\n`;
+        csvContent += `# TIMED POLICY ADJUSTMENTS:\n`;
+        csvContent += `#   Total Actions: ${globalBestStrategy.timedActions.length} strategic adjustments scheduled\n`;
+        const actionBreakdownActions = {};
+        globalBestStrategy.timedActions.forEach(a => {
+          actionBreakdownActions[a.type] = (actionBreakdownActions[a.type] || 0) + 1;
+        });
+        Object.entries(actionBreakdownActions).forEach(([type, count]) => {
+          csvContent += `#     ${type}: ${count} action(s)\n`;
+        });
+        csvContent += `#\n`;
+        csvContent += `# ===============================================================================\n`;
         csvContent += `#\n`;
         csvContent += `# COMPREHENSIVE ACTION TIMELINE (includes full business context for each action):\n`;
       }
