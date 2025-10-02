@@ -7,7 +7,6 @@
 import type { SimulationState, Strategy } from './types.js';
 import { CONSTANTS } from './constants.js';
 import { consumeRawMaterials } from './inventoryModule.js';
-import { getWorkforceProductivity } from './hrModule.js';
 
 export interface MCECapacityAllocation {
   totalCapacity: number;
@@ -107,7 +106,8 @@ export function allocateMCECapacity(state: SimulationState, strategy: Strategy):
 
 /**
  * Processes custom line production for one day
- * Custom line: MCE → ARCP → Ship (single continuous flow)
+ * Custom line: MCE → WMA (Pass 1) → WMA (Pass 2) → PUC → Ship
+ * Implements data-driven multi-stage production with second WMA pass
  */
 export function processCustomLineProduction(
   state: SimulationState,
@@ -115,57 +115,91 @@ export function processCustomLineProduction(
   mceCapacity: number
 ): CustomLineResult {
   const startingOrders = state.customLineWIP.orders.length;
-  const workforce = getWorkforceProductivity(state);
 
-  // Step 1: MCE Processing (add new orders to WIP)
+  // Calculate station capacities
+  const wmaCapacity = state.machines.WMA * CONSTANTS.CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY;
+  const pucCapacity = state.machines.PUC * CONSTANTS.CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY;
+
+  let newOrdersStarted = 0;
+  let ordersCompleted = 0;
+  const completedOrders: Array<{ startDay: number; completionDay: number; totalDays: number }> = [];
+
+  // Step 1: MCE Processing (add new orders to WIP at MCE station)
   const newOrdersCapacity = Math.min(mceCapacity, CONSTANTS.CUSTOM_LINE_MAX_WIP - startingOrders);
-
-  // Check raw material availability
   const rawMaterialNeeded = newOrdersCapacity * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT;
   const materialConsumption = consumeRawMaterials(state, rawMaterialNeeded, 'custom');
+  newOrdersStarted = Math.floor(materialConsumption.consumed / CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT);
 
-  const newOrdersStarted = Math.floor(
-    materialConsumption.consumed / CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT
-  );
-
-  // Add new orders to WIP
+  // Add new orders at MCE station
   for (let i = 0; i < newOrdersStarted; i++) {
     state.customLineWIP.orders.push({
       orderId: `custom-${state.currentDay}-${i}`,
       startDay: state.currentDay,
       daysInProduction: 0,
+      currentStation: 'MCE',
+      daysAtCurrentStation: 0,
     });
   }
 
-  // Step 2: ARCP Processing (age existing orders)
-  const ordersProcessed = Math.min(workforce.totalProductivity, state.customLineWIP.orders.length);
+  // Step 2-5: Process orders through stations (FIFO - oldest first)
+  // Sort by start day to process in order
+  state.customLineWIP.orders.sort((a, b) => a.startDay - b.startDay);
 
-  let ordersCompleted = 0;
-  const completedOrders: Array<{ startDay: number; completionDay: number; totalDays: number }> = [];
+  // Track capacity usage at each station
+  let wmaPass1Used = 0;
+  let wmaPass2Used = 0;
+  let pucUsed = 0;
 
-  // Process orders (FIFO - oldest first)
-  state.customLineWIP.orders = state.customLineWIP.orders
-    .sort((a, b) => a.startDay - b.startDay)
-    .filter((order, index) => {
-      if (index < ordersProcessed) {
-        order.daysInProduction += 1;
+  state.customLineWIP.orders = state.customLineWIP.orders.filter((order) => {
+    order.daysInProduction += 1;
+    order.daysAtCurrentStation += 1;
 
-        // Custom order completion logic
-        if (order.daysInProduction >= CONSTANTS.MIN_CUSTOM_PRODUCTION_DAYS) {
+    // Process based on current station
+    switch (order.currentStation) {
+      case 'MCE':
+        // MCE processes immediately, move to WMA Pass 1
+        order.currentStation = 'WMA_PASS1';
+        order.daysAtCurrentStation = 0;
+        return true;
+
+      case 'WMA_PASS1':
+        // Check WMA Pass 1 capacity
+        if (wmaPass1Used < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
+          wmaPass1Used++;
+          order.currentStation = 'WMA_PASS2';
+          order.daysAtCurrentStation = 0;
+        }
+        return true;
+
+      case 'WMA_PASS2':
+        // Check WMA Pass 2 capacity (second pass through WMA)
+        if (wmaPass2Used < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
+          wmaPass2Used++;
+          order.currentStation = 'PUC';
+          order.daysAtCurrentStation = 0;
+        }
+        return true;
+
+      case 'PUC':
+        // Check PUC capacity
+        if (pucUsed < pucCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_PUC_PROCESSING_DAYS) {
+          pucUsed++;
+          order.currentStation = 'COMPLETE';
           ordersCompleted++;
           completedOrders.push({
             startDay: order.startDay,
             completionDay: state.currentDay,
             totalDays: order.daysInProduction,
           });
+          state.finishedGoods.custom++;
           return false; // Remove from WIP
         }
-      }
-      return true; // Keep in WIP
-    });
+        return true;
 
-  // Add completed orders to finished goods
-  state.finishedGoods.custom += ordersCompleted;
+      default:
+        return true;
+    }
+  });
 
   // Calculate average delivery time
   const avgDeliveryTime =
@@ -175,14 +209,14 @@ export function processCustomLineProduction(
 
   return {
     newOrdersStarted,
-    ordersProcessed,
+    ordersProcessed: wmaPass1Used + wmaPass2Used + pucUsed, // Total orders processed across all stations
     ordersCompleted,
     remainingWIP: state.customLineWIP.orders.length,
     avgDeliveryTime,
     rawMaterialUsed: materialConsumption.consumed,
     capacityUtilization: {
       mce: mceCapacity > 0 ? newOrdersStarted / mceCapacity : 0,
-      arcp: workforce.totalProductivity > 0 ? ordersProcessed / workforce.totalProductivity : 0,
+      arcp: 1, // Not used in new multi-stage model
     },
   };
 }

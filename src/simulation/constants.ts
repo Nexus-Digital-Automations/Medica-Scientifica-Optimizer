@@ -35,9 +35,13 @@ export const CONSTANTS = {
   ARCP_ROOKIE_PRODUCTIVITY_FACTOR: 0.4, // 40% of expert
   ROOKIE_TRAINING_TIME: 15, // days to become expert
 
-  // Custom Line Capacity
+  // Custom Line Capacity (data-driven from analysis)
   CUSTOM_LINE_MAX_WIP: 360, // maximum orders in WIP
   MIN_CUSTOM_PRODUCTION_DAYS: 5, // minimum days to complete custom order
+  CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY: 6, // WMA capacity per machine (12 total with 2 machines)
+  CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY: 6, // PUC capacity per machine (12 total with 2 machines)
+  CUSTOM_WMA_PROCESSING_DAYS: 1, // Days per WMA pass
+  CUSTOM_PUC_PROCESSING_DAYS: 1, // Days at PUC station
 
   // Machine Costs (Station 1: MCE, Station 2: WMA, Station 3: PUC)
   MACHINES: {

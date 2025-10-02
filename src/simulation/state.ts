@@ -33,10 +33,13 @@ export function initializeState(): SimulationState {
 
   // Initialize custom line WIP with starting orders (295 orders)
   for (let i = 0; i < 295; i++) {
+    const daysInProd = Math.floor(Math.random() * 10);
     state.customLineWIP.orders.push({
       orderId: `initial-${i}`,
       startDay: 50 - Math.floor(Math.random() * 10), // Stagger start days
-      daysInProduction: Math.floor(Math.random() * 10),
+      daysInProduction: daysInProd,
+      currentStation: daysInProd < 2 ? 'WMA_PASS1' : daysInProd < 4 ? 'WMA_PASS2' : 'PUC', // Distribute across stations
+      daysAtCurrentStation: 0,
     });
   }
 

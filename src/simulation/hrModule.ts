@@ -4,7 +4,7 @@
  * Includes data-driven quit risk model for sustained overtime
  */
 
-import type { SimulationState, EmployeeOvertimeRecord } from './types.js';
+import type { SimulationState } from './types.js';
 import { CONSTANTS } from './constants.js';
 
 // Quit risk constants (data-driven estimates)

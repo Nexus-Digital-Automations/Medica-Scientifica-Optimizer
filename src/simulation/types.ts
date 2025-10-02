@@ -42,6 +42,8 @@ export interface CustomOrder {
   orderId: string;
   startDay: number;
   daysInProduction: number;
+  currentStation: 'MCE' | 'WMA_PASS1' | 'WMA_PASS2' | 'PUC' | 'COMPLETE'; // Track production stage
+  daysAtCurrentStation: number; // Days at current station
 }
 
 export interface FinishedGoods {
