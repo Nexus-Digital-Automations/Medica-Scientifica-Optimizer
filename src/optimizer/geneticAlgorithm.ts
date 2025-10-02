@@ -37,17 +37,21 @@ export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
 
 /**
  * Generates a random strategy (initial population)
+ * Custom pricing uses data-driven defaults (fixed market conditions, not optimizable)
  */
 function generateRandomStrategy(): Strategy {
   const strategy: Strategy = {
-    reorderPoint: Math.floor(Math.random() * 300) + 100, // 100-400
-    orderQuantity: Math.floor(Math.random() * 500) + 200, // 200-700
-    standardBatchSize: Math.floor(Math.random() * 30) + 10, // 10-40
-    mceAllocationCustom: Math.random() * 0.5 + 0.5, // 0.5-1.0 (favor custom)
-    standardPrice: Math.floor(Math.random() * 400) + 600, // 600-1000
-    customBasePrice: Math.floor(Math.random() * 600) + 900, // 900-1500
-    customPenaltyPerDay: Math.floor(Math.random() * 20) + 5, // 5-25
-    customTargetDeliveryDays: Math.floor(Math.random() * 10) + 5, // 5-15
+    reorderPoint: Math.floor(Math.random() * 300) + 100, // 100-400 (OPTIMIZABLE - inventory policy)
+    orderQuantity: Math.floor(Math.random() * 500) + 200, // 200-700 (OPTIMIZABLE - inventory policy)
+    standardBatchSize: Math.floor(Math.random() * 30) + 10, // 10-40 (OPTIMIZABLE - production policy)
+    mceAllocationCustom: Math.random() * 0.5 + 0.5, // 0.5-1.0 (OPTIMIZABLE - capacity allocation)
+    standardPrice: Math.floor(Math.random() * 400) + 600, // 600-1000 (OPTIMIZABLE - pricing decision)
+
+    // FIXED MARKET CONDITIONS (data-driven from regression analysis, NOT optimizable)
+    customBasePrice: 106.56, // From historical regression baseline at 5-day target
+    customPenaltyPerDay: 0.27, // From historical regression slope
+    customTargetDeliveryDays: 5, // Data-driven optimal premium service target
+
     timedActions: generateRandomTimedActions(),
   };
 
@@ -105,20 +109,21 @@ function generateRandomTimedActions(): StrategyAction[] {
 
 /**
  * Performs crossover between two parent strategies
+ * Custom pricing parameters are FIXED (market conditions) and not crossed over
  */
 function crossover(parent1: Strategy, parent2: Strategy): Strategy {
   const child: Strategy = {
-    // Mix static genes randomly from parents
+    // Mix OPTIMIZABLE operational parameters from parents
     reorderPoint: Math.random() < 0.5 ? parent1.reorderPoint : parent2.reorderPoint,
     orderQuantity: Math.random() < 0.5 ? parent1.orderQuantity : parent2.orderQuantity,
     standardBatchSize: Math.random() < 0.5 ? parent1.standardBatchSize : parent2.standardBatchSize,
     mceAllocationCustom: Math.random() < 0.5 ? parent1.mceAllocationCustom : parent2.mceAllocationCustom,
     standardPrice: Math.random() < 0.5 ? parent1.standardPrice : parent2.standardPrice,
-    customBasePrice: Math.random() < 0.5 ? parent1.customBasePrice : parent2.customBasePrice,
-    customPenaltyPerDay: Math.random() < 0.5 ? parent1.customPenaltyPerDay : parent2.customPenaltyPerDay,
-    customTargetDeliveryDays: Math.random() < 0.5
-      ? parent1.customTargetDeliveryDays
-      : parent2.customTargetDeliveryDays,
+
+    // FIXED market conditions (data-driven, NOT crossed over)
+    customBasePrice: 106.56,
+    customPenaltyPerDay: 0.27,
+    customTargetDeliveryDays: 5,
 
     // Mix timed actions (take some from each parent)
     timedActions: [
@@ -132,11 +137,12 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
 
 /**
  * Mutates a strategy with given mutation rate
+ * Custom pricing parameters are FIXED (market conditions) and NEVER mutated
  */
 function mutate(strategy: Strategy, mutationRate: number): Strategy {
   const mutated = JSON.parse(JSON.stringify(strategy)) as Strategy;
 
-  // Mutate static genes
+  // Mutate OPTIMIZABLE operational parameters
   if (Math.random() < mutationRate) {
     mutated.reorderPoint += Math.floor(Math.random() * 100) - 50;
     mutated.reorderPoint = Math.max(50, Math.min(500, mutated.reorderPoint));
@@ -156,6 +162,9 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
     mutated.standardPrice += Math.floor(Math.random() * 100) - 50;
     mutated.standardPrice = Math.max(500, Math.min(1200, mutated.standardPrice));
   }
+
+  // Custom pricing (customBasePrice, customPenaltyPerDay, customTargetDeliveryDays)
+  // are FIXED market conditions and are NEVER mutated
 
   // Mutate timed actions with hybrid approach (90% gentle, 10% wild)
   if (Math.random() < mutationRate) {

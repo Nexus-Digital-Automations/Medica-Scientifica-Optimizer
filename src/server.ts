@@ -55,8 +55,23 @@ const server = createServer(async (req, res) => {
       req.on('end', async () => {
         const requestData = body ? JSON.parse(body) : { config: DEFAULT_GA_CONFIG };
         const config = requestData.config || DEFAULT_GA_CONFIG;
-        const fixedParams = config.fixedParams;
-        const variableParams = config.variableParams;
+
+        // FORCE custom pricing parameters into fixedParams (market conditions, not optimizable)
+        const fixedParams = {
+          ...(config.fixedParams || {}),
+          customBasePrice: 106.56,      // From historical regression baseline at 5-day target
+          customPenaltyPerDay: 0.27,    // From historical regression slope
+          customTargetDeliveryDays: 5,  // Data-driven optimal premium service target
+        };
+
+        // Remove custom pricing from variableParams if present (cannot be optimized)
+        const variableParams = config.variableParams ? {
+          ...config.variableParams,
+          customBasePrice: undefined,
+          customPenaltyPerDay: undefined,
+          customTargetDeliveryDays: undefined,
+        } : undefined;
+
         const startingState = requestData.startingState;
         const demandForecast = requestData.demandForecast;
 
