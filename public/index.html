@@ -306,14 +306,34 @@
         </div>
       </div>
 
-      <h3 style="margin: 1.5rem 0 1rem; color: #cbd5e1;">Re-Optimization Settings (Optional)</h3>
-      <div style="margin-bottom: 1rem;">
-        <label>Starting State JSON (optional - paste exported state for mid-course re-optimization)</label>
-        <textarea id="startingStateJSON" rows="4" style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: monospace; font-size: 0.9rem;" placeholder='{"currentDay": 172, "cash": 50000, ...}'></textarea>
-      </div>
-      <div style="margin-bottom: 1rem;">
-        <label>Custom Demand Forecast JSON (optional - override default business case demand curve)</label>
-        <textarea id="demandForecastJSON" rows="4" style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: monospace; font-size: 0.9rem;" placeholder='[{"day": 172, "standardDemand": 50, "customDemand": 20}, ...]'></textarea>
+      <h3 style="margin: 1.5rem 0 1rem; color: #cbd5e1;">
+        Custom Demand Forecast (Optional)
+        <span style="font-size: 0.8rem; font-weight: normal; color: #94a3b8; margin-left: 0.5rem;">Override default business case demand</span>
+      </h3>
+
+      <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-bottom: 1rem;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 1rem;">Custom Demand Forecast</h4>
+        <p style="margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.85rem;">Override default demand curve for specific days (leave all blank to use business case defaults)</p>
+
+        <div id="demandForecastEntries">
+          <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+            <div>
+              <label style="font-size: 0.85rem;">Day (51-500)</label>
+              <input type="number" class="demand-day" placeholder="e.g., 172" min="51" max="500">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Standard Demand</label>
+              <input type="number" class="demand-standard" placeholder="e.g., 50" min="0">
+            </div>
+            <div>
+              <label style="font-size: 0.85rem;">Custom Demand</label>
+              <input type="number" class="demand-custom" placeholder="e.g., 20" min="0">
+            </div>
+            <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
+          </div>
+        </div>
+
+        <button type="button" onclick="addDemandEntry()" style="padding: 0.5rem 1rem; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem;">+ Add Another Day</button>
       </div>
 
       <button id="startBtn" onclick="startOptimization()">🚀 Find Optimal Strategy</button>
@@ -325,7 +345,11 @@
       <div class="result-card">
         <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <span>📊 Optimal Strategy Found</span>
-          <button class="export-btn" onclick="exportState()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📤 Export Final State (for Re-Optimization)</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="export-btn" onclick="exportState()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">📤 Export State</button>
+            <button class="export-btn" onclick="document.getElementById('importStateFile').click()" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem; background: #059669;">📥 Import State</button>
+            <input type="file" id="importStateFile" accept=".json" style="display: none;" onchange="importState(this)">
+          </div>
         </h2>
         <div class="metric-grid" id="finalMetrics"></div>
       </div>
@@ -370,6 +394,33 @@
   </div>
 
   <script>
+    // Helper functions for demand forecast entries
+    function addDemandEntry() {
+      const container = document.getElementById('demandForecastEntries');
+      const entryHtml = `
+        <div class="demand-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+          <div>
+            <label style="font-size: 0.85rem;">Day (51-500)</label>
+            <input type="number" class="demand-day" placeholder="e.g., 172" min="51" max="500">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Standard Demand</label>
+            <input type="number" class="demand-standard" placeholder="e.g., 50" min="0">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem;">Custom Demand</label>
+            <input type="number" class="demand-custom" placeholder="e.g., 20" min="0">
+          </div>
+          <button type="button" onclick="removeDemandEntry(this)" style="padding: 0.75rem; background: #dc2626; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;">✕</button>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', entryHtml);
+    }
+
+    function removeDemandEntry(button) {
+      button.parentElement.remove();
+    }
+
     async function startOptimization() {
       const btn = document.getElementById('startBtn');
       const status = document.getElementById('status');
@@ -392,30 +443,33 @@
       // Parse optional re-optimization parameters
       const requestData = { config };
 
-      const startingStateText = document.getElementById('startingStateJSON').value.trim();
-      if (startingStateText) {
-        try {
-          requestData.startingState = JSON.parse(startingStateText);
-          console.log('Using custom starting state from day:', requestData.startingState.currentDay);
-        } catch (e) {
-          alert('Invalid Starting State JSON: ' + e.message);
-          btn.disabled = false;
-          status.style.display = 'none';
-          return;
-        }
+      // Use imported state if available
+      if (importedState) {
+        requestData.startingState = importedState;
+        console.log('Using imported starting state from day:', importedState.currentDay);
       }
 
-      const demandForecastText = document.getElementById('demandForecastJSON').value.trim();
-      if (demandForecastText) {
-        try {
-          requestData.demandForecast = JSON.parse(demandForecastText);
-          console.log('Using custom demand forecast with', requestData.demandForecast.length, 'data points');
-        } catch (e) {
-          alert('Invalid Demand Forecast JSON: ' + e.message);
-          btn.disabled = false;
-          status.style.display = 'none';
-          return;
+      // Collect demand forecast entries
+      const demandEntries = document.querySelectorAll('.demand-entry');
+      const demandForecast = [];
+
+      demandEntries.forEach(entry => {
+        const day = entry.querySelector('.demand-day').value;
+        const standardDemand = entry.querySelector('.demand-standard').value;
+        const customDemand = entry.querySelector('.demand-custom').value;
+
+        if (day && standardDemand && customDemand) {
+          demandForecast.push({
+            day: parseInt(day),
+            standardDemand: parseInt(standardDemand),
+            customDemand: parseInt(customDemand)
+          });
         }
+      });
+
+      if (demandForecast.length > 0) {
+        requestData.demandForecast = demandForecast;
+        console.log('Using custom demand forecast with', demandForecast.length, 'data points');
       }
 
       try {
@@ -625,6 +679,8 @@
       globalFinalState = state;
     }
 
+    let importedState = null;
+
     function exportState() {
       if (!globalFinalState) {
         alert('No simulation state available to export');
@@ -640,6 +696,24 @@
       a.download = `simulation-state-day-${globalFinalState.currentDay}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    }
+
+    function importState(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          importedState = JSON.parse(e.target.result);
+          alert(`✅ State imported successfully!\n\nStarting Day: ${importedState.currentDay}\nCash: $${importedState.cash.toFixed(2)}\nDebt: $${importedState.debt.toFixed(2)}\n\nThis state will be used for the next optimization run.`);
+        } catch (error) {
+          alert('❌ Error importing state: ' + error.message);
+          importedState = null;
+        }
+      };
+      reader.readAsText(file);
+      input.value = ''; // Reset file input
     }
 
     function exportToCSV(period) {
