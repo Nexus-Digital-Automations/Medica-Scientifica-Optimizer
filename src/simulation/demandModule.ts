@@ -54,10 +54,15 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
     Math.round(strategy.standardDemandIntercept + strategy.standardDemandSlope * strategy.standardPrice)
   );
 
-  // Days 51-172: Baseline demand phase
-  // Custom: Normal distribution using strategy parameters for phase 1
-  // Standard: Linear demand curve based on price
-  if (day < 173) {
+  // CUSTOM DEMAND THREE-PHASE MODEL (based on business case forecast):
+  // Phase 1 (Days 51-172): Stable low demand
+  // Phase 2 (Days 172-218): Linear increase transition period
+  // Phase 3 (Days 218-400): Stable high demand
+
+  // STANDARD DEMAND: Price-sensitive throughout (linear demand curve)
+
+  // Phase 1: Days 51-172 - Stable baseline demand
+  if (day <= 172) {
     const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean1, strategy.customDemandStdDev1));
     return {
       standard: standardDemand,
@@ -65,9 +70,22 @@ export function getDemandForDay(day: number, strategy: Strategy, customForecast?
     };
   }
 
-  // Days 173-400: Demand shock phase
-  // Custom: Normal distribution using strategy parameters for phase 2
-  // Standard: Linear demand curve based on price
+  // Phase 2: Days 172-218 - Linear increase transition (46 days)
+  // Demand increases linearly from mean1 to mean2
+  if (day <= 218) {
+    const transitionProgress = (day - 172) / (218 - 172); // 0.0 to 1.0
+    const currentMean = strategy.customDemandMean1 +
+                        (strategy.customDemandMean2 - strategy.customDemandMean1) * transitionProgress;
+    const currentStdDev = strategy.customDemandStdDev1 +
+                         (strategy.customDemandStdDev2 - strategy.customDemandStdDev1) * transitionProgress;
+    const customDemand = Math.max(0, generateNormalRandom(currentMean, currentStdDev));
+    return {
+      standard: standardDemand,
+      custom: customDemand,
+    };
+  }
+
+  // Phase 3: Days 218-400 - Stable high demand
   if (day <= 400) {
     const customDemand = Math.max(0, generateNormalRandom(strategy.customDemandMean2, strategy.customDemandStdDev2));
     return {

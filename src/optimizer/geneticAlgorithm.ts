@@ -60,10 +60,14 @@ function generateRandomStrategy(): Strategy {
     customTargetDeliveryDays: 5, // Data-driven optimal premium service target
 
     // FIXED DEMAND MODEL (data-driven market conditions, NOT optimizable)
-    customDemandMean1: 25, // Phase 1 (days 51-172) mean demand
-    customDemandStdDev1: 5, // Phase 1 standard deviation
-    customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand
-    customDemandStdDev2: 6.5, // Phase 2 standard deviation
+    // Three-phase custom demand:
+    // - Days 51-172: Stable low (customDemandMean1)
+    // - Days 172-218: Linear increase transition
+    // - Days 218-400: Stable high (customDemandMean2)
+    customDemandMean1: 25, // Phase 1 (days 51-172) stable low mean demand
+    customDemandStdDev1: 5, // Phase 1 stable low standard deviation
+    customDemandMean2: 32.5, // Phase 3 (days 218-400) stable high mean demand
+    customDemandStdDev2: 6.5, // Phase 3 stable high standard deviation
 
     // FIXED STANDARD DEMAND CURVE (user input market conditions, NOT optimizable)
     standardDemandIntercept: 500, // Quantity demanded at price $0
@@ -127,8 +131,15 @@ function generateRandomTimedActions(): StrategyAction[] {
     }
   }
 
-  // ADAPTIVE POLICY ADJUSTMENTS - Enable optimizer to change policies across THREE strategic periods
-  // Period 1: Days 160-185 (Demand Shock - custom demand increases)
+  // ADAPTIVE POLICY ADJUSTMENTS - Enable optimizer to change policies across strategic periods
+  // Based on business case forecast:
+  // - Days 51-172: Stable low custom demand
+  // - Days 172-218: Linear increase transition (46 days)
+  // - Days 218-400: Stable high custom demand
+  // - Days 450-500: Runoff period
+  //
+  // Policy adjustment bias:
+  // Period 1: Days 172-218 (Demand Transition - custom demand increasing)
   // Period 2: Days 450-465 (Runoff Start - final wind-down begins)
   // Period 3: Days 75-450 (Active Management - random optimization opportunities)
 
@@ -142,8 +153,9 @@ function generateRandomTimedActions(): StrategyAction[] {
       const periodChoice = Math.random();
 
       if (periodChoice < 0.35) {
-        // 35% - Demand shock period (Days 160-185)
-        adjustmentDay = Math.floor(Math.random() * 26) + 160;
+        // 35% - Demand transition period (Days 172-218)
+        // During this 46-day period, custom demand increases linearly
+        adjustmentDay = Math.floor(Math.random() * 47) + 172;
       } else if (periodChoice < 0.65) {
         // 30% - Runoff start period (Days 450-465)
         adjustmentDay = Math.floor(Math.random() * 16) + 450;
@@ -233,6 +245,7 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
     customTargetDeliveryDays: 5,
 
     // FIXED demand model (data-driven, NOT crossed over)
+    // Three-phase: Days 51-172 stable low → Days 172-218 transition → Days 218-400 stable high
     customDemandMean1: 25,
     customDemandStdDev1: 5,
     customDemandMean2: 32.5,
