@@ -47,7 +47,9 @@ export const BUSINESS_RULES = {
 
   // Financial Health
   MIN_CASH_THRESHOLD: -50000, // Cannot go below -$50K cash (bankruptcy protection)
+  MIN_OPERATIONAL_CASH: 5000, // Minimum cash to maintain operations ($1000 order fee + $4000 materials)
   MAX_DEBT_TO_REVENUE_RATIO: 5.0, // Debt cannot exceed 5x monthly revenue
+  MAX_CASH_CONSTRAINED_ORDERS: 5, // Maximum 5 cash-constrained orders allowed per simulation
 
   // Mission Alignment (Patient Care)
   MAX_ORDERS_REJECTED_PER_100_DAYS: 10, // Cannot reject more than 10 orders per 100 days
@@ -238,13 +240,13 @@ function checkProductionUtilization(state: SimulationState): BusinessRuleViolati
 }
 
 /**
- * Rule 5: Financial Health - PREVENT BANKRUPTCY
+ * Rule 5: Financial Health - PREVENT BANKRUPTCY AND CASH STARVATION
  */
 function checkFinancialHealth(state: SimulationState): BusinessRuleViolation[] {
   const violations: BusinessRuleViolation[] = [];
   const cashHistory = state.history.dailyCash;
 
-  // Check minimum cash threshold
+  // Check minimum cash threshold (absolute bankruptcy)
   const minCash = Math.min(...cashHistory.map(d => d.value));
 
   if (minCash < BUSINESS_RULES.MIN_CASH_THRESHOLD) {
@@ -255,6 +257,36 @@ function checkFinancialHealth(state: SimulationState): BusinessRuleViolation[] {
       day: state.currentDay,
       value: minCash,
       threshold: BUSINESS_RULES.MIN_CASH_THRESHOLD,
+    });
+  }
+
+  // Check operational cash starvation - count days below operational minimum
+  const daysWithInsufficientCash = cashHistory.filter(
+    d => d.value < BUSINESS_RULES.MIN_OPERATIONAL_CASH && d.value > BUSINESS_RULES.MIN_CASH_THRESHOLD
+  ).length;
+
+  // If more than 10 days below operational cash, this is a CRITICAL failure
+  if (daysWithInsufficientCash > 10) {
+    violations.push({
+      rule: 'MIN_OPERATIONAL_CASH',
+      severity: 'CRITICAL',
+      message: `Cash dropped below operational minimum ($${BUSINESS_RULES.MIN_OPERATIONAL_CASH.toLocaleString()}) on ${daysWithInsufficientCash} days. This causes material ordering failures and production stoppages.`,
+      day: state.currentDay,
+      value: daysWithInsufficientCash,
+      threshold: 10,
+    });
+  }
+
+  // Check for rejected material orders (couldn't afford to order)
+  const rejectedOrders = state.rejectedMaterialOrders || 0;
+  if (rejectedOrders > BUSINESS_RULES.MAX_CASH_CONSTRAINED_ORDERS) {
+    violations.push({
+      rule: 'MAX_CASH_CONSTRAINED_ORDERS',
+      severity: 'CRITICAL',
+      message: `${rejectedOrders} material orders rejected due to insufficient cash (maximum: ${BUSINESS_RULES.MAX_CASH_CONSTRAINED_ORDERS}). This indicates severe cash flow mismanagement.`,
+      day: state.currentDay,
+      value: rejectedOrders,
+      threshold: BUSINESS_RULES.MAX_CASH_CONSTRAINED_ORDERS,
     });
   }
 
