@@ -1,7 +1,15 @@
 {
   "project": "Medica Scientifica Optimizer",
   "features": [],
-  "agents": {},
+  "agents": {
+    "claude-agent-medica-scientifica": {
+      "lastHeartbeat": "2025-10-03T23:33:21.573Z",
+      "status": "active",
+      "reinitialized": "2025-10-03T23:33:21.573Z",
+      "sessionId": "32f36a1e19b30fc2",
+      "previousSessions": []
+    }
+  },
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
@@ -10,26 +18,26 @@
     "approval_history": [],
     "initialization_stats": {
       "total_initializations": 0,
-      "total_reinitializations": 2,
+      "total_reinitializations": 3,
       "current_day": "2025-10-03",
       "time_buckets": {
-        "16:00-20:59": {
-          "init": 0,
-          "reinit": 0
-        },
-        "21:00-01:59": {
+        "17:00-21:59": {
           "init": 0,
           "reinit": 1
         },
-        "02:00-06:59": {
+        "22:00-02:59": {
           "init": 0,
           "reinit": 0
         },
-        "07:00-11:59": {
+        "03:00-07:59": {
           "init": 0,
           "reinit": 0
         },
-        "12:00-16:59": {
+        "08:00-12:59": {
+          "init": 0,
+          "reinit": 0
+        },
+        "13:00-17:59": {
           "init": 0,
           "reinit": 0
         }
@@ -63,8 +71,8 @@
           }
         }
       ],
-      "last_reset": "2025-10-03T03:24:59.329Z",
-      "last_updated": "2025-10-03T03:24:59.329Z"
+      "last_reset": "2025-10-03T23:33:21.573Z",
+      "last_updated": "2025-10-03T23:33:21.574Z"
     }
   },
   "workflow_config": {

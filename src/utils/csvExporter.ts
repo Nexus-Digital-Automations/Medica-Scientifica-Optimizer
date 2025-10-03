@@ -4,16 +4,34 @@
  */
 
 import type { SimulationResult } from '../simulation/types.js';
+import { validateBusinessRules, BUSINESS_RULES } from '../simulation/businessRules.js';
 
 export function exportSimulationToCSV(result: SimulationResult): string {
   const { state } = result;
   const history = state.history;
+
+  // Validate business rules for this result
+  const businessRulesResult = validateBusinessRules(state);
 
   // Build CSV header
   const header = [
     '# Medica Scientifica COMPREHENSIVE Optimization Results',
     `# Generated: ${new Date().toISOString()}`,
     `# Period: Complete Simulation (Days 51-500)`,
+    '#',
+    '# BUSINESS RULES VALIDATION:',
+    `#   Status: ${businessRulesResult.valid ? '✅ PASSED' : '❌ FAILED'}`,
+    `#   Critical Violations: ${businessRulesResult.criticalCount}`,
+    `#   Major Violations: ${businessRulesResult.majorCount}`,
+    `#   Warnings: ${businessRulesResult.warningCount}`,
+    '#',
+    '# HARD CONSTRAINTS ENFORCED:',
+    `#   Max Custom Delivery Time: ${BUSINESS_RULES.MAX_CUSTOM_DELIVERY_DAYS} days`,
+    `#   Min Custom Service Level: ${(BUSINESS_RULES.MIN_CUSTOM_SERVICE_LEVEL * 100).toFixed(0)}%`,
+    `#   Max Consecutive Stockouts: ${BUSINESS_RULES.MAX_CONSECUTIVE_STOCKOUT_DAYS} days`,
+    `#   Min Production Utilization: ${(BUSINESS_RULES.MIN_PRODUCTION_UTILIZATION * 100).toFixed(0)}%`,
+    `#   Min Cash Threshold: $${BUSINESS_RULES.MIN_CASH_THRESHOLD.toLocaleString()}`,
+    `#   Min Custom Production Ratio: ${(BUSINESS_RULES.MIN_CUSTOM_PRODUCTION_RATIO * 100).toFixed(0)}%`,
     '#',
     '# DYNAMIC POLICY SYSTEM:',
     '#   Policies are calculated dynamically using Operations Research formulas',
