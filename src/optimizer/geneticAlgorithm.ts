@@ -5,9 +5,11 @@
 
 import type { Strategy, OptimizationResult, PopulationStats, StrategyAction, SimulationState } from '../simulation/types.js';
 import { CONSTANTS } from '../simulation/constants.js';
-import { runSimulation, evaluateStrategy } from '../simulation/simulationEngine.js';
+import { runSimulation } from '../simulation/simulationEngine.js';
 import type { DemandForecast } from '../simulation/demandModule.js';
 import { AnalyticalOptimizer } from './analyticalOptimizer.js';
+import { constrainStrategy, generateBoundedRandomStrategy } from './strategyConstraints.js';
+import { validateBusinessRules } from '../simulation/businessRules.js';
 
 export interface GeneticAlgorithmConfig {
   populationSize: number;
@@ -60,47 +62,11 @@ export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
 
 /**
  * Generates a random strategy (initial population)
- * Custom pricing uses data-driven defaults (fixed market conditions, not optimizable)
+ * Uses constrained bounds to prevent generation of invalid strategies
  */
 function generateRandomStrategy(): Strategy {
-  const strategy: Strategy = {
-    // FORMULA-DRIVEN POLICIES: Set to 0, will be calculated dynamically
-    reorderPoint: 0, // Calculated via ROP formula (with safety stock)
-    orderQuantity: 0, // Calculated via EOQ formula
-    standardBatchSize: 0, // Calculated via EPQ formula
-
-    // GA-OPTIMIZABLE POLICIES: Random initial values
-    mceAllocationCustom: Math.random() * 0.5 + 0.5, // 0.5-1.0 (OPTIMIZABLE - capacity allocation)
-    standardPrice: Math.floor(Math.random() * 400) + 600, // 600-1000 (OPTIMIZABLE - pricing decision)
-    dailyOvertimeHours: Math.floor(Math.random() * 5), // 0-4 hours (OPTIMIZABLE - overtime policy)
-
-    // FIXED MARKET CONDITIONS (data-driven from regression analysis, NOT optimizable)
-    customBasePrice: 106.56, // From historical regression baseline at 5-day target
-    customPenaltyPerDay: 0.27, // From historical regression slope
-    customTargetDeliveryDays: 5, // Data-driven optimal premium service target
-
-    // FIXED DEMAND MODEL (data-driven market conditions, NOT optimizable)
-    // Three-phase custom demand:
-    // - Days 51-172: Stable low (customDemandMean1)
-    // - Days 172-218: Linear increase transition
-    // - Days 218-400: Stable high (customDemandMean2)
-    customDemandMean1: 25, // Phase 1 (days 51-172) stable low mean demand
-    customDemandStdDev1: 5, // Phase 1 stable low standard deviation
-    customDemandMean2: 32.5, // Phase 3 (days 218-400) stable high mean demand
-    customDemandStdDev2: 6.5, // Phase 3 stable high standard deviation
-
-    // FIXED STANDARD DEMAND CURVE (user input market conditions, NOT optimizable)
-    // NO phase changes or demand shocks - linear price-sensitive model throughout simulation
-    standardDemandIntercept: 500, // Quantity demanded at price $0
-    standardDemandSlope: -0.25, // Change in quantity per $1 price increase
-
-    // FIXED QUIT RISK MODEL (environment variables, NOT optimizable)
-    overtimeTriggerDays: 5, // Consecutive overtime days before quit risk begins
-    dailyQuitProbability: 0.10, // 10% daily quit chance once overworked
-
-    timedActions: generateRandomTimedActions(),
-  };
-
+  const strategy = generateBoundedRandomStrategy();
+  strategy.timedActions = generateRandomTimedActions();
   return strategy;
 }
 
@@ -305,17 +271,14 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
   // Mutate GA-OPTIMIZABLE operational parameters only
   if (Math.random() < mutationRate) {
     mutated.mceAllocationCustom += (Math.random() - 0.5) * 0.2;
-    mutated.mceAllocationCustom = Math.max(0.3, Math.min(1.0, mutated.mceAllocationCustom));
   }
 
   if (Math.random() < mutationRate) {
     mutated.standardPrice += Math.floor(Math.random() * 100) - 50;
-    mutated.standardPrice = Math.max(500, Math.min(1200, mutated.standardPrice));
   }
 
   if (Math.random() < mutationRate) {
     mutated.dailyOvertimeHours += (Math.random() < 0.5 ? 1 : -1);
-    mutated.dailyOvertimeHours = Math.max(0, Math.min(4, mutated.dailyOvertimeHours));
   }
 
   // Custom pricing (customBasePrice, customPenaltyPerDay, customTargetDeliveryDays),
@@ -404,7 +367,8 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
     }
   }
 
-  return mutated;
+  // Apply constraints to ensure mutated values stay within valid bounds
+  return constrainStrategy(mutated);
 }
 
 /**
@@ -603,7 +567,7 @@ export async function optimize(
     console.log(`\n━━━ Generation ${gen} START ━━━`);
     console.log(`  Population size: ${population.length}`);
 
-    // Evaluate fitness for entire population
+    // Evaluate fitness for entire population with validation and retry
     console.log(`  Evaluating fitness for ${population.length} strategies...`);
     const startEval = Date.now();
     const fitnessScores = await Promise.all(
@@ -611,13 +575,45 @@ export async function optimize(
         if (idx % 100 === 0) {
           console.log(`    Evaluating strategy ${idx}/${population.length}...`);
         }
-        const fitness = await evaluateStrategy(strategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
-        if (idx % 100 === 0) {
-          console.log(`    Strategy ${idx} fitness: $${fitness.toFixed(2)}`);
+
+        // Try up to 3 times to get a valid strategy
+        let attempts = 0;
+        const maxAttempts = 3;
+        let currentStrategy = strategy;
+        let simulationResult;
+        let isValid = false;
+
+        while (attempts < maxAttempts && !isValid) {
+          attempts++;
+
+          // Run simulation
+          simulationResult = await runSimulation(currentStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+
+          // Validate business rules
+          const validation = validateBusinessRules(simulationResult.state);
+
+          if (validation.valid) {
+            isValid = true;
+            if (idx % 100 === 0) {
+              console.log(`    Strategy ${idx} fitness: $${simulationResult.fitnessScore.toFixed(2)} ✅ VALID`);
+            }
+          } else {
+            console.warn(`    Strategy ${idx} attempt ${attempts}/${maxAttempts} INVALID: ${validation.criticalCount} critical, ${validation.majorCount} major violations`);
+            if (attempts < maxAttempts) {
+              // Generate a new random strategy and try again
+              currentStrategy = generateRandomStrategy();
+              console.log(`    Regenerating strategy ${idx}...`);
+            } else {
+              // Max attempts reached, assign very negative fitness
+              console.error(`    Strategy ${idx} REJECTED after ${maxAttempts} attempts`);
+              simulationResult.fitnessScore = -999999999; // Will be discarded by natural selection
+            }
+          }
         }
+
         return {
-          strategy,
-          fitness,
+          strategy: currentStrategy,
+          fitness: simulationResult!.fitnessScore,
         };
       })
     );

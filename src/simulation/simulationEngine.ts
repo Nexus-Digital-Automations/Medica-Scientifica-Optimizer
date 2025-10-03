@@ -438,29 +438,11 @@ export async function runSimulation(
   const stockoutPenalty = state.stockoutDays * 1000;
   const lostProductionPenalty = state.lostProductionDays * 2000;
 
-  // BUSINESS RULES VALIDATION - Enforce hard constraints
-  // These rules prevent unrealistic strategies that would destroy the business
+  // BUSINESS RULES VALIDATION - For reporting only
+  // Actual constraint enforcement happens in GA before evaluation
   const businessRulesResult = validateBusinessRules(state);
-
-  // If CRITICAL violations exist, apply massive penalty to reject strategy
-  // This prevents GA from finding "optimal" strategies that violate real-world constraints
-  let businessRulesPenalty = 0;
   if (!businessRulesResult.valid) {
     console.error('\n' + formatViolations(businessRulesResult));
-
-    // CRITICAL violations: Apply penalty of -$10M per violation (effectively rejects strategy)
-    // This is 2x higher than best possible net worth to ensure rejection
-    businessRulesPenalty = businessRulesResult.criticalCount * 10000000;
-
-    // MAJOR violations: Apply penalty of -$500K per violation
-    // These are serious but not absolute dealbreakers
-    businessRulesPenalty += businessRulesResult.majorCount * 500000;
-
-    // WARNINGS: Apply penalty of -$50K per violation
-    // These are issues that should be avoided when possible
-    businessRulesPenalty += businessRulesResult.warningCount * 50000;
-
-    console.error(`Business rules penalty: -$${businessRulesPenalty.toLocaleString()}`);
   } else {
     console.log('✅ All business rules passed - strategy is operationally valid');
   }
@@ -469,8 +451,7 @@ export async function runSimulation(
     - inventoryWriteOff
     - rejectedOrdersPenalty
     - stockoutPenalty
-    - lostProductionPenalty
-    - businessRulesPenalty; // CRITICAL: Reject strategies that violate business rules
+    - lostProductionPenalty;
 
   return {
     finalCash: state.cash,
