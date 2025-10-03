@@ -12,8 +12,8 @@ console.log('='.repeat(80));
 console.log('DYNAMIC POLICY RECALCULATION DEMONSTRATION');
 console.log('='.repeat(80));
 
-// Initialize calculator and state
-const calculator = new DynamicPolicyCalculator();
+// Initialize calculator and state (with debug mode enabled for demonstration)
+const calculator = new DynamicPolicyCalculator(true);
 const state = initializeState();
 const strategy: Strategy = JSON.parse(JSON.stringify(DEFAULT_STRATEGY));
 

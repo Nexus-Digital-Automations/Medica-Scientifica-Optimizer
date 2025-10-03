@@ -107,9 +107,18 @@ export class DynamicPolicyCalculator {
   private analyticalOptimizer: AnalyticalOptimizer;
   private previousInputState: FormulaInputState | null = null;
   private policyChangeHistory: PolicyChangeLog[] = [];
+  private debugMode: boolean = false;
 
-  constructor() {
+  constructor(debugMode: boolean = false) {
     this.analyticalOptimizer = new AnalyticalOptimizer();
+    this.debugMode = debugMode;
+  }
+
+  /**
+   * Enable or disable debug logging
+   */
+  setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
   }
 
   /**
@@ -121,7 +130,9 @@ export class DynamicPolicyCalculator {
     orderQuantity: number;
     standardBatchSize: number;
   } {
-    console.log(`\n🔬 [Day ${state.currentDay}] Calculating initial policies using OR formulas...`);
+    if (this.debugMode) {
+      console.log(`\n🔬 [Day ${state.currentDay}] Calculating initial policies using OR formulas...`);
+    }
 
     // Use analytical optimizer to generate initial policies
     const analyticalStrategy = this.analyticalOptimizer.generateAnalyticalStrategy();
@@ -132,9 +143,11 @@ export class DynamicPolicyCalculator {
       standardBatchSize: analyticalStrategy.standardBatchSize,
     };
 
-    console.log(`  ✓ Initial EOQ (Order Quantity): ${policies.orderQuantity} units`);
-    console.log(`  ✓ Initial ROP (Reorder Point): ${policies.reorderPoint} units`);
-    console.log(`  ✓ Initial EPQ (Batch Size): ${policies.standardBatchSize} units`);
+    if (this.debugMode) {
+      console.log(`  ✓ Initial EOQ (Order Quantity): ${policies.orderQuantity} units`);
+      console.log(`  ✓ Initial ROP (Reorder Point): ${policies.reorderPoint} units`);
+      console.log(`  ✓ Initial EPQ (Batch Size): ${policies.standardBatchSize} units`);
+    }
 
     // Initialize input state tracking
     this.previousInputState = this.captureInputState(state, strategy);
@@ -174,7 +187,9 @@ export class DynamicPolicyCalculator {
     strategy: Strategy,
     triggerEvent: TriggerEvent
   ): void {
-    console.log(`\n🔄 [Day ${state.currentDay}] Policy recalculation triggered by: ${triggerEvent}`);
+    if (this.debugMode) {
+      console.log(`\n🔄 [Day ${state.currentDay}] Policy recalculation triggered by: ${triggerEvent}`);
+    }
 
     // Capture current input state
     const currentInputState = this.captureInputState(state, strategy);
@@ -189,11 +204,15 @@ export class DynamicPolicyCalculator {
     const changes = this.detectChanges(this.previousInputState, currentInputState);
 
     if (changes.length === 0) {
-      console.log('  ℹ️  No significant changes detected, skipping recalculation');
+      if (this.debugMode) {
+        console.log('  ℹ️  No significant changes detected, skipping recalculation');
+      }
       return;
     }
 
-    console.log(`  📊 Detected changes: ${changes.join(', ')}`);
+    if (this.debugMode) {
+      console.log(`  📊 Detected changes: ${changes.join(', ')}`);
+    }
 
     // Recalculate policies based on what changed
     let policiesUpdated = 0;
@@ -254,7 +273,7 @@ export class DynamicPolicyCalculator {
     }
 
     // Bottleneck analysis (informational, doesn't change policies directly)
-    if (changes.includes('PRODUCTION_RATE') || changes.includes('WORKFORCE')) {
+    if (this.debugMode && (changes.includes('PRODUCTION_RATE') || changes.includes('WORKFORCE'))) {
       const bottleneck = this.identifyBottleneck(state, strategy);
       console.log(`  🎯 Current bottleneck: ${bottleneck.station} (capacity: ${bottleneck.capacity.toFixed(1)} units/day)`);
       console.log(`  📈 System throughput: ${bottleneck.systemThroughput.toFixed(1)} units/day`);
@@ -264,7 +283,9 @@ export class DynamicPolicyCalculator {
     // Update previous state
     this.previousInputState = currentInputState;
 
-    console.log(`  ✅ Policies updated: ${policiesUpdated}`);
+    if (this.debugMode && policiesUpdated > 0) {
+      console.log(`  ✅ Policies updated: ${policiesUpdated}`);
+    }
   }
 
   /**
@@ -310,7 +331,9 @@ export class DynamicPolicyCalculator {
 
     // Ensure production rate exceeds demand rate (EPQ requirement)
     if (productionRate <= demandRate) {
-      console.warn(`  ⚠️  Production rate (${productionRate}) <= demand rate (${demandRate}), using production capacity as batch size`);
+      if (this.debugMode) {
+        console.warn(`  ⚠️  Production rate (${productionRate}) <= demand rate (${demandRate}), using production capacity as batch size`);
+      }
       return Math.floor(productionRate);
     }
 
@@ -588,16 +611,18 @@ export class DynamicPolicyCalculator {
 
     this.policyChangeHistory.push(log);
 
-    // Console output
-    console.log(`\n  📝 Policy Change: ${policyName}`);
-    console.log(`     Old Value: ${oldValue.toFixed(2)}`);
-    console.log(`     New Value: ${newValue.toFixed(2)}`);
-    console.log(`     Change: ${((newValue - oldValue) / Math.max(oldValue, 1) * 100).toFixed(1)}%`);
-    console.log(`     Reason: ${changeReason}`);
-    console.log(`     Trigger: ${triggerEvent}`);
-    console.log(`     Formula Inputs:`);
-    for (const [key, value] of Object.entries(formulaInputs)) {
-      console.log(`       - ${key}: ${value.toFixed(2)}`);
+    // Console output (only in debug mode)
+    if (this.debugMode) {
+      console.log(`\n  📝 Policy Change: ${policyName}`);
+      console.log(`     Old Value: ${oldValue.toFixed(2)}`);
+      console.log(`     New Value: ${newValue.toFixed(2)}`);
+      console.log(`     Change: ${((newValue - oldValue) / Math.max(oldValue, 1) * 100).toFixed(1)}%`);
+      console.log(`     Reason: ${changeReason}`);
+      console.log(`     Trigger: ${triggerEvent}`);
+      console.log(`     Formula Inputs:`);
+      for (const [key, value] of Object.entries(formulaInputs)) {
+        console.log(`       - ${key}: ${value.toFixed(2)}`);
+      }
     }
   }
 
