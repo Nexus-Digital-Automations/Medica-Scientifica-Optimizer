@@ -270,17 +270,20 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
     dailyMetrics.rawMaterialCost = reorderResult.totalCost;
   }
 
-  // Step 7: Allocate MCE capacity between production lines
+  // Step 7: Get demand limits for today (market-driven order arrivals)
+  const demandLimits = getDemandForDay(state.currentDay, strategy, demandForecast);
+
+  // Step 8: Allocate MCE capacity between production lines
   const mceAllocation = allocateMCECapacity(state, strategy);
 
-  // Step 7.5: Calculate shared ARCP (labor) capacity - THE CRITICAL BOTTLENECK
+  // Step 8.5: Calculate shared ARCP (labor) capacity - THE CRITICAL BOTTLENECK
   // ARCP is shared between both production lines, so calculate once
   const expertProductivity = state.workforce.experts * CONSTANTS.ARCP_EXPERT_PRODUCTIVITY;
   const rookieProductivity = state.workforce.rookies * CONSTANTS.ARCP_EXPERT_PRODUCTIVITY * CONSTANTS.ARCP_ROOKIE_PRODUCTIVITY_FACTOR;
   const overtimeMultiplier = strategy.dailyOvertimeHours > 0 ? 1 + (strategy.dailyOvertimeHours / 8) : 1;
   const totalARCPCapacity = Math.floor((expertProductivity + rookieProductivity) * overtimeMultiplier);
 
-  // Step 8: Run production (standard line) FIRST - gets material AND ARCP priority per business rules
+  // Step 9: Run production (standard line) FIRST - gets material AND ARCP priority per business rules
   const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity, strategy, totalARCPCapacity);
   dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
 
@@ -288,8 +291,15 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   const arcpUsedByStandard = standardResult.totalUnitsCompleted;
   const remainingARCPCapacity = Math.max(0, totalARCPCapacity - arcpUsedByStandard);
 
-  // Step 9: Run production (custom line) SECOND - gets remaining materials AND remaining ARCP capacity
-  const customResult = processCustomLineProduction(state, strategy, mceAllocation.customCapacity, remainingARCPCapacity);
+  // Step 10: Run production (custom line) SECOND
+  // CRITICAL: Custom line is make-to-order - orders arrive (demand), are accepted if WIP < 360, rejected otherwise
+  const customResult = processCustomLineProduction(
+    state,
+    strategy,
+    demandLimits.custom, // Customer orders arriving today
+    mceAllocation.customCapacity, // MCE capacity allocated to custom
+    remainingARCPCapacity // Remaining labor capacity after standard line
+  );
   dailyMetrics.customProduced = customResult.ordersCompleted;
   dailyMetrics.avgCustomDeliveryTime = customResult.avgDeliveryTime;
 
@@ -297,10 +307,7 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   const pricing = getCurrentPricing(strategy, dailyMetrics.avgCustomDeliveryTime);
   dailyMetrics.customPrice = pricing.customPrice;
 
-  // Step 11: Get demand limits for today
-  const demandLimits = getDemandForDay(state.currentDay, strategy, demandForecast);
-
-  // Step 12: Process sales and collect revenue (respecting demand limits)
+  // Step 11: Process sales and collect revenue (respecting demand limits)
   const salesResult = processSales(state, strategy, dailyMetrics.avgCustomDeliveryTime, demandLimits);
   dailyMetrics.revenue = salesResult.totalRevenue;
 

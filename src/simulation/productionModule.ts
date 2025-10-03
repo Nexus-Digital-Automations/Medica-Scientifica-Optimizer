@@ -19,7 +19,10 @@ export interface MCECapacityAllocation {
 }
 
 export interface CustomLineResult {
-  newOrdersStarted: number;
+  ordersReceived: number; // Customer orders that arrived today
+  ordersAccepted: number; // Orders accepted into WIP (WIP < 360)
+  ordersRejected: number; // Orders rejected due to WIP limit
+  newOrdersStarted: number; // Orders that started MCE processing today
   ordersProcessed: number;
   ordersCompleted: number;
   remainingWIP: number;
@@ -109,42 +112,78 @@ export function allocateMCECapacity(state: SimulationState, strategy: Strategy):
  * Custom line: MCE → WMA (Pass 1) → WMA (Pass 2) → PUC → ARCP → Ship
  * Implements data-driven multi-stage production with second WMA pass
  * ARCP (final assembly) is the labor bottleneck - enforces workforce capacity
+ *
+ * CRITICAL BUSINESS RULE (Page 3 of business case):
+ * "The Custom line received orders with variable magnitudes and arrival times.
+ *  Due to space constraints, the Custom line rejected orders when there were
+ *  more than 360 jobs in process."
+ *
+ * @param customDemand - Number of customer orders arriving today
  * @param arcpCapacity - Available ARCP (labor) capacity for this line (may be shared/limited)
  */
 export function processCustomLineProduction(
   state: SimulationState,
   _strategy: Strategy,
+  customDemand: number,
   mceCapacity: number,
   arcpCapacity: number
 ): CustomLineResult {
-  const startingOrders = state.customLineWIP.orders.length;
-
   // Calculate station capacities
   const wmaCapacity = state.machines.WMA * CONSTANTS.CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY;
   const pucCapacity = state.machines.PUC * CONSTANTS.CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY;
 
   // ARCP capacity is now passed in (may be remaining capacity after standard line)
 
-  let newOrdersStarted = 0;
+  let ordersReceived = customDemand; // Customer orders arriving today
+  let ordersAccepted = 0; // Orders accepted into WIP
+  let ordersRejected = 0; // Orders rejected due to capacity
+  let newOrdersStarted = 0; // Orders that started MCE processing
   let ordersCompleted = 0;
   const completedOrders: Array<{ startDay: number; completionDay: number; totalDays: number }> = [];
 
-  // Step 1: MCE Processing (add new orders to WIP at MCE station)
-  const newOrdersCapacity = Math.min(mceCapacity, CONSTANTS.CUSTOM_LINE_MAX_WIP - startingOrders);
-  const rawMaterialNeeded = newOrdersCapacity * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT;
+  // Step 1: HANDLE INCOMING CUSTOMER ORDERS (make-to-order system)
+  // Business case: Orders arrive, are accepted if WIP < 360, rejected otherwise
+  for (let i = 0; i < customDemand; i++) {
+    if (state.customLineWIP.orders.length < CONSTANTS.CUSTOM_LINE_MAX_WIP) {
+      // Accept order - add to WIP queue (waiting for MCE processing)
+      state.customLineWIP.orders.push({
+        orderId: `custom-${state.currentDay}-${i}`,
+        startDay: state.currentDay,
+        daysInProduction: 0,
+        currentStation: 'WAITING', // Order accepted but not yet started in MCE
+        daysAtCurrentStation: 0,
+      });
+      ordersAccepted++;
+    } else {
+      // Reject order - WIP at capacity limit (360)
+      ordersRejected++;
+    }
+  }
+
+  // Step 2: MCE PROCESSING - Start processing orders from WIP queue
+  // MCE can only process up to its capacity
+  // Orders must have materials available to start
+  const ordersWaitingForMCE = state.customLineWIP.orders.filter(o => o.currentStation === 'WAITING').length;
+  const ordersToStart = Math.min(ordersWaitingForMCE, mceCapacity);
+
+  // Check material availability
+  const rawMaterialNeeded = ordersToStart * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT;
   const materialConsumption = consumeRawMaterials(state, rawMaterialNeeded, 'custom');
   newOrdersStarted = Math.floor(materialConsumption.consumed / CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT);
 
-  // Add new orders at MCE station
-  for (let i = 0; i < newOrdersStarted; i++) {
-    state.customLineWIP.orders.push({
-      orderId: `custom-${state.currentDay}-${i}`,
-      startDay: state.currentDay,
-      daysInProduction: 0,
-      currentStation: 'MCE',
-      daysAtCurrentStation: 0,
-    });
-  }
+  // Move orders from WAITING to MCE station (up to material limit)
+  let ordersMovedToMCE = 0;
+  state.customLineWIP.orders = state.customLineWIP.orders.map(order => {
+    if (order.currentStation === 'WAITING' && ordersMovedToMCE < newOrdersStarted) {
+      ordersMovedToMCE++;
+      return {
+        ...order,
+        currentStation: 'MCE' as const,
+        daysAtCurrentStation: 0,
+      };
+    }
+    return order;
+  });
 
   // Step 2-6: Process orders through stations (FIFO - oldest first)
   // Sort by start day to process in order
@@ -223,7 +262,10 @@ export function processCustomLineProduction(
       : 0;
 
   return {
-    newOrdersStarted,
+    ordersReceived, // Customer orders that arrived today
+    ordersAccepted, // Orders accepted into WIP (WIP < 360)
+    ordersRejected, // Orders rejected due to WIP limit
+    newOrdersStarted, // Orders that started MCE processing
     ordersProcessed: wmaPass1Used + wmaPass2Used + pucUsed + arcpUsed, // Total orders processed across all stations
     ordersCompleted,
     remainingWIP: state.customLineWIP.orders.length,
