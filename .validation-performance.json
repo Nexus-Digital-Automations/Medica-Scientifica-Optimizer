@@ -791,19 +791,107 @@
       },
       "success": false,
       "error": "Must validate steps sequentially. Expected: linter-validation, Got: type-validation"
+    },
+    {
+      "criterion": "focused-codebase",
+      "startTime": "2025-10-02T23:53:46.236Z",
+      "endTime": "2025-10-02T23:53:46.250Z",
+      "durationMs": 14,
+      "memoryUsageBefore": {
+        "rss": 132399104,
+        "heapTotal": 21233664,
+        "heapUsed": 16252560,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 136249344,
+        "heapTotal": 23068672,
+        "heapUsed": 15095744,
+        "external": 2256501,
+        "arrayBuffers": 8420353
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "security-validation",
+      "startTime": "2025-10-02T23:53:53.898Z",
+      "endTime": "2025-10-02T23:53:58.280Z",
+      "durationMs": 4382,
+      "memoryUsageBefore": {
+        "rss": 135348224,
+        "heapTotal": 22282240,
+        "heapUsed": 14931672,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 140460032,
+        "heapTotal": 22544384,
+        "heapUsed": 15539224,
+        "external": 2261815,
+        "arrayBuffers": 8425667
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "focused-codebase",
+      "startTime": "2025-10-03T01:08:13.985Z",
+      "endTime": "2025-10-03T01:08:14.052Z",
+      "durationMs": 67,
+      "memoryUsageBefore": {
+        "rss": 132513792,
+        "heapTotal": 21233664,
+        "heapUsed": 16293304,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 138559488,
+        "heapTotal": 22806528,
+        "heapUsed": 15199896,
+        "external": 2256701,
+        "arrayBuffers": 8420553
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "security-validation",
+      "startTime": "2025-10-03T01:08:46.512Z",
+      "endTime": "2025-10-03T01:08:56.368Z",
+      "durationMs": 9856,
+      "memoryUsageBefore": {
+        "rss": 132857856,
+        "heapTotal": 21233664,
+        "heapUsed": 16278232,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 128319488,
+        "heapTotal": 16777216,
+        "heapUsed": 13761224,
+        "external": 2250859,
+        "arrayBuffers": 8414711
+      },
+      "success": true,
+      "error": null
     }
   ],
   "statistics": {
-    "lastUpdated": "2025-10-02T23:48:52.606Z",
-    "totalMeasurements": 36,
-    "averageDurationMs": 2245.9444444444443,
-    "successRate": 55.55555555555556,
+    "lastUpdated": "2025-10-03T01:08:56.370Z",
+    "totalMeasurements": 40,
+    "averageDurationMs": 2379.325,
+    "successRate": 60,
     "bycriterion": {
       "focused-codebase": {
-        "count": 10,
-        "totalDuration": 224,
-        "successCount": 10,
-        "avgDuration": 22.4,
+        "count": 12,
+        "totalDuration": 305,
+        "successCount": 12,
+        "avgDuration": 25.416666666666668,
         "successRate": 100
       },
       "linter-validation": {
@@ -814,10 +902,10 @@
         "successRate": 0
       },
       "security-validation": {
-        "count": 10,
-        "totalDuration": 80537,
-        "successCount": 10,
-        "avgDuration": 8053.7,
+        "count": 12,
+        "totalDuration": 94775,
+        "successCount": 12,
+        "avgDuration": 7897.916666666667,
         "successRate": 100
       },
       "type-validation": {
