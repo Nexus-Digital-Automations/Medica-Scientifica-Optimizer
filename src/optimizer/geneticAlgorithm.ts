@@ -7,6 +7,7 @@ import type { Strategy, OptimizationResult, PopulationStats, StrategyAction, Sim
 import { CONSTANTS } from '../simulation/constants.js';
 import { runSimulation, evaluateStrategy } from '../simulation/simulationEngine.js';
 import type { DemandForecast } from '../simulation/demandModule.js';
+import { AnalyticalOptimizer } from './analyticalOptimizer.js';
 
 export interface GeneticAlgorithmConfig {
   populationSize: number;
@@ -14,6 +15,14 @@ export interface GeneticAlgorithmConfig {
   mutationRate: number;
   eliteCount: number;
   crossoverRate: number;
+  // Enhanced configuration for adaptive optimization
+  enableAdaptiveMutation?: boolean; // Use adaptive mutation rate (decreases over time)
+  initialMutationRate?: number; // Starting mutation rate (default: 0.15)
+  finalMutationRate?: number; // Ending mutation rate (default: 0.03)
+  enableEarlyStopping?: boolean; // Stop if converged
+  earlyStopGenerations?: number; // Generations without improvement to trigger stop (default: 15)
+  minImprovementThreshold?: number; // Minimum improvement to avoid early stop (default: 0.005 = 0.5%)
+  seedWithAnalytical?: boolean; // Seed 20% of population with analytical solutions
 }
 
 export interface StrategyOverrides {
@@ -35,10 +44,18 @@ export interface StrategyOverrides {
 
 export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
   populationSize: 100,
-  generations: 500,
-  mutationRate: 0.05,
+  generations: 100, // Reduced from 500 with early stopping enabled
+  mutationRate: 0.05, // Used only if adaptive mutation disabled
   eliteCount: 20,
   crossoverRate: 0.7,
+  // Enhanced features (enabled by default)
+  enableAdaptiveMutation: true,
+  initialMutationRate: 0.15,
+  finalMutationRate: 0.03,
+  enableEarlyStopping: true,
+  earlyStopGenerations: 15,
+  minImprovementThreshold: 0.005,
+  seedWithAnalytical: true,
 };
 
 /**
@@ -455,6 +472,45 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
 }
 
 /**
+ * Calculate adaptive mutation rate that decreases over generations
+ * Starts high for exploration, ends low for fine-tuning
+ */
+function getAdaptiveMutationRate(
+  generation: number,
+  maxGenerations: number,
+  initialRate: number = 0.15,
+  finalRate: number = 0.03
+): number {
+  const progress = generation / maxGenerations;
+  return initialRate * (1 - progress) + finalRate * progress;
+}
+
+/**
+ * Check if optimization has converged (no significant improvement)
+ * Returns true if best fitness hasn't improved for N generations
+ */
+function hasConverged(
+  convergenceHistory: number[],
+  earlyStopGenerations: number = 15,
+  minImprovementThreshold: number = 0.005
+): boolean {
+  if (convergenceHistory.length < earlyStopGenerations) {
+    return false;
+  }
+
+  const recent = convergenceHistory.slice(-earlyStopGenerations);
+  const firstValue = recent[0];
+  const lastValue = recent[recent.length - 1];
+
+  if (firstValue === 0) {
+    return false; // Avoid division by zero
+  }
+
+  const improvement = (lastValue - firstValue) / Math.abs(firstValue);
+  return improvement < minImprovementThreshold;
+}
+
+/**
  * Runs the genetic algorithm optimization
  * @param config - Genetic algorithm configuration
  * @param onProgress - Optional progress callback
@@ -481,30 +537,62 @@ export async function optimize(
     console.log('🔄 Variable parameters will seed initial population but can be optimized');
   }
 
-  // Initialize population with fixed/variable parameter constraints
+  // Enhanced features logging
+  if (config.enableAdaptiveMutation) {
+    console.log(`🎯 Adaptive mutation enabled: ${config.initialMutationRate} → ${config.finalMutationRate}`);
+  }
+  if (config.enableEarlyStopping) {
+    console.log(`⏱️  Early stopping enabled: ${config.earlyStopGenerations} generations, ${(config.minImprovementThreshold ?? 0.005) * 100}% threshold`);
+  }
+  if (config.seedWithAnalytical) {
+    console.log('🔬 Analytical seeding enabled: 20% of population from EOQ/ROP/EPQ formulas');
+  }
+
+  // Initialize population with enhanced seeding strategy
   let population: Strategy[] = [];
   const hasConstraints = (fixedParams && Object.keys(fixedParams).length > 0) ||
                         (variableParams && Object.keys(variableParams).length > 0);
 
-  if (hasConstraints) {
-    // First half: seeded with user's parameters (variable params with slight variations)
-    const seedCount = Math.floor(config.populationSize / 2);
-    for (let i = 0; i < seedCount; i++) {
-      const seeded = generateConstrainedStrategy(fixedParams, variableParams);
-      // Apply slight mutations to create diversity (fixed params will be preserved)
-      const mutated = mutate(seeded, 0.1);
-      population.push(applyFixedConstraints(mutated, fixedParams)); // Enforce fixed constraints
+  // Step 1: Seed with analytical solutions if enabled (highest quality seeds)
+  if (config.seedWithAnalytical) {
+    const analyticalOptimizer = new AnalyticalOptimizer();
+    const analyticalStrategy = analyticalOptimizer.generateAnalyticalStrategy();
+    const analyticalCount = Math.floor(config.populationSize * 0.2); // 20% from analytical
+
+    console.log(`  Adding ${analyticalCount} analytical solutions to population...`);
+    for (let i = 0; i < analyticalCount; i++) {
+      // Apply small mutations to create diversity around analytical optimum
+      const mutated = mutate(analyticalStrategy, 0.05);
+      population.push(applyFixedConstraints(mutated, fixedParams));
     }
-    // Second half: random exploration (still respecting fixed constraints)
-    for (let i = seedCount; i < config.populationSize; i++) {
+  }
+
+  // Step 2: Fill remaining population
+  const remainingCount = config.populationSize - population.length;
+
+  if (hasConstraints) {
+    // Half from user constraints, half random
+    const constrainedCount = Math.floor(remainingCount / 2);
+    console.log(`  Adding ${constrainedCount} constrained solutions...`);
+    for (let i = 0; i < constrainedCount; i++) {
+      const seeded = generateConstrainedStrategy(fixedParams, variableParams);
+      const mutated = mutate(seeded, 0.1);
+      population.push(applyFixedConstraints(mutated, fixedParams));
+    }
+
+    console.log(`  Adding ${remainingCount - constrainedCount} random solutions...`);
+    for (let i = constrainedCount; i < remainingCount; i++) {
       population.push(generateConstrainedStrategy(fixedParams, undefined));
     }
   } else {
-    // No constraints: fully random population
-    for (let i = 0; i < config.populationSize; i++) {
+    // All remaining slots: fully random
+    console.log(`  Adding ${remainingCount} random solutions...`);
+    for (let i = 0; i < remainingCount; i++) {
       population.push(generateRandomStrategy());
     }
   }
+
+  console.log(`✓ Initial population complete: ${population.length} strategies`);
 
   const convergenceHistory: number[] = [];
   let bestStrategy: Strategy = population[0];
@@ -563,6 +651,34 @@ export async function optimize(
 
     convergenceHistory.push(bestFitness);
 
+    // Check for early stopping
+    if (config.enableEarlyStopping) {
+      const converged = hasConverged(
+        convergenceHistory,
+        config.earlyStopGenerations ?? 15,
+        config.minImprovementThreshold ?? 0.005
+      );
+
+      if (converged) {
+        console.log(`\n🛑 EARLY STOPPING TRIGGERED`);
+        console.log(`  No significant improvement for ${config.earlyStopGenerations} generations`);
+        console.log(`  Final best fitness: $${bestFitness.toFixed(2)}`);
+        console.log(`  Stopped at generation ${gen}/${config.generations}`);
+
+        // Run final simulation and return early
+        const finalSimulation = runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+
+        return {
+          bestStrategy,
+          bestFitness,
+          generation: gen, // Actual generation stopped at
+          populationStats: stats,
+          convergenceHistory,
+          finalSimulation,
+        };
+      }
+    }
+
     // Report progress
     if (onProgress) {
       console.log(`  Calling progress callback...`);
@@ -596,7 +712,17 @@ export async function optimize(
         child = JSON.parse(JSON.stringify(parent1));
       }
 
-      child = mutate(child, config.mutationRate);
+      // Apply adaptive mutation rate if enabled
+      const currentMutationRate = config.enableAdaptiveMutation
+        ? getAdaptiveMutationRate(
+            gen,
+            config.generations,
+            config.initialMutationRate ?? 0.15,
+            config.finalMutationRate ?? 0.03
+          )
+        : config.mutationRate;
+
+      child = mutate(child, currentMutationRate);
       // CRITICAL: Enforce fixed parameter constraints after mutation
       child = applyFixedConstraints(child, fixedParams);
       newPopulation.push(child);
