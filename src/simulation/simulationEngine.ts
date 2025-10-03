@@ -321,13 +321,17 @@ function simulateDay(
   const overtimeMultiplier = strategy.dailyOvertimeHours > 0 ? 1 + (strategy.dailyOvertimeHours / 8) : 1;
   const totalARCPCapacity = Math.floor((expertProductivity + rookieProductivity) * overtimeMultiplier);
 
-  // Step 9: Run production (standard line) FIRST - gets material AND ARCP priority per business rules
-  const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity, strategy, totalARCPCapacity);
-  dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
+  // CRITICAL FIX: Give standard line priority, allocate remaining to custom
+  // Business case: Standard production gets priority for finishing (ARCP stage)
+  // Custom line uses whatever ARCP capacity remains after standard production
+  // This prevents rounding errors from causing zero allocation to custom line
+  const standardARCPNeeded = Math.min(totalARCPCapacity, mceAllocation.standardCapacity);
+  const standardARCPAllocation = standardARCPNeeded;
+  const customARCPAllocation = Math.max(0, totalARCPCapacity - standardARCPNeeded);
 
-  // Track ARCP usage by standard line
-  const arcpUsedByStandard = standardResult.totalUnitsCompleted;
-  const remainingARCPCapacity = Math.max(0, totalARCPCapacity - arcpUsedByStandard);
+  // Step 9: Run production (standard line) FIRST - gets material priority per business rules
+  const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity, strategy, standardARCPAllocation);
+  dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
 
   // Step 10: Run production (custom line) SECOND
   // CRITICAL: Custom line is make-to-order - orders arrive (demand), are accepted if WIP < 360, rejected otherwise
@@ -336,7 +340,7 @@ function simulateDay(
     strategy,
     demandLimits.custom, // Customer orders arriving today
     mceAllocation.customCapacity, // MCE capacity allocated to custom
-    remainingARCPCapacity // Remaining labor capacity after standard line
+    customARCPAllocation // Proportional labor capacity
   );
   dailyMetrics.customProduced = customResult.ordersCompleted;
   dailyMetrics.avgCustomDeliveryTime = customResult.avgDeliveryTime;

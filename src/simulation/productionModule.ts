@@ -132,7 +132,7 @@ export function processCustomLineProduction(
   const wmaCapacity = state.machines.WMA * CONSTANTS.CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY;
   const pucCapacity = state.machines.PUC * CONSTANTS.CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY;
 
-  // ARCP capacity is now passed in (may be remaining capacity after standard line)
+  // ARCP capacity is now allocated proportionally between production lines
 
   const ordersReceived = customDemand; // Customer orders arriving today
   let ordersAccepted = 0; // Orders accepted into WIP
@@ -198,8 +198,10 @@ export function processCustomLineProduction(
   state.customLineWIP.orders.sort((a, b) => a.startDay - b.startDay);
 
   // Track capacity usage at each station
-  let wmaPass1Used = 0;
-  let wmaPass2Used = 0;
+  // CRITICAL FIX: WMA capacity is SHARED between both passes (same physical machine)
+  let wmaTotalUsed = 0; // Shared capacity counter for WMA machine
+  let wmaPass1Used = 0; // Tracking for metrics only
+  let wmaPass2Used = 0; // Tracking for metrics only
   let pucUsed = 0;
   let arcpUsed = 0; // CRITICAL: Labor bottleneck tracking
 
@@ -216,18 +218,20 @@ export function processCustomLineProduction(
         return true;
 
       case 'WMA_PASS1':
-        // Check WMA Pass 1 capacity
-        if (wmaPass1Used < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
-          wmaPass1Used++;
+        // Check WMA capacity (SHARED between both passes)
+        if (wmaTotalUsed < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
+          wmaTotalUsed++; // Use shared WMA capacity
+          wmaPass1Used++; // Metric tracking
           order.currentStation = 'WMA_PASS2';
           order.daysAtCurrentStation = 0;
         }
         return true;
 
       case 'WMA_PASS2':
-        // Check WMA Pass 2 capacity (second pass through WMA)
-        if (wmaPass2Used < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
-          wmaPass2Used++;
+        // Check WMA capacity (SHARED between both passes)
+        if (wmaTotalUsed < wmaCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_WMA_PROCESSING_DAYS) {
+          wmaTotalUsed++; // Use shared WMA capacity
+          wmaPass2Used++; // Metric tracking
           order.currentStation = 'PUC';
           order.daysAtCurrentStation = 0;
         }
