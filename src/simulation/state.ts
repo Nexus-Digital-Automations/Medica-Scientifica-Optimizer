@@ -89,7 +89,11 @@ export function getNetWorth(state: SimulationState): number {
 /**
  * Records ALL daily metrics to history for complete transparency
  */
-export function recordDailyHistory(state: SimulationState, dailyMetrics: Partial<DailyMetrics> = {}): void {
+export function recordDailyHistory(
+  state: SimulationState,
+  dailyMetrics: Partial<DailyMetrics> = {},
+  strategy?: import('./types.js').Strategy
+): void {
   const day = state.currentDay;
 
   // Financial tracking
@@ -129,6 +133,13 @@ export function recordDailyHistory(state: SimulationState, dailyMetrics: Partial
   state.history.dailyStandardPrice.push({ day, value: dailyMetrics.standardPrice || 0 });
   state.history.dailyCustomPrice.push({ day, value: dailyMetrics.customPrice || 0 });
   state.history.dailyCustomDeliveryTime.push({ day, value: dailyMetrics.avgCustomDeliveryTime || 0 });
+
+  // Dynamic policy tracking (current policy values for this day)
+  if (strategy) {
+    state.history.dailyReorderPoint.push({ day, value: strategy.reorderPoint });
+    state.history.dailyOrderQuantity.push({ day, value: strategy.orderQuantity });
+    state.history.dailyStandardBatchSize.push({ day, value: strategy.standardBatchSize });
+  }
 
   // Record any actions performed
   if (dailyMetrics.actions && dailyMetrics.actions.length > 0) {

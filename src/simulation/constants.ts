@@ -144,8 +144,14 @@ export const INITIAL_STATE: SimulationState = {
     dailyCustomPrice: [],
     dailyCustomDeliveryTime: [],
 
+    // Dynamic policy tracking
+    dailyReorderPoint: [],
+    dailyOrderQuantity: [],
+    dailyStandardBatchSize: [],
+
     // Actions taken
     actionsPerformed: [],
+    policyChanges: [],
   },
 };
 

@@ -357,7 +357,7 @@ function simulateDay(
   dailyMetrics.expenses = dailyMetrics.salaryCost + dailyMetrics.interestPaid + dailyMetrics.rawMaterialCost;
 
   // Step 15: Record daily history for complete transparency
-  recordDailyHistory(state, dailyMetrics);
+  recordDailyHistory(state, dailyMetrics, strategy);
 
   return dailyMetrics;
 }
@@ -401,6 +401,16 @@ export async function runSimulation(
     state.currentDay = day;
     simulateDay(state, strategy, policyCalculator, demandForecast, rulesEngine);
   }
+
+  // Export policy change log to state history
+  const policyChanges = policyCalculator.getPolicyChangeHistory();
+  state.history.policyChanges = policyChanges.map(log => ({
+    day: log.day,
+    policyType: log.policyName as 'reorderPoint' | 'orderQuantity' | 'standardBatchSize',
+    oldValue: log.oldValue,
+    newValue: log.newValue,
+    reason: `${log.changeReason} (${log.triggerEvent})`,
+  }));
 
   // Calculate final fitness score with multi-factor penalties
   // Net worth = cash - debt

@@ -130,8 +130,14 @@ export interface SimulationHistory {
   dailyCustomPrice: DailyMetric[];
   dailyCustomDeliveryTime: DailyMetric[];
 
+  // Dynamic policy tracking (shows OR formula calculations each day)
+  dailyReorderPoint: DailyMetric[];
+  dailyOrderQuantity: DailyMetric[];
+  dailyStandardBatchSize: DailyMetric[];
+
   // Actions taken
   actionsPerformed: ActionRecord[];
+  policyChanges: PolicyChangeRecord[]; // Track when/why policies changed
 }
 
 export interface DailyMetric {
@@ -142,6 +148,14 @@ export interface DailyMetric {
 export interface ActionRecord {
   day: number;
   action: StrategyAction;
+}
+
+export interface PolicyChangeRecord {
+  day: number;
+  policyType: 'reorderPoint' | 'orderQuantity' | 'standardBatchSize';
+  oldValue: number;
+  newValue: number;
+  reason: string; // e.g., "Initial calculation", "Demand phase change", "Machine added", "Timed adjustment"
 }
 
 // ============================================================================
