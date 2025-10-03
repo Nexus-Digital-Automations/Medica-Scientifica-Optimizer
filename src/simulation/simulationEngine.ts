@@ -202,6 +202,26 @@ function executeTimedActions(state: SimulationState, strategy: Strategy): Strate
 
 /**
  * Simulates a single day in the factory
+ *
+ * Transaction Order (matches business case):
+ * 1. Execute timed actions (loans, hiring, machine purchases) - immediate cash impact
+ * 2. Process arriving resources (materials ordered 4 days ago arrive, no cash impact)
+ * 3. Process workforce training/promotions
+ * 4. Pay salaries (daily expense, deducted immediately)
+ * 5. Apply debt interest (calculated on START-OF-DAY debt balance)
+ * 6. Reorder raw materials if needed (cash deducted IMMEDIATELY when ordered)
+ * 7. Allocate MCE capacity between production lines
+ * 8. Run production (Standard line FIRST, then Custom line)
+ * 9. Process sales and collect revenue
+ * 10. Apply cash interest (calculated on END-OF-DAY cash balance, after all transactions)
+ * 11. Record daily history
+ *
+ * Key Timing Rules from Business Case:
+ * - Raw materials: "If there was not enough cash to cover the cost... the order was not executed"
+ *   → Cash deducted when order is PLACED (Step 6), materials arrive 4 days later (Step 2)
+ * - Machines: "delivered immediately upon cash payment" → Cash deducted in Step 1
+ * - Debt interest: Standard accounting on opening balance (Step 5)
+ * - Cash interest: Calculated on closing balance after all transactions (Step 10)
  */
 function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?: DemandForecast[]): DailyMetrics {
   const dailyMetrics: DailyMetrics = {
@@ -240,11 +260,11 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   trackOvertime(state, workedOvertime);
   processEmployeeQuitRisk(state, strategy.overtimeTriggerDays, strategy.dailyQuitProbability);
 
-  // Step 5: Apply interest
+  // Step 5: Apply debt interest (on start-of-day debt balance)
   dailyMetrics.interestPaid = applyDebtInterest(state);
-  dailyMetrics.interestEarned = applyCashInterest(state);
 
   // Step 6: Check and reorder raw materials if needed
+  // CRITICAL: Cash is deducted IMMEDIATELY when order is placed (not when it arrives 4 days later)
   const reorderResult = checkAndReorder(state, strategy);
   if (reorderResult) {
     dailyMetrics.rawMaterialCost = reorderResult.totalCost;
@@ -284,10 +304,14 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   const salesResult = processSales(state, strategy, dailyMetrics.avgCustomDeliveryTime, demandLimits);
   dailyMetrics.revenue = salesResult.totalRevenue;
 
-  // Step 12: Calculate total expenses
+  // Step 13: Apply cash interest (on END-OF-DAY cash balance, after all transactions)
+  // This ensures interest reflects the actual cash position after expenses, purchases, and revenue
+  dailyMetrics.interestEarned = applyCashInterest(state);
+
+  // Step 14: Calculate total expenses
   dailyMetrics.expenses = dailyMetrics.salaryCost + dailyMetrics.interestPaid + dailyMetrics.rawMaterialCost;
 
-  // Step 13: Record daily history for complete transparency
+  // Step 15: Record daily history for complete transparency
   recordDailyHistory(state, dailyMetrics);
 
   return dailyMetrics;
