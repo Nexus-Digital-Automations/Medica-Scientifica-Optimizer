@@ -150,9 +150,10 @@ export class RulesEngine {
       case 'DEBT_ABOVE':
         return state.debt > (condition.threshold ?? 0);
 
-      case 'NET_WORTH_BELOW':
+      case 'NET_WORTH_BELOW': {
         const netWorth = state.cash - state.debt;
         return netWorth < (condition.threshold ?? 0);
+      }
 
       default:
         console.warn(`Unknown condition type: ${condition.type}`);
