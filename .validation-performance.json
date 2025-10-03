@@ -1143,19 +1143,129 @@
       },
       "success": false,
       "error": "Must validate steps sequentially. Expected: linter-validation, Got: type-validation"
+    },
+    {
+      "criterion": "focused-codebase",
+      "startTime": "2025-10-03T21:33:34.810Z",
+      "endTime": "2025-10-03T21:33:34.822Z",
+      "durationMs": 12,
+      "memoryUsageBefore": {
+        "rss": 130220032,
+        "heapTotal": 21233664,
+        "heapUsed": 16289816,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 134725632,
+        "heapTotal": 22806528,
+        "heapUsed": 15426296,
+        "external": 2263524,
+        "arrayBuffers": 8427376
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "security-validation",
+      "startTime": "2025-10-03T21:33:46.443Z",
+      "endTime": "2025-10-03T21:33:50.441Z",
+      "durationMs": 3998,
+      "memoryUsageBefore": {
+        "rss": 131006464,
+        "heapTotal": 22282240,
+        "heapUsed": 14862600,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 136773632,
+        "heapTotal": 22544384,
+        "heapUsed": 15475848,
+        "external": 2262854,
+        "arrayBuffers": 8426706
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "type-validation",
+      "startTime": "2025-10-03T21:34:03.611Z",
+      "endTime": "2025-10-03T21:34:03.612Z",
+      "durationMs": 1,
+      "memoryUsageBefore": {
+        "rss": 132726784,
+        "heapTotal": 22020096,
+        "heapUsed": 14930704,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 133087232,
+        "heapTotal": 22020096,
+        "heapUsed": 15010616,
+        "external": 2243059,
+        "arrayBuffers": 8406911
+      },
+      "success": false,
+      "error": "Must validate steps sequentially. Expected: linter-validation, Got: type-validation"
+    },
+    {
+      "criterion": "type-validation",
+      "startTime": "2025-10-03T21:35:28.466Z",
+      "endTime": "2025-10-03T21:35:28.467Z",
+      "durationMs": 1,
+      "memoryUsageBefore": {
+        "rss": 129040384,
+        "heapTotal": 21233664,
+        "heapUsed": 16280720,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 130400256,
+        "heapTotal": 22544384,
+        "heapUsed": 14995272,
+        "external": 2242859,
+        "arrayBuffers": 8406711
+      },
+      "success": false,
+      "error": "Must validate steps sequentially. Expected: linter-validation, Got: type-validation"
+    },
+    {
+      "criterion": "build-validation",
+      "startTime": "2025-10-03T21:35:29.748Z",
+      "endTime": "2025-10-03T21:35:29.749Z",
+      "durationMs": 1,
+      "memoryUsageBefore": {
+        "rss": 129220608,
+        "heapTotal": 21233664,
+        "heapUsed": 16255144,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 130678784,
+        "heapTotal": 22544384,
+        "heapUsed": 14958544,
+        "external": 2242859,
+        "arrayBuffers": 8406711
+      },
+      "success": false,
+      "error": "Must validate steps sequentially. Expected: linter-validation, Got: build-validation"
     }
   ],
   "statistics": {
-    "lastUpdated": "2025-10-03T21:05:30.370Z",
-    "totalMeasurements": 52,
-    "averageDurationMs": 2371.8076923076924,
-    "successRate": 57.692307692307686,
+    "lastUpdated": "2025-10-03T21:35:29.749Z",
+    "totalMeasurements": 57,
+    "averageDurationMs": 2234.157894736842,
+    "successRate": 56.14035087719298,
     "bycriterion": {
       "focused-codebase": {
-        "count": 15,
-        "totalDuration": 371,
-        "successCount": 15,
-        "avgDuration": 24.733333333333334,
+        "count": 16,
+        "totalDuration": 383,
+        "successCount": 16,
+        "avgDuration": 23.9375,
         "successRate": 100
       },
       "linter-validation": {
@@ -1166,24 +1276,24 @@
         "successRate": 0
       },
       "security-validation": {
-        "count": 15,
-        "totalDuration": 122847,
-        "successCount": 15,
-        "avgDuration": 8189.8,
+        "count": 16,
+        "totalDuration": 126845,
+        "successCount": 16,
+        "avgDuration": 7927.8125,
         "successRate": 100
       },
       "type-validation": {
-        "count": 9,
-        "totalDuration": 14,
+        "count": 11,
+        "totalDuration": 16,
         "successCount": 0,
-        "avgDuration": 1.5555555555555556,
+        "avgDuration": 1.4545454545454546,
         "successRate": 0
       },
       "build-validation": {
-        "count": 4,
-        "totalDuration": 24,
+        "count": 5,
+        "totalDuration": 25,
         "successCount": 0,
-        "avgDuration": 6,
+        "avgDuration": 5,
         "successRate": 0
       },
       "start-validation": {
