@@ -48,6 +48,7 @@ export interface RevenueTransaction {
 
 /**
  * Calculates and applies daily interest on debt
+ * Uses processPayment to ensure cash never goes negative
  */
 export function applyDebtInterest(state: SimulationState): number {
   if (state.debt <= 0) {
@@ -56,7 +57,10 @@ export function applyDebtInterest(state: SimulationState): number {
 
   const interestAmount = state.debt * CONSTANTS.DEBT_INTEREST_RATE_DAILY;
   state.debt += interestAmount;
-  state.cash -= interestAmount;
+
+  // Use processPayment to handle the interest payment
+  // This will take an automatic loan if needed to prevent negative cash
+  processPayment(state, interestAmount, 'Debt interest payment');
 
   return interestAmount;
 }
@@ -128,6 +132,7 @@ export function payDebt(state: SimulationState, amount: number): DebtPayment {
 
 /**
  * Processes a payment (deducts from cash, takes automatic salary loan if needed)
+ * Ensures cash NEVER goes negative by properly accounting for loan commission
  */
 export function processPayment(state: SimulationState, amount: number, description: string): Payment {
   if (state.cash >= amount) {
@@ -141,11 +146,21 @@ export function processPayment(state: SimulationState, amount: number, descripti
   }
 
   // Need to take salary loan
-  const shortfall = amount - state.cash;
-  const loanDetails = takeLoan(state, shortfall, true);
+  // Calculate loan amount needed INCLUDING commission
+  // If we need X net cash: Loan = X / (1 - commission_rate)
+  const netCashNeeded = amount - state.cash;
+  const loanAmount = netCashNeeded / (1 - CONSTANTS.SALARY_DEBT_COMMISSION);
 
-  // Now pay the amount
+  const loanDetails = takeLoan(state, loanAmount, true);
+
+  // Now pay the amount (should never go negative now)
   state.cash -= amount;
+
+  // Safety check to catch any rounding errors
+  if (state.cash < -0.01) {
+    console.error(`❌ CRITICAL: Cash went negative after payment! Cash: ${state.cash}, Payment: ${amount}, Loan: ${loanAmount}`);
+    state.cash = 0; // Force to zero as safety measure
+  }
 
   return {
     amount,

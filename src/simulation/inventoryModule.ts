@@ -56,15 +56,26 @@ export interface OrderHistoryItem extends RawMaterialOrder {
 
 /**
  * Places an order for raw materials
+ * CRITICAL: Cash is deducted IMMEDIATELY when order is placed (business case rule)
+ * Order will NOT be executed if insufficient cash (business case rule)
  */
-export function orderRawMaterials(state: SimulationState, quantity: number): OrderDetails {
+export function orderRawMaterials(state: SimulationState, quantity: number): OrderDetails | null {
   const orderCost = quantity * CONSTANTS.RAW_MATERIAL_UNIT_COST + CONSTANTS.RAW_MATERIAL_ORDER_FEE;
   const arrivalDay = state.currentDay + CONSTANTS.RAW_MATERIAL_LEAD_TIME;
 
-  // Deduct cost from cash
+  // Business case rule: "If there was not enough cash to cover the cost of the parts
+  // of raw material requested, the order was not executed."
+  if (state.cash < orderCost) {
+    console.warn(
+      `⚠️ [Day ${state.currentDay}] Material order REJECTED: Insufficient cash. Need $${orderCost.toFixed(2)}, have $${state.cash.toFixed(2)}`
+    );
+    return null;
+  }
+
+  // Deduct cost from cash (business case rule: paid immediately)
   state.cash -= orderCost;
 
-  // Add to pending orders
+  // Add to pending orders (will arrive in 4 days)
   state.pendingRawMaterialOrders.push({
     orderDay: state.currentDay,
     quantity,
@@ -104,15 +115,14 @@ export function processArrivingOrders(state: SimulationState): RawMaterialOrder[
 
 /**
  * Checks if inventory is below reorder point and places order if needed
+ * Returns order details if placed, null if not needed or insufficient cash
  */
 export function checkAndReorder(state: SimulationState, strategy: Strategy): OrderDetails | null {
   const { reorderPoint, orderQuantity } = strategy;
 
-  // Check if we have enough cash for the order
-  const orderCost = orderQuantity * CONSTANTS.RAW_MATERIAL_UNIT_COST + CONSTANTS.RAW_MATERIAL_ORDER_FEE;
-
-  // Check if inventory is below reorder point and we have cash
-  if (state.rawMaterialInventory <= reorderPoint && state.cash >= orderCost) {
+  // Check if inventory is below reorder point
+  if (state.rawMaterialInventory <= reorderPoint) {
+    // orderRawMaterials will check cash and reject if insufficient
     return orderRawMaterials(state, orderQuantity);
   }
 

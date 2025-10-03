@@ -193,10 +193,15 @@ function executeTimedActions(
         }
         break;
 
-      case 'ORDER_MATERIALS':
-        orderRawMaterials(state, action.quantity);
-        executedActions.push(action);
+      case 'ORDER_MATERIALS': {
+        // orderRawMaterials returns null if insufficient cash (business case rule)
+        const orderResult = orderRawMaterials(state, action.quantity);
+        if (orderResult) {
+          executedActions.push(action);
+        }
+        // If null, order was rejected due to insufficient cash (not an error, just a rule)
         break;
+      }
 
       case 'ADJUST_BATCH_SIZE':
         strategy.standardBatchSize = action.newSize;
