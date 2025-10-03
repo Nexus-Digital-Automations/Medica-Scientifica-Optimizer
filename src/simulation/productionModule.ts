@@ -134,7 +134,7 @@ export function processCustomLineProduction(
 
   // ARCP capacity is now passed in (may be remaining capacity after standard line)
 
-  let ordersReceived = customDemand; // Customer orders arriving today
+  const ordersReceived = customDemand; // Customer orders arriving today
   let ordersAccepted = 0; // Orders accepted into WIP
   let ordersRejected = 0; // Orders rejected due to capacity
   let newOrdersStarted = 0; // Orders that started MCE processing
