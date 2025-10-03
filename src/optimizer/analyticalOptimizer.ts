@@ -132,7 +132,7 @@ export class AnalyticalOptimizer {
 
     const eoq = this.calculateEOQ({
       annualDemand: avgDailyRawMaterialDemand * 365,
-      orderingCost: 100, // Estimated fixed cost per order
+      orderingCost: CONSTANTS.RAW_MATERIAL_ORDER_FEE, // Actual order fee from constants
       holdingCostPerUnit: CONSTANTS.RAW_MATERIAL_UNIT_COST * 0.20, // 20% annual holding cost
     });
 
