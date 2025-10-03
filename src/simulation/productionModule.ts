@@ -171,6 +171,14 @@ export function processCustomLineProduction(
   const materialConsumption = consumeRawMaterials(state, rawMaterialNeeded, 'custom');
   newOrdersStarted = Math.floor(materialConsumption.consumed / CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT);
 
+  // Track lost production days when we can't start orders due to material shortage
+  if (materialConsumption.shortfall > 0) {
+    const ordersLost = Math.floor(materialConsumption.shortfall / CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT);
+    if (ordersLost > 0) {
+      state.lostProductionDays += ordersLost;
+    }
+  }
+
   // Move orders from WAITING to MCE station (up to material limit)
   let ordersMovedToMCE = 0;
   state.customLineWIP.orders = state.customLineWIP.orders.map(order => {
@@ -289,6 +297,14 @@ export function processStandardStation1(state: SimulationState, mceCapacity: num
   const unitsProcessed = Math.floor(
     materialConsumption.consumed / CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT
   );
+
+  // Track lost production when we can't produce due to material shortage
+  if (materialConsumption.shortfall > 0) {
+    const unitsLost = Math.floor(materialConsumption.shortfall / CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT);
+    if (unitsLost > 0) {
+      state.lostProductionDays += unitsLost;
+    }
+  }
 
   // Move units from Station 1 to Station 2
   for (let i = 0; i < unitsProcessed; i++) {

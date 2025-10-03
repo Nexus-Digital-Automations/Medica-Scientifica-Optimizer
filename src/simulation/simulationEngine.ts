@@ -402,11 +402,28 @@ export async function runSimulation(
     simulateDay(state, strategy, policyCalculator, demandForecast, rulesEngine);
   }
 
-  // Calculate final fitness score (net worth minus inventory write-off penalty)
+  // Calculate final fitness score with multi-factor penalties
   // Net worth = cash - debt
   // Inventory is worthless at plant shutdown, so we penalize remaining inventory
   const inventoryWriteOff = calculateInventoryWriteOff(state);
-  const fitnessScore = getNetWorth(state) - inventoryWriteOff;
+
+  // Multi-factor penalty system to teach GA to avoid cash flow failures:
+  // 1. Rejected orders penalty: -$10,000 per rejection (indicates suboptimal cash management)
+  // 2. Stockout penalty: -$1,000 per day (lost revenue opportunity)
+  // 3. Lost production penalty: -$2,000 per day (opportunity cost of idle capacity)
+  //
+  // Note: Penalties are moderate to guide learning without dominating net worth.
+  // Severe penalties prevent GA from finding viable strategies when cash-constrained
+  // ordering is necessary for survival.
+  const rejectedOrdersPenalty = state.rejectedMaterialOrders * 10000;
+  const stockoutPenalty = state.stockoutDays * 1000;
+  const lostProductionPenalty = state.lostProductionDays * 2000;
+
+  const fitnessScore = getNetWorth(state)
+    - inventoryWriteOff
+    - rejectedOrdersPenalty
+    - stockoutPenalty
+    - lostProductionPenalty;
 
   return {
     finalCash: state.cash,

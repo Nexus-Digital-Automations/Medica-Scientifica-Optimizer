@@ -63,6 +63,13 @@ export function processSales(
   const standardUnitsSold = Math.min(state.finishedGoods.standard, demandLimits.standard);
   const customOrdersSold = Math.min(state.finishedGoods.custom, demandLimits.custom);
 
+  // Track stockouts: when we can't fulfill demand due to no inventory
+  const standardStockout = demandLimits.standard > state.finishedGoods.standard;
+  const customStockout = demandLimits.custom > state.finishedGoods.custom;
+  if (standardStockout || customStockout) {
+    state.stockoutDays++;
+  }
+
   // Calculate revenue
   const standardRevenue = standardUnitsSold * strategy.standardPrice;
   const customPrice = calculateCustomPrice(strategy, avgCustomDeliveryTime);

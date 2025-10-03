@@ -19,6 +19,11 @@ export interface SimulationState {
   machines: Machines;
   pendingRawMaterialOrders: RawMaterialOrder[];
   history: SimulationHistory;
+
+  // Penalty tracking for fitness function
+  rejectedMaterialOrders: number; // Count of orders rejected due to insufficient cash
+  stockoutDays: number; // Count of days when demand couldn't be fulfilled due to no inventory
+  lostProductionDays: number; // Count of days when production was impossible due to material shortage
 }
 
 export interface StandardLineWIP {

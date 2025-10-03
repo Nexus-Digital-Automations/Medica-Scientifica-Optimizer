@@ -69,6 +69,8 @@ export function orderRawMaterials(state: SimulationState, quantity: number): Ord
     console.warn(
       `⚠️ [Day ${state.currentDay}] Material order REJECTED: Insufficient cash. Need $${orderCost.toFixed(2)}, have $${state.cash.toFixed(2)}`
     );
+    // Track rejected order for fitness penalty
+    state.rejectedMaterialOrders++;
     return null;
   }
 
@@ -122,7 +124,37 @@ export function checkAndReorder(state: SimulationState, strategy: Strategy): Ord
 
   // Check if inventory is below reorder point
   if (state.rawMaterialInventory <= reorderPoint) {
-    // orderRawMaterials will check cash and reject if insufficient
+    // CASH-CONSTRAINED ORDER QUANTITY
+    // Cap order quantity based on available cash to prevent rejected orders
+    const idealOrderCost = orderQuantity * CONSTANTS.RAW_MATERIAL_UNIT_COST + CONSTANTS.RAW_MATERIAL_ORDER_FEE;
+
+    if (state.cash < idealOrderCost) {
+      // Calculate maximum affordable quantity (ensure we can at least afford the order fee)
+      if (state.cash <= CONSTANTS.RAW_MATERIAL_ORDER_FEE) {
+        // Can't afford even the order fee - reject completely
+        console.warn(
+          `⚠️ [Day ${state.currentDay}] Cannot afford minimum order (need $${CONSTANTS.RAW_MATERIAL_ORDER_FEE.toFixed(2)} order fee, have $${state.cash.toFixed(2)})`
+        );
+        state.rejectedMaterialOrders++;
+        return null;
+      }
+
+      // Order maximum affordable quantity
+      const affordableCash = state.cash - CONSTANTS.RAW_MATERIAL_ORDER_FEE;
+      const affordableQuantity = Math.floor(affordableCash / CONSTANTS.RAW_MATERIAL_UNIT_COST);
+
+      if (affordableQuantity > 0) {
+        console.warn(
+          `💰 [Day ${state.currentDay}] Cash-constrained order: ${affordableQuantity} units (ideal: ${orderQuantity}, saved $${(idealOrderCost - (affordableQuantity * CONSTANTS.RAW_MATERIAL_UNIT_COST + CONSTANTS.RAW_MATERIAL_ORDER_FEE)).toFixed(2)})`
+        );
+        return orderRawMaterials(state, affordableQuantity);
+      } else {
+        state.rejectedMaterialOrders++;
+        return null;
+      }
+    }
+
+    // Can afford ideal quantity - proceed normally
     return orderRawMaterials(state, orderQuantity);
   }
 

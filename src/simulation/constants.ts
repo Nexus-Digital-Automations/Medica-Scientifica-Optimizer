@@ -99,6 +99,11 @@ export const INITIAL_STATE: SimulationState = {
   // Pending Orders
   pendingRawMaterialOrders: [], // Array of {orderDay, quantity, arrivalDay}
 
+  // Penalty tracking for fitness function
+  rejectedMaterialOrders: 0, // Count of orders rejected due to insufficient cash
+  stockoutDays: 0, // Count of days when demand couldn't be fulfilled due to no inventory
+  lostProductionDays: 0, // Count of days when production was impossible due to material shortage
+
   // Historical Tracking for Analytics - COMPLETE TRANSPARENCY FOR ALL VARIABLES
   history: {
     // Financial tracking
