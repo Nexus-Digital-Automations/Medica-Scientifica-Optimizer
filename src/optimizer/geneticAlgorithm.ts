@@ -606,19 +606,21 @@ export async function optimize(
     // Evaluate fitness for entire population
     console.log(`  Evaluating fitness for ${population.length} strategies...`);
     const startEval = Date.now();
-    const fitnessScores = population.map((strategy, idx) => {
-      if (idx % 100 === 0) {
-        console.log(`    Evaluating strategy ${idx}/${population.length}...`);
-      }
-      const fitness = evaluateStrategy(strategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
-      if (idx % 100 === 0) {
-        console.log(`    Strategy ${idx} fitness: $${fitness.toFixed(2)}`);
-      }
-      return {
-        strategy,
-        fitness,
-      };
-    });
+    const fitnessScores = await Promise.all(
+      population.map(async (strategy, idx) => {
+        if (idx % 100 === 0) {
+          console.log(`    Evaluating strategy ${idx}/${population.length}...`);
+        }
+        const fitness = await evaluateStrategy(strategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+        if (idx % 100 === 0) {
+          console.log(`    Strategy ${idx} fitness: $${fitness.toFixed(2)}`);
+        }
+        return {
+          strategy,
+          fitness,
+        };
+      })
+    );
     console.log(`  ✓ Fitness evaluation complete in ${Date.now() - startEval}ms`);
 
     // Sort by fitness (descending)
@@ -666,7 +668,7 @@ export async function optimize(
         console.log(`  Stopped at generation ${gen}/${config.generations}`);
 
         // Run final simulation and return early
-        const finalSimulation = runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+        const finalSimulation = await runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
 
         return {
           bestStrategy,
@@ -737,7 +739,7 @@ export async function optimize(
   console.log(`Best fitness: $${bestFitness.toFixed(2)}`);
 
   // Run final simulation with best strategy to get complete results
-  const finalSimulation = runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+  const finalSimulation = await runSimulation(bestStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
 
   return {
     bestStrategy,

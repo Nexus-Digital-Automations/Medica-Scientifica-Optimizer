@@ -171,6 +171,9 @@ export interface Strategy {
 
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];
+
+  // State-Dependent Rules - Conditional actions based on simulation state (optional)
+  rules?: import('../optimizer/rulesEngine.js').Rule[];
 }
 
 export type StrategyAction =

@@ -83,10 +83,18 @@ function calculateInventoryWriteOff(state: SimulationState): number {
 }
 
 /**
- * Executes timed actions for the current day
+ * Executes timed actions and evaluates state-dependent rules for the current day
  */
-function executeTimedActions(state: SimulationState, strategy: Strategy): StrategyAction[] {
+function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine): StrategyAction[] {
+  // Get timed actions for today
   let actionsToday = strategy.timedActions.filter((action) => action.day === state.currentDay);
+
+  // Evaluate rules and add rule-triggered actions
+  if (rulesEngine) {
+    const ruleActions = rulesEngine.evaluateRules(state, state.currentDay);
+    actionsToday = [...actionsToday, ...ruleActions];
+  }
+
   const executedActions: StrategyAction[] = [];
 
   // Merge TAKE_LOAN actions on the same day into a single loan
@@ -223,7 +231,7 @@ function executeTimedActions(state: SimulationState, strategy: Strategy): Strate
  * - Debt interest: Standard accounting on opening balance (Step 5)
  * - Cash interest: Calculated on closing balance after all transactions (Step 10)
  */
-function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?: DemandForecast[]): DailyMetrics {
+function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?: DemandForecast[], rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine): DailyMetrics {
   const dailyMetrics: DailyMetrics = {
     revenue: 0,
     expenses: 0,
@@ -240,8 +248,8 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
     actions: [],
   };
 
-  // Step 1: Execute timed actions for this day
-  dailyMetrics.actions = executeTimedActions(state, strategy);
+  // Step 1: Execute timed actions and evaluate rules for this day
+  dailyMetrics.actions = executeTimedActions(state, strategy, rulesEngine);
 
   // Step 2: Process arriving resources
   const arrivingOrders = processArrivingOrders(state);
@@ -331,19 +339,26 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
  * @param startingState - Optional starting state for mid-course re-optimization
  * @param demandForecast - Optional custom demand forecast (defaults to business case demand curve)
  */
-export function runSimulation(
+export async function runSimulation(
   strategy: Strategy,
   endDay = CONSTANTS.SIMULATION_END_DAY,
   startingState?: SimulationState,
   demandForecast?: DemandForecast[]
-): SimulationResult {
+): Promise<SimulationResult> {
   const state = startingState ? JSON.parse(JSON.stringify(startingState)) : initializeState();
   const startDay = state.currentDay;
+
+  // Initialize rules engine if strategy has rules
+  let rulesEngine: import('../optimizer/rulesEngine.js').RulesEngine | undefined;
+  if (strategy.rules && strategy.rules.length > 0) {
+    const { RulesEngine } = await import('../optimizer/rulesEngine.js');
+    rulesEngine = new RulesEngine(strategy.rules);
+  }
 
   // Run day-by-day simulation
   for (let day = startDay; day <= endDay; day++) {
     state.currentDay = day;
-    simulateDay(state, strategy, demandForecast);
+    simulateDay(state, strategy, demandForecast, rulesEngine);
   }
 
   // Calculate final fitness score (net worth minus inventory write-off penalty)
@@ -369,12 +384,12 @@ export function runSimulation(
  * @param startingState - Optional starting state for mid-course re-optimization
  * @param demandForecast - Optional custom demand forecast (defaults to business case demand curve)
  */
-export function evaluateStrategy(
+export async function evaluateStrategy(
   strategy: Strategy,
   endDay = CONSTANTS.SIMULATION_END_DAY,
   startingState?: SimulationState,
   demandForecast?: DemandForecast[]
-): number {
-  const result = runSimulation(strategy, endDay, startingState, demandForecast);
+): Promise<number> {
+  const result = await runSimulation(strategy, endDay, startingState, demandForecast);
   return result.fitnessScore;
 }
