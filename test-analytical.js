@@ -80,7 +80,7 @@ console.log(strategy.reorderPoint > 0 && strategy.orderQuantity > 0 ? '✅ PASS'
 console.log('\n📊 Test 6: Simulation with Analytical Strategy (100 days)');
 console.log('-'.repeat(80));
 console.log('Running simulation...');
-const result = runSimulation(strategy, 100);
+const result = await runSimulation(strategy, 100);
 console.log(`\nResults after 100 days:`);
 console.log(`  Cash: $${result.finalCash.toLocaleString()}`);
 console.log(`  Debt: $${result.finalDebt.toLocaleString()}`);
