@@ -60,3 +60,39 @@ The case study intentionally leaves two key factors for the player to figure out
 
 1.  **Machine Throughput:** The documents do not state a simple "X units per day" for each machine. The app must calculate this based on the process descriptions. The MCE is the shared pacemaker, and its total daily output is the primary constraint to model.
 2.  **Custom Price Model:** The exact formula linking `AvgCustomDeliveryTime` to `CurrentCustomPrice` is not given. The blueprint provides a logical starting point (`Price = Base - (Penalty * (Time - Target))`), but the developer will need to implement this as a core part of the simulation's "rules of the world."
+
+## Addendum: Critical Process Logic
+This document contains essential process rules from the source MedicaBusinessCase.pdf and MedicaCheatSheet.pdf that are required for an accurate simulation. This information must be used in conjunction with the Developer Guide.md and Reference Guide.md.
+
+1. Custom Line Process Flow: Station 2 (WMA) Double Pass
+The simulation must model that units on the Custom line go through the Whittling and Micro Abrasion (WMA) station twice. After passing through Station 3 (PUC), the unit returns to Station 2 for a final set of adjustments before it is completed and delivered.
+
+Source (MedicaBusinessCase.pdf, Page 4):
+
+"The same device went through the forming machine [Station 2] again for a few final changes before going to the customer."
+
+Source (MedicaCheatSheet.pdf):
+
+"Units go through Station 2 twice before being delivered."
+
+This creates a loop in the process:
+Station 1 (MCE) -> Station 2 (WMA) -> Station 3 (PUC) -> **Station 2 (WMA) again** -> Delivery
+
+This rule critically affects the capacity and lead time calculations for the Custom line, as Station 2 processes each custom unit two separate times.
+
+2. Inventory Allocation Logic: Standard Line Priority
+When the total demand for raw material parts from both the Standard and Custom lines exceeds the available inventory, the simulation must allocate inventory with the following priority:
+
+The Standard line is supplied first, up to its full requirement.
+
+The Custom line receives only the remaining inventory, if any is left.
+
+Source (MedicaBusinessCase.pdf, Page 3):
+
+"If the available amount of parts was less than the total of parts requested by both lines, the Standard line was supplied first and the remainder was assigned to the Custom line."
+
+Source (MedicaCheatSheet.pdf):
+
+"Standard line has priority over Custom line when allocating inventory."
+
+This rule is fundamental for accurately modeling production bottlenecks caused by raw material shortages. An incorrect implementation would lead to false assumptions about which production line suffers during a stockout.

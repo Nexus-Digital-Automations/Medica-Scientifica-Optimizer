@@ -106,19 +106,24 @@ export function allocateMCECapacity(state: SimulationState, strategy: Strategy):
 
 /**
  * Processes custom line production for one day
- * Custom line: MCE → WMA (Pass 1) → WMA (Pass 2) → PUC → Ship
+ * Custom line: MCE → WMA (Pass 1) → WMA (Pass 2) → PUC → ARCP → Ship
  * Implements data-driven multi-stage production with second WMA pass
+ * ARCP (final assembly) is the labor bottleneck - enforces workforce capacity
+ * @param arcpCapacity - Available ARCP (labor) capacity for this line (may be shared/limited)
  */
 export function processCustomLineProduction(
   state: SimulationState,
   _strategy: Strategy,
-  mceCapacity: number
+  mceCapacity: number,
+  arcpCapacity: number
 ): CustomLineResult {
   const startingOrders = state.customLineWIP.orders.length;
 
   // Calculate station capacities
   const wmaCapacity = state.machines.WMA * CONSTANTS.CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY;
   const pucCapacity = state.machines.PUC * CONSTANTS.CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY;
+
+  // ARCP capacity is now passed in (may be remaining capacity after standard line)
 
   let newOrdersStarted = 0;
   let ordersCompleted = 0;
@@ -141,7 +146,7 @@ export function processCustomLineProduction(
     });
   }
 
-  // Step 2-5: Process orders through stations (FIFO - oldest first)
+  // Step 2-6: Process orders through stations (FIFO - oldest first)
   // Sort by start day to process in order
   state.customLineWIP.orders.sort((a, b) => a.startDay - b.startDay);
 
@@ -149,6 +154,7 @@ export function processCustomLineProduction(
   let wmaPass1Used = 0;
   let wmaPass2Used = 0;
   let pucUsed = 0;
+  let arcpUsed = 0; // CRITICAL: Labor bottleneck tracking
 
   state.customLineWIP.orders = state.customLineWIP.orders.filter((order) => {
     order.daysInProduction += 1;
@@ -184,6 +190,15 @@ export function processCustomLineProduction(
         // Check PUC capacity
         if (pucUsed < pucCapacity && order.daysAtCurrentStation >= CONSTANTS.CUSTOM_PUC_PROCESSING_DAYS) {
           pucUsed++;
+          order.currentStation = 'ARCP'; // Move to ARCP (labor bottleneck)
+          order.daysAtCurrentStation = 0;
+        }
+        return true;
+
+      case 'ARCP':
+        // CRITICAL: Labor capacity enforcement - workers can only process 3 units/day per expert
+        if (arcpUsed < arcpCapacity) {
+          arcpUsed++;
           order.currentStation = 'COMPLETE';
           ordersCompleted++;
           completedOrders.push({
@@ -194,7 +209,7 @@ export function processCustomLineProduction(
           state.finishedGoods.custom++;
           return false; // Remove from WIP
         }
-        return true;
+        return true; // Wait for labor capacity
 
       default:
         return true;
@@ -209,14 +224,14 @@ export function processCustomLineProduction(
 
   return {
     newOrdersStarted,
-    ordersProcessed: wmaPass1Used + wmaPass2Used + pucUsed, // Total orders processed across all stations
+    ordersProcessed: wmaPass1Used + wmaPass2Used + pucUsed + arcpUsed, // Total orders processed across all stations
     ordersCompleted,
     remainingWIP: state.customLineWIP.orders.length,
     avgDeliveryTime,
     rawMaterialUsed: materialConsumption.consumed,
     capacityUtilization: {
       mce: mceCapacity > 0 ? newOrdersStarted / mceCapacity : 0,
-      arcp: 1, // Not used in new multi-stage model
+      arcp: arcpCapacity > 0 ? arcpUsed / arcpCapacity : 0, // CRITICAL: Labor utilization tracking
     },
   };
 }
@@ -283,22 +298,34 @@ export function processStandardStation2(state: SimulationState): Station2Result 
 
 /**
  * Processes standard line Station 3 (PUC - final batching) for one day
+ * After batching, units must go through ARCP (labor bottleneck) before finishing
+ * NOTE: This enforces labor capacity - workers can only process limited units per day
  */
-export function processStandardStation3(state: SimulationState): Station3Result {
+export function processStandardStation3(state: SimulationState, _strategy: Strategy, arcpCapacity: number): Station3Result {
   let unitsCompleted = 0;
+  let arcpUsed = 0;
 
   // Process final batching for all units in Station 3
   state.standardLineWIP.station3 = state.standardLineWIP.station3.filter((batch) => {
     batch.batchingDaysRemaining -= 1;
 
     if (batch.batchingDaysRemaining <= 0) {
-      // Move to finished goods
-      state.finishedGoods.standard += batch.units;
-      unitsCompleted += batch.units;
-      return false; // Remove from Station 3
+      // Batching complete, now need ARCP processing (labor bottleneck)
+      const unitsToProcess = Math.min(batch.units, arcpCapacity - arcpUsed);
+
+      if (unitsToProcess > 0) {
+        // Process as many units as labor capacity allows
+        state.finishedGoods.standard += unitsToProcess;
+        unitsCompleted += unitsToProcess;
+        arcpUsed += unitsToProcess;
+        batch.units -= unitsToProcess;
+      }
+
+      // Keep batch in station if units remain (waiting for labor capacity)
+      return batch.units > 0;
     }
 
-    return true; // Keep in Station 3
+    return true; // Keep in Station 3 (batching not complete)
   });
 
   return {
@@ -310,11 +337,19 @@ export function processStandardStation3(state: SimulationState): Station3Result 
 
 /**
  * Processes complete standard line production for one day
+ * CRITICAL: Now enforces labor capacity constraints via ARCP bottleneck
+ * @param arcpCapacity - Available ARCP (labor) capacity for this line (shared resource)
  */
-export function processStandardLineProduction(state: SimulationState, mceCapacity: number): StandardLineResult {
+export function processStandardLineProduction(
+  state: SimulationState,
+  mceCapacity: number,
+  strategy: Strategy,
+  arcpCapacity: number
+): StandardLineResult {
+  // ARCP capacity is now passed in (shared resource between both lines)
   const station1Results = processStandardStation1(state, mceCapacity);
   const station2Results = processStandardStation2(state);
-  const station3Results = processStandardStation3(state);
+  const station3Results = processStandardStation3(state, strategy, arcpCapacity);
 
   return {
     station1: station1Results,

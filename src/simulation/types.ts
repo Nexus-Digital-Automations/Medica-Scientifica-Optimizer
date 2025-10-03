@@ -42,7 +42,7 @@ export interface CustomOrder {
   orderId: string;
   startDay: number;
   daysInProduction: number;
-  currentStation: 'MCE' | 'WMA_PASS1' | 'WMA_PASS2' | 'PUC' | 'COMPLETE'; // Track production stage
+  currentStation: 'MCE' | 'WMA_PASS1' | 'WMA_PASS2' | 'PUC' | 'ARCP' | 'COMPLETE'; // Track production stage (ARCP = labor bottleneck)
   daysAtCurrentStation: number; // Days at current station
 }
 

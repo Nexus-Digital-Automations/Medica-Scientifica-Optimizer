@@ -253,14 +253,25 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   // Step 7: Allocate MCE capacity between production lines
   const mceAllocation = allocateMCECapacity(state, strategy);
 
-  // Step 8: Run production (custom line)
-  const customResult = processCustomLineProduction(state, strategy, mceAllocation.customCapacity);
+  // Step 7.5: Calculate shared ARCP (labor) capacity - THE CRITICAL BOTTLENECK
+  // ARCP is shared between both production lines, so calculate once
+  const expertProductivity = state.workforce.experts * CONSTANTS.ARCP_EXPERT_PRODUCTIVITY;
+  const rookieProductivity = state.workforce.rookies * CONSTANTS.ARCP_EXPERT_PRODUCTIVITY * CONSTANTS.ARCP_ROOKIE_PRODUCTIVITY_FACTOR;
+  const overtimeMultiplier = strategy.dailyOvertimeHours > 0 ? 1 + (strategy.dailyOvertimeHours / 8) : 1;
+  const totalARCPCapacity = Math.floor((expertProductivity + rookieProductivity) * overtimeMultiplier);
+
+  // Step 8: Run production (standard line) FIRST - gets material AND ARCP priority per business rules
+  const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity, strategy, totalARCPCapacity);
+  dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
+
+  // Track ARCP usage by standard line
+  const arcpUsedByStandard = standardResult.totalUnitsCompleted;
+  const remainingARCPCapacity = Math.max(0, totalARCPCapacity - arcpUsedByStandard);
+
+  // Step 9: Run production (custom line) SECOND - gets remaining materials AND remaining ARCP capacity
+  const customResult = processCustomLineProduction(state, strategy, mceAllocation.customCapacity, remainingARCPCapacity);
   dailyMetrics.customProduced = customResult.ordersCompleted;
   dailyMetrics.avgCustomDeliveryTime = customResult.avgDeliveryTime;
-
-  // Step 9: Run production (standard line)
-  const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity);
-  dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
 
   // Step 10: Get current pricing
   const pricing = getCurrentPricing(strategy, dailyMetrics.avgCustomDeliveryTime);
