@@ -64,9 +64,12 @@ export const DEFAULT_GA_CONFIG: GeneticAlgorithmConfig = {
  */
 function generateRandomStrategy(): Strategy {
   const strategy: Strategy = {
-    reorderPoint: Math.floor(Math.random() * 300) + 100, // 100-400 (OPTIMIZABLE - inventory policy)
-    orderQuantity: Math.floor(Math.random() * 500) + 200, // 200-700 (OPTIMIZABLE - inventory policy)
-    standardBatchSize: Math.floor(Math.random() * 30) + 10, // 10-40 (OPTIMIZABLE - production policy)
+    // FORMULA-DRIVEN POLICIES: Set to 0, will be calculated dynamically
+    reorderPoint: 0, // Calculated via ROP formula (with safety stock)
+    orderQuantity: 0, // Calculated via EOQ formula
+    standardBatchSize: 0, // Calculated via EPQ formula
+
+    // GA-OPTIMIZABLE POLICIES: Random initial values
     mceAllocationCustom: Math.random() * 0.5 + 0.5, // 0.5-1.0 (OPTIMIZABLE - capacity allocation)
     standardPrice: Math.floor(Math.random() * 400) + 600, // 600-1000 (OPTIMIZABLE - pricing decision)
     dailyOvertimeHours: Math.floor(Math.random() * 5), // 0-4 hours (OPTIMIZABLE - overtime policy)
@@ -249,10 +252,12 @@ function generateRandomTimedActions(): StrategyAction[] {
  */
 function crossover(parent1: Strategy, parent2: Strategy): Strategy {
   const child: Strategy = {
-    // Mix OPTIMIZABLE operational parameters from parents
-    reorderPoint: Math.random() < 0.5 ? parent1.reorderPoint : parent2.reorderPoint,
-    orderQuantity: Math.random() < 0.5 ? parent1.orderQuantity : parent2.orderQuantity,
-    standardBatchSize: Math.random() < 0.5 ? parent1.standardBatchSize : parent2.standardBatchSize,
+    // FORMULA-DRIVEN POLICIES: Not crossed over (will be calculated dynamically)
+    reorderPoint: 0,
+    orderQuantity: 0,
+    standardBatchSize: 0,
+
+    // GA-OPTIMIZABLE POLICIES: Mix from parents
     mceAllocationCustom: Math.random() < 0.5 ? parent1.mceAllocationCustom : parent2.mceAllocationCustom,
     standardPrice: Math.random() < 0.5 ? parent1.standardPrice : parent2.standardPrice,
     dailyOvertimeHours: Math.random() < 0.5 ? parent1.dailyOvertimeHours : parent2.dailyOvertimeHours,
@@ -294,17 +299,10 @@ function crossover(parent1: Strategy, parent2: Strategy): Strategy {
 function mutate(strategy: Strategy, mutationRate: number): Strategy {
   const mutated = JSON.parse(JSON.stringify(strategy)) as Strategy;
 
-  // Mutate OPTIMIZABLE operational parameters
-  if (Math.random() < mutationRate) {
-    mutated.reorderPoint += Math.floor(Math.random() * 100) - 50;
-    mutated.reorderPoint = Math.max(50, Math.min(500, mutated.reorderPoint));
-  }
+  // FORMULA-DRIVEN POLICIES are NOT mutated (reorderPoint, orderQuantity, standardBatchSize)
+  // These are calculated dynamically by OR formulas based on factory state
 
-  if (Math.random() < mutationRate) {
-    mutated.orderQuantity += Math.floor(Math.random() * 100) - 50;
-    mutated.orderQuantity = Math.max(100, Math.min(1000, mutated.orderQuantity));
-  }
-
+  // Mutate GA-OPTIMIZABLE operational parameters only
   if (Math.random() < mutationRate) {
     mutated.mceAllocationCustom += (Math.random() - 0.5) * 0.2;
     mutated.mceAllocationCustom = Math.max(0.3, Math.min(1.0, mutated.mceAllocationCustom));
@@ -422,11 +420,12 @@ function generateConstrainedStrategy(
 
   // Apply fixed parameters (hard constraints - NEVER change these)
   // Apply variable parameters as starting points (can be optimized)
-  // Anything not specified is fully random
+  // Anything not specified is fully random or formula-driven
   return {
-    reorderPoint: fixedParams?.reorderPoint ?? (variableParams?.reorderPoint ?? base.reorderPoint),
-    orderQuantity: fixedParams?.orderQuantity ?? (variableParams?.orderQuantity ?? base.orderQuantity),
-    standardBatchSize: fixedParams?.standardBatchSize ?? (variableParams?.standardBatchSize ?? base.standardBatchSize),
+    // FORMULA-DRIVEN POLICIES: Always 0 (calculated dynamically)
+    reorderPoint: 0,
+    orderQuantity: 0,
+    standardBatchSize: 0,
     mceAllocationCustom: fixedParams?.mceAllocationCustom ?? (variableParams?.mceAllocationCustom ?? base.mceAllocationCustom),
     standardPrice: fixedParams?.standardPrice ?? (variableParams?.standardPrice ?? base.standardPrice),
     customBasePrice: fixedParams?.customBasePrice ?? (variableParams?.customBasePrice ?? base.customBasePrice),
@@ -454,9 +453,10 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
 
   return {
     ...strategy,
-    reorderPoint: fixedParams.reorderPoint ?? strategy.reorderPoint,
-    orderQuantity: fixedParams.orderQuantity ?? strategy.orderQuantity,
-    standardBatchSize: fixedParams.standardBatchSize ?? strategy.standardBatchSize,
+    // FORMULA-DRIVEN POLICIES: Always 0, never constrained
+    reorderPoint: 0,
+    orderQuantity: 0,
+    standardBatchSize: 0,
     mceAllocationCustom: fixedParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
     standardPrice: fixedParams.standardPrice ?? strategy.standardPrice,
     customBasePrice: fixedParams.customBasePrice ?? strategy.customBasePrice,

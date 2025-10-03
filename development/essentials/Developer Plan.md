@@ -36,3 +36,4 @@ The provided information is complete, but two factors are intentionally vague in
 * **Challenge 1: Modeling Machine Capacity.** The documents don't say "the MCE machine processes 10 units per day." You must model this from the ground up. The MCE is the pacemaker; its total daily output limits what both production lines can start. The daily capacity is the central variable your optimizer will be exploiting.
 
 * **Challenge 2: Modeling the Custom Price.** The exact formula linking delivery time to price is not given. You must create a reasonable formula (like the example I provided) that rewards faster delivery. The optimizer will then learn to manipulate the production flow to maximize this price. Your model of this price function *is* your model of the market.
+

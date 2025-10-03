@@ -10,8 +10,8 @@
     "approval_history": [],
     "initialization_stats": {
       "total_initializations": 0,
-      "total_reinitializations": 1,
-      "current_day": "2025-10-02",
+      "total_reinitializations": 2,
+      "current_day": "2025-10-03",
       "time_buckets": {
         "16:00-20:59": {
           "init": 0,
@@ -34,9 +34,37 @@
           "reinit": 0
         }
       },
-      "daily_history": [],
-      "last_reset": "2025-10-02T06:19:26.185Z",
-      "last_updated": "2025-10-02T06:19:26.186Z"
+      "daily_history": [
+        {
+          "date": "2025-10-02",
+          "total_init": 0,
+          "total_reinit": 1,
+          "buckets": {
+            "16:00-20:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "21:00-01:59": {
+              "init": 0,
+              "reinit": 1
+            },
+            "02:00-06:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "07:00-11:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "12:00-16:59": {
+              "init": 0,
+              "reinit": 0
+            }
+          }
+        }
+      ],
+      "last_reset": "2025-10-03T03:24:59.329Z",
+      "last_updated": "2025-10-03T03:24:59.329Z"
     }
   },
   "workflow_config": {

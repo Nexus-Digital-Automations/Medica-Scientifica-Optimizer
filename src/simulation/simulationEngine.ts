@@ -33,6 +33,7 @@ import {
 } from './productionModule.js';
 import { processSales, getCurrentPricing } from './pricingModule.js';
 import { getDemandForDay, type DemandForecast } from './demandModule.js';
+import { DynamicPolicyCalculator } from '../optimizer/dynamicPolicyCalculator.js';
 
 /**
  * Calculates the value of all remaining inventory at end of simulation
@@ -85,7 +86,12 @@ function calculateInventoryWriteOff(state: SimulationState): number {
 /**
  * Executes timed actions and evaluates state-dependent rules for the current day
  */
-function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine): StrategyAction[] {
+function executeTimedActions(
+  state: SimulationState,
+  strategy: Strategy,
+  policyCalculator: DynamicPolicyCalculator,
+  rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine
+): StrategyAction[] {
   // Get timed actions for today
   let actionsToday = strategy.timedActions.filter((action) => action.day === state.currentDay);
 
@@ -154,6 +160,8 @@ function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEn
           hireRookie(state);
         }
         executedActions.push(action);
+        // TRIGGER: Labor capacity will change after training
+        policyCalculator.recalculatePolicies(state, strategy, 'EMPLOYEE_HIRED');
         break;
 
       case 'HIRE_EXPERT':
@@ -161,6 +169,8 @@ function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEn
           hireExpert(state);
         }
         executedActions.push(action);
+        // TRIGGER: Labor capacity changed immediately
+        policyCalculator.recalculatePolicies(state, strategy, 'EMPLOYEE_HIRED');
         break;
 
       case 'BUY_MACHINE':
@@ -168,6 +178,8 @@ function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEn
           state.cash -= CONSTANTS.MACHINES[action.machineType].buyPrice * action.count;
           state.machines[action.machineType] += action.count;
           executedActions.push(action);
+          // TRIGGER: Production capacity changed
+          policyCalculator.recalculatePolicies(state, strategy, 'MACHINE_PURCHASED');
         }
         break;
 
@@ -176,6 +188,8 @@ function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEn
           state.cash += CONSTANTS.MACHINES[action.machineType].sellPrice * action.count;
           state.machines[action.machineType] -= action.count;
           executedActions.push(action);
+          // TRIGGER: Production capacity changed
+          policyCalculator.recalculatePolicies(state, strategy, 'MACHINE_SOLD');
         }
         break;
 
@@ -231,7 +245,13 @@ function executeTimedActions(state: SimulationState, strategy: Strategy, rulesEn
  * - Debt interest: Standard accounting on opening balance (Step 5)
  * - Cash interest: Calculated on closing balance after all transactions (Step 10)
  */
-function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?: DemandForecast[], rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine): DailyMetrics {
+function simulateDay(
+  state: SimulationState,
+  strategy: Strategy,
+  policyCalculator: DynamicPolicyCalculator,
+  demandForecast?: DemandForecast[],
+  rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine
+): DailyMetrics {
   const dailyMetrics: DailyMetrics = {
     revenue: 0,
     expenses: 0,
@@ -249,7 +269,7 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
   };
 
   // Step 1: Execute timed actions and evaluate rules for this day
-  dailyMetrics.actions = executeTimedActions(state, strategy, rulesEngine);
+  dailyMetrics.actions = executeTimedActions(state, strategy, policyCalculator, rulesEngine);
 
   // Step 2: Process arriving resources
   const arrivingOrders = processArrivingOrders(state);
@@ -280,6 +300,11 @@ function simulateDay(state: SimulationState, strategy: Strategy, demandForecast?
 
   // Step 7: Get demand limits for today (market-driven order arrivals)
   const demandLimits = getDemandForDay(state.currentDay, strategy, demandForecast);
+
+  // Check if we crossed into a new demand phase (trigger policy recalculation)
+  if (state.currentDay === 172 || state.currentDay === 218 || state.currentDay === 400) {
+    policyCalculator.recalculatePolicies(state, strategy, 'DEMAND_PHASE_CHANGE');
+  }
 
   // Step 8: Allocate MCE capacity between production lines
   const mceAllocation = allocateMCECapacity(state, strategy);
@@ -348,6 +373,17 @@ export async function runSimulation(
   const state = startingState ? JSON.parse(JSON.stringify(startingState)) : initializeState();
   const startDay = state.currentDay;
 
+  // Initialize dynamic policy calculator
+  const policyCalculator = new DynamicPolicyCalculator();
+
+  // Calculate initial policies using OR formulas (if not already set)
+  if (strategy.reorderPoint === 0 || strategy.orderQuantity === 0 || strategy.standardBatchSize === 0) {
+    const initialPolicies = policyCalculator.calculateInitialPolicies(state, strategy);
+    strategy.reorderPoint = initialPolicies.reorderPoint;
+    strategy.orderQuantity = initialPolicies.orderQuantity;
+    strategy.standardBatchSize = initialPolicies.standardBatchSize;
+  }
+
   // Initialize rules engine if strategy has rules
   let rulesEngine: import('../optimizer/rulesEngine.js').RulesEngine | undefined;
   if (strategy.rules && strategy.rules.length > 0) {
@@ -358,7 +394,7 @@ export async function runSimulation(
   // Run day-by-day simulation
   for (let day = startDay; day <= endDay; day++) {
     state.currentDay = day;
-    simulateDay(state, strategy, demandForecast, rulesEngine);
+    simulateDay(state, strategy, policyCalculator, demandForecast, rulesEngine);
   }
 
   // Calculate final fitness score (net worth minus inventory write-off penalty)

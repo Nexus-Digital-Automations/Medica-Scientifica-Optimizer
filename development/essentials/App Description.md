@@ -54,3 +54,5 @@ For example, you could visually confirm:
 * The exact day your company is projected to become debt-free.
 
 This adds a powerful layer of **transparency**, allowing you to understand *why* the optimal strategy is the best one.
+
+

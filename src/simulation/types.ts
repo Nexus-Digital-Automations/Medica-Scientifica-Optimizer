@@ -144,7 +144,7 @@ export interface ActionRecord {
 // ============================================================================
 
 export interface Strategy {
-  // Static Genes - Policy decisions
+  // Static Genes - Policy decisions (now formula-driven)
   reorderPoint: number;
   orderQuantity: number;
   standardBatchSize: number;
@@ -174,6 +174,24 @@ export interface Strategy {
 
   // State-Dependent Rules - Conditional actions based on simulation state (optional)
   rules?: import('../optimizer/rulesEngine.js').Rule[];
+
+  // Policy Control Metadata - Tracks which policies are formula-controlled vs GA-controlled
+  policyControlMetadata?: {
+    reorderPoint: PolicyMetadata;
+    orderQuantity: PolicyMetadata;
+    standardBatchSize: PolicyMetadata;
+  };
+
+  // Policy Change History - Complete audit trail of policy changes
+  policyChangeHistory?: import('../optimizer/dynamicPolicyCalculator.js').PolicyChangeLog[];
+}
+
+// Policy metadata for tracking calculation history
+export interface PolicyMetadata {
+  controlled: 'FORMULA' | 'GA';
+  lastRecalculated: number;
+  lastValue: number;
+  calculationCount: number;
 }
 
 export type StrategyAction =
