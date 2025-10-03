@@ -321,13 +321,11 @@ function simulateDay(
   const overtimeMultiplier = strategy.dailyOvertimeHours > 0 ? 1 + (strategy.dailyOvertimeHours / 8) : 1;
   const totalARCPCapacity = Math.floor((expertProductivity + rookieProductivity) * overtimeMultiplier);
 
-  // CRITICAL FIX: Give standard line priority, allocate remaining to custom
-  // Business case: Standard production gets priority for finishing (ARCP stage)
-  // Custom line uses whatever ARCP capacity remains after standard production
-  // This prevents rounding errors from causing zero allocation to custom line
-  const standardARCPNeeded = Math.min(totalARCPCapacity, mceAllocation.standardCapacity);
-  const standardARCPAllocation = standardARCPNeeded;
-  const customARCPAllocation = Math.max(0, totalARCPCapacity - standardARCPNeeded);
+  // CRITICAL FIX: Allocate ARCP capacity proportionally based on MCE allocation
+  // This prevents one line from monopolizing all labor capacity
+  // Using same proportion as MCE allocation ensures balanced production
+  const standardARCPAllocation = Math.floor(totalARCPCapacity * (1 - strategy.mceAllocationCustom));
+  const customARCPAllocation = Math.floor(totalARCPCapacity * strategy.mceAllocationCustom);
 
   // Step 9: Run production (standard line) FIRST - gets material priority per business rules
   const standardResult = processStandardLineProduction(state, mceAllocation.standardCapacity, strategy, standardARCPAllocation);
