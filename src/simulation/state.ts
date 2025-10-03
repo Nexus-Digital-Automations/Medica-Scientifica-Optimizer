@@ -116,6 +116,7 @@ export function recordDailyHistory(
   // Inventory tracking
   state.history.dailyRawMaterial.push({ day, value: state.rawMaterialInventory });
   state.history.dailyRawMaterialOrders.push({ day, value: dailyMetrics.rawMaterialOrdered || 0 });
+  state.history.dailyRawMaterialOrdersPlaced.push({ day, value: dailyMetrics.rawMaterialOrdersPlaced || 0 });
   state.history.dailyRawMaterialCost.push({ day, value: dailyMetrics.rawMaterialCost || 0 });
 
   // Workforce tracking

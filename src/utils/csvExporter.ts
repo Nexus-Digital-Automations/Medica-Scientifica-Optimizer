@@ -40,6 +40,7 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     'Expenses',
     'Interest Paid',
     'Interest Earned',
+    'Daily Profit',
     'Standard Production',
     'Custom Production',
     'Standard WIP',
@@ -47,7 +48,8 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     'Finished Standard',
     'Finished Custom',
     'Raw Material',
-    'Raw Material Orders',
+    'Raw Material Arrived',
+    'Raw Material Orders Placed',
     'Raw Material Cost',
     'Experts',
     'Rookies',
@@ -76,6 +78,9 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     const getValue = (arr: Array<{day: number; value: number}>) =>
       arr.find(d => d.day === day)?.value?.toFixed(2) || '0.00';
 
+    const getNumericValue = (arr: Array<{day: number; value: number}>) =>
+      arr.find(d => d.day === day)?.value || 0;
+
     const policyChange = history.policyChanges.find(p => p.day === day);
     const policyChangeReason = policyChange
       ? `${policyChange.policyType}: ${policyChange.oldValue}→${policyChange.newValue} (${policyChange.reason})`
@@ -83,6 +88,13 @@ export function exportSimulationToCSV(result: SimulationResult): string {
 
     const actions = history.actionsPerformed.filter(a => a.day === day);
     const actionStr = actions.map(a => JSON.stringify(a.action)).join('; ');
+
+    // Calculate Daily Profit: Revenue - Expenses + Interest Earned
+    // Note: Expenses already includes Interest Paid, so we don't subtract it again
+    const revenue = getNumericValue(history.dailyRevenue);
+    const expenses = getNumericValue(history.dailyExpenses);
+    const interestEarned = getNumericValue(history.dailyInterestEarned);
+    const dailyProfit = revenue - expenses + interestEarned;
 
     rows.push([
       day,
@@ -93,6 +105,7 @@ export function exportSimulationToCSV(result: SimulationResult): string {
       getValue(history.dailyExpenses),
       getValue(history.dailyInterestPaid),
       getValue(history.dailyInterestEarned),
+      dailyProfit.toFixed(2),
       getValue(history.dailyStandardProduction),
       getValue(history.dailyCustomProduction),
       getValue(history.dailyStandardWIP),
@@ -101,6 +114,7 @@ export function exportSimulationToCSV(result: SimulationResult): string {
       getValue(history.dailyFinishedCustom),
       getValue(history.dailyRawMaterial),
       getValue(history.dailyRawMaterialOrders),
+      getValue(history.dailyRawMaterialOrdersPlaced),
       getValue(history.dailyRawMaterialCost),
       getValue(history.dailyExperts),
       getValue(history.dailyRookies),

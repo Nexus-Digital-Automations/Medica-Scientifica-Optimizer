@@ -126,6 +126,7 @@ export const INITIAL_STATE: SimulationState = {
     // Inventory tracking
     dailyRawMaterial: [],
     dailyRawMaterialOrders: [],
+    dailyRawMaterialOrdersPlaced: [],
     dailyRawMaterialCost: [],
 
     // Workforce tracking

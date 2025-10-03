@@ -111,7 +111,8 @@ export interface SimulationHistory {
 
   // Inventory tracking
   dailyRawMaterial: DailyMetric[];
-  dailyRawMaterialOrders: DailyMetric[];
+  dailyRawMaterialOrders: DailyMetric[]; // Materials ARRIVED (ordered 4 days ago)
+  dailyRawMaterialOrdersPlaced: DailyMetric[]; // Materials ORDERED today (will arrive in 4 days)
   dailyRawMaterialCost: DailyMetric[];
 
   // Workforce tracking
@@ -305,7 +306,8 @@ export interface DailyMetrics {
   interestEarned: number;
   standardProduced: number;
   customProduced: number;
-  rawMaterialOrdered: number;
+  rawMaterialOrdered: number; // Materials that ARRIVED today (ordered 4 days ago)
+  rawMaterialOrdersPlaced: number; // Materials ORDERED today (will arrive in 4 days)
   rawMaterialCost: number;
   salaryCost: number;
   standardPrice: number;

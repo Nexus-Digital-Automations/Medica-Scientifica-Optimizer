@@ -91,7 +91,7 @@ function executeTimedActions(
   strategy: Strategy,
   policyCalculator: DynamicPolicyCalculator,
   rulesEngine?: import('../optimizer/rulesEngine.js').RulesEngine
-): StrategyAction[] {
+): { actions: StrategyAction[]; ordersPlaced: number } {
   // Get timed actions for today
   let actionsToday = strategy.timedActions.filter((action) => action.day === state.currentDay);
 
@@ -102,6 +102,7 @@ function executeTimedActions(
   }
 
   const executedActions: StrategyAction[] = [];
+  let totalOrdersPlaced = 0; // Track total raw materials ordered today
 
   // Merge TAKE_LOAN actions on the same day into a single loan
   const totalLoanAmount = actionsToday
@@ -198,6 +199,7 @@ function executeTimedActions(
         const orderResult = orderRawMaterials(state, action.quantity);
         if (orderResult) {
           executedActions.push(action);
+          totalOrdersPlaced += action.quantity; // Track materials ordered
         }
         // If null, order was rejected due to insufficient cash (not an error, just a rule)
         break;
@@ -224,7 +226,7 @@ function executeTimedActions(
     }
   }
 
-  return executedActions;
+  return { actions: executedActions, ordersPlaced: totalOrdersPlaced };
 }
 
 /**
@@ -264,7 +266,8 @@ function simulateDay(
     interestEarned: 0,
     standardProduced: 0,
     customProduced: 0,
-    rawMaterialOrdered: 0,
+    rawMaterialOrdered: 0, // Materials ARRIVED today (ordered 4 days ago)
+    rawMaterialOrdersPlaced: 0, // Materials ORDERED today (will arrive in 4 days)
     rawMaterialCost: 0,
     salaryCost: 0,
     standardPrice: strategy.standardPrice,
@@ -274,7 +277,9 @@ function simulateDay(
   };
 
   // Step 1: Execute timed actions and evaluate rules for this day
-  dailyMetrics.actions = executeTimedActions(state, strategy, policyCalculator, rulesEngine);
+  const timedActionsResult = executeTimedActions(state, strategy, policyCalculator, rulesEngine);
+  dailyMetrics.actions = timedActionsResult.actions;
+  dailyMetrics.rawMaterialOrdersPlaced += timedActionsResult.ordersPlaced;
 
   // Step 2: Process arriving resources
   const arrivingOrders = processArrivingOrders(state);
@@ -301,6 +306,7 @@ function simulateDay(
   const reorderResult = checkAndReorder(state, strategy);
   if (reorderResult) {
     dailyMetrics.rawMaterialCost = reorderResult.totalCost;
+    dailyMetrics.rawMaterialOrdersPlaced += reorderResult.quantity; // Track automatic reorder quantity
   }
 
   // Step 7: Get demand limits for today (market-driven order arrivals)
