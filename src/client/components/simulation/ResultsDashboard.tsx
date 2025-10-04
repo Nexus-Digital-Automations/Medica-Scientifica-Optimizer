@@ -1,7 +1,11 @@
 import { useStrategyStore } from '../../stores/strategyStore';
 import { exportSimulationToCSV } from '../../../utils/csvExporter';
 
-export default function ResultsDashboard() {
+interface ResultsDashboardProps {
+  onEditStrategy?: () => void;
+}
+
+export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardProps) {
   const { simulationResult } = useStrategyStore();
 
   if (!simulationResult) {
@@ -116,11 +120,19 @@ export default function ResultsDashboard() {
         </div>
       </div>
 
-      {/* Export Button */}
-      <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center gap-4">
+        {onEditStrategy && (
+          <button
+            onClick={onEditStrategy}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            ✏️ Edit Strategy & Rerun
+          </button>
+        )}
         <button
           onClick={handleExportCSV}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-gray-900 rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           📥 Export Full CSV Report
         </button>

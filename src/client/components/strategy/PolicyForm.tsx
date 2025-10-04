@@ -333,7 +333,7 @@ export default function PolicyForm() {
         <div className="flex items-start gap-4">
           <span className="text-3xl">💡</span>
           <p className="text-gray-700 text-sm leading-relaxed">
-            <strong className="text-blue-700 font-semibold">Note:</strong> Inventory policies (Reorder Point, Order Quantity, Batch Size) are calculated dynamically by the simulation using Operations Research formulas (EOQ, ROP, EPQ) based on your pricing and allocation decisions.
+            <strong className="text-blue-700 font-semibold">Note:</strong> Inventory policies (Reorder Point, Order Quantity, Batch Size) are management decisions that directly impact production efficiency and cash flow. These policies are user-controlled and can be adjusted through timed actions.
           </p>
         </div>
       </div>

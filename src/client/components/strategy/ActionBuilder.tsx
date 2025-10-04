@@ -7,62 +7,79 @@ interface ActionBuilderProps {
   onClose: () => void;
 }
 
-type ActionType = 'TAKE_LOAN' | 'PAY_DEBT' | 'ORDER_MATERIALS' | 'STOP_MATERIAL_ORDERS' | 'HIRE_ROOKIE' | 'HIRE_EXPERT' | 'BUY_MACHINE' | 'SELL_MACHINE' | 'ADJUST_PRICE' | 'ADJUST_BATCH_SIZE' | 'ADJUST_MCE_ALLOCATION';
+type ActionType = 'TAKE_LOAN' | 'PAY_DEBT' | 'ORDER_MATERIALS' | 'STOP_MATERIAL_ORDERS' | 'HIRE_ROOKIE' | 'HIRE_EXPERT' | 'FIRE_EMPLOYEE' | 'BUY_MACHINE' | 'SELL_MACHINE' | 'ADJUST_PRICE' | 'ADJUST_BATCH_SIZE' | 'ADJUST_MCE_ALLOCATION' | 'SET_REORDER_POINT' | 'SET_ORDER_QUANTITY';
 type MachineType = 'MCE' | 'WMA' | 'PUC';
 type ProductType = 'standard' | 'custom';
+type EmployeeType = 'expert' | 'rookie';
 
 export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderProps) {
   const { strategy, addTimedAction, updateTimedAction } = useStrategyStore();
 
   const existingAction = editingIndex !== null ? strategy.timedActions[editingIndex] : null;
 
-  const [day, setDay] = useState(existingAction?.day || 100);
+  const [day, setDay] = useState<number | ''>(existingAction?.day ?? '');
   const [actionType, setActionType] = useState<ActionType>(() => {
     const type = existingAction?.type;
-    if (type && ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION'].includes(type)) {
+    const validTypes = ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'FIRE_EMPLOYEE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION', 'SET_REORDER_POINT', 'SET_ORDER_QUANTITY'];
+    if (type && validTypes.includes(type)) {
       return type as ActionType;
     }
     return 'TAKE_LOAN';
   });
 
-  // Action-specific fields
-  const [loanAmount, setLoanAmount] = useState(() =>
-    existingAction && 'amount' in existingAction ? existingAction.amount : 50000
+  // Action-specific fields (empty by default = "no changes")
+  const [loanAmount, setLoanAmount] = useState<number | ''>(
+    existingAction && 'amount' in existingAction ? existingAction.amount : ''
   );
-  const [materialQuantity, setMaterialQuantity] = useState(() =>
-    existingAction && 'quantity' in existingAction ? existingAction.quantity : 500
+  const [materialQuantity, setMaterialQuantity] = useState<number | ''>(
+    existingAction && 'quantity' in existingAction ? existingAction.quantity : ''
   );
-  const [rookieCount, setRookieCount] = useState(() =>
-    existingAction && 'count' in existingAction ? existingAction.count : 2
+  const [rookieCount, setRookieCount] = useState<number | ''>(
+    existingAction && 'count' in existingAction ? existingAction.count : ''
   );
   const [machineType, setMachineType] = useState<MachineType>(() =>
     existingAction && 'machineType' in existingAction ? (existingAction.machineType as MachineType) : 'MCE'
   );
-  const [machineCount, setMachineCount] = useState(() =>
-    existingAction && 'count' in existingAction ? existingAction.count : 1
+  const [machineCount, setMachineCount] = useState<number | ''>(
+    existingAction && 'count' in existingAction ? existingAction.count : ''
   );
   const [productType, setProductType] = useState<ProductType>(() =>
     existingAction && 'productType' in existingAction ? (existingAction.productType as ProductType) : 'standard'
   );
-  const [newPrice, setNewPrice] = useState(() =>
-    existingAction && 'newPrice' in existingAction ? existingAction.newPrice : 800
+  const [newPrice, setNewPrice] = useState<number | ''>(
+    existingAction && 'newPrice' in existingAction ? existingAction.newPrice : ''
   );
-  const [debtPaymentAmount, setDebtPaymentAmount] = useState(() =>
-    existingAction && 'amount' in existingAction ? existingAction.amount : 10000
+  const [debtPaymentAmount, setDebtPaymentAmount] = useState<number | ''>(
+    existingAction && 'amount' in existingAction ? existingAction.amount : ''
   );
-  const [expertCount, setExpertCount] = useState(() =>
-    existingAction && 'count' in existingAction ? existingAction.count : 1
+  const [expertCount, setExpertCount] = useState<number | ''>(
+    existingAction && 'count' in existingAction ? existingAction.count : ''
   );
-  const [newBatchSize, setNewBatchSize] = useState(() =>
-    existingAction && 'newSize' in existingAction ? existingAction.newSize : 50
+  const [newBatchSize, setNewBatchSize] = useState<number | ''>(
+    existingAction && 'newSize' in existingAction ? existingAction.newSize : ''
   );
-  const [newMCEAllocation, setNewMCEAllocation] = useState(() =>
-    existingAction && 'newAllocation' in existingAction ? existingAction.newAllocation : 50
+  const [newMCEAllocation, setNewMCEAllocation] = useState<number | ''>(
+    existingAction && 'newAllocation' in existingAction ? existingAction.newAllocation * 100 : ''
+  );
+
+  // New action fields
+  const [fireEmployeeType, setFireEmployeeType] = useState<EmployeeType>(() =>
+    existingAction && 'employeeType' in existingAction ? (existingAction.employeeType as EmployeeType) : 'expert'
+  );
+  const [fireEmployeeCount, setFireEmployeeCount] = useState<number | ''>(
+    existingAction && 'count' in existingAction && existingAction.type === 'FIRE_EMPLOYEE' ? existingAction.count : ''
+  );
+  const [reorderPoint, setReorderPoint] = useState<number | ''>(
+    existingAction && 'newReorderPoint' in existingAction ? existingAction.newReorderPoint : ''
+  );
+  const [orderQuantity, setOrderQuantity] = useState<number | ''>(
+    existingAction && 'newOrderQuantity' in existingAction ? existingAction.newOrderQuantity : ''
   );
 
   // Update action type when editing different action
   useEffect(() => {
-    if (existingAction && ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION'].includes(existingAction.type)) {
+    const validTypes = ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'FIRE_EMPLOYEE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION', 'SET_REORDER_POINT', 'SET_ORDER_QUANTITY'];
+    if (existingAction && validTypes.includes(existingAction.type)) {
       setActionType(existingAction.type as ActionType);
     }
   }, [existingAction]);
@@ -71,44 +88,54 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
     e.preventDefault();
 
     let action: StrategyAction;
+    const dayNum = Number(day);
 
     switch (actionType) {
       case 'TAKE_LOAN':
-        action = { day, type: 'TAKE_LOAN', amount: loanAmount };
+        action = { day: dayNum, type: 'TAKE_LOAN', amount: Number(loanAmount) };
         break;
       case 'PAY_DEBT':
-        action = { day, type: 'PAY_DEBT', amount: debtPaymentAmount };
+        action = { day: dayNum, type: 'PAY_DEBT', amount: Number(debtPaymentAmount) };
         break;
       case 'ORDER_MATERIALS':
-        action = { day, type: 'ORDER_MATERIALS', quantity: materialQuantity };
+        action = { day: dayNum, type: 'ORDER_MATERIALS', quantity: Number(materialQuantity) };
         break;
       case 'STOP_MATERIAL_ORDERS':
-        action = { day, type: 'STOP_MATERIAL_ORDERS' };
+        action = { day: dayNum, type: 'STOP_MATERIAL_ORDERS' };
         break;
       case 'HIRE_ROOKIE':
-        action = { day, type: 'HIRE_ROOKIE', count: rookieCount };
+        action = { day: dayNum, type: 'HIRE_ROOKIE', count: Number(rookieCount) };
         break;
       case 'HIRE_EXPERT':
-        action = { day, type: 'HIRE_EXPERT', count: expertCount };
+        action = { day: dayNum, type: 'HIRE_EXPERT', count: Number(expertCount) };
         break;
       case 'BUY_MACHINE':
-        action = { day, type: 'BUY_MACHINE', machineType, count: machineCount };
+        action = { day: dayNum, type: 'BUY_MACHINE', machineType, count: Number(machineCount) };
         break;
       case 'SELL_MACHINE':
-        action = { day, type: 'SELL_MACHINE', machineType, count: machineCount };
+        action = { day: dayNum, type: 'SELL_MACHINE', machineType, count: Number(machineCount) };
         break;
       case 'ADJUST_PRICE':
-        action = { day, type: 'ADJUST_PRICE', productType, newPrice };
+        action = { day: dayNum, type: 'ADJUST_PRICE', productType, newPrice: Number(newPrice) };
         break;
       case 'ADJUST_BATCH_SIZE':
-        action = { day, type: 'ADJUST_BATCH_SIZE', newSize: newBatchSize };
+        action = { day: dayNum, type: 'ADJUST_BATCH_SIZE', newSize: Number(newBatchSize) };
         break;
       case 'ADJUST_MCE_ALLOCATION':
-        action = { day, type: 'ADJUST_MCE_ALLOCATION', newAllocation: newMCEAllocation };
+        action = { day: dayNum, type: 'ADJUST_MCE_ALLOCATION', newAllocation: Number(newMCEAllocation) / 100 };
+        break;
+      case 'FIRE_EMPLOYEE':
+        action = { day: dayNum, type: 'FIRE_EMPLOYEE', employeeType: fireEmployeeType, count: Number(fireEmployeeCount) };
+        break;
+      case 'SET_REORDER_POINT':
+        action = { day: dayNum, type: 'SET_REORDER_POINT', newReorderPoint: Number(reorderPoint) };
+        break;
+      case 'SET_ORDER_QUANTITY':
+        action = { day: dayNum, type: 'SET_ORDER_QUANTITY', newOrderQuantity: Number(orderQuantity) };
         break;
       default:
         // TypeScript exhaustiveness check - should never reach here
-        action = { day, type: 'TAKE_LOAN', amount: loanAmount };
+        action = { day: dayNum, type: 'TAKE_LOAN', amount: Number(loanAmount) };
         break;
     }
 
@@ -138,10 +165,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
               <input
                 type="number"
                 value={day}
-                onChange={(e) => setDay(Number(e.target.value))}
+                onChange={(e) => setDay(e.target.value === '' ? '' : Number(e.target.value))}
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="51"
                 max="500"
+                placeholder="Enter day number"
                 required
               />
             </div>
@@ -162,11 +190,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <option value="STOP_MATERIAL_ORDERS">🛑 Stop Material Orders</option>
                 <option value="HIRE_ROOKIE">👷 Hire Rookies</option>
                 <option value="HIRE_EXPERT">👨‍🔬 Hire Experts</option>
+                <option value="FIRE_EMPLOYEE">🚪 Fire Employees</option>
                 <option value="BUY_MACHINE">🏭 Buy Machine</option>
                 <option value="SELL_MACHINE">💸 Sell Machine</option>
                 <option value="ADJUST_PRICE">💵 Adjust Price</option>
                 <option value="ADJUST_BATCH_SIZE">📊 Adjust Batch Size</option>
                 <option value="ADJUST_MCE_ALLOCATION">⚙️ Adjust MCE Allocation</option>
+                <option value="SET_REORDER_POINT">📍 Set Reorder Point</option>
+                <option value="SET_ORDER_QUANTITY">📏 Set Order Quantity</option>
               </select>
             </div>
 
@@ -179,13 +210,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={loanAmount}
-                  onChange={(e) => setLoanAmount(Number(e.target.value))}
+                  onChange={(e) => setLoanAmount(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="10000"
-                  max="500000"
-                  step="10000"
+                  min="1"
+                  step="1000"
+                  placeholder="Enter loan amount"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Commission: 2% on loan amount</p>
               </div>
             )}
 
@@ -197,13 +229,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={materialQuantity}
-                  onChange={(e) => setMaterialQuantity(Number(e.target.value))}
+                  onChange={(e) => setMaterialQuantity(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="100"
-                  max="5000"
-                  step="100"
+                  min="1"
+                  step="1"
+                  placeholder="Enter quantity"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Cost: $50/part + $1,000 order fee | Lead time: 4 days</p>
               </div>
             )}
 
@@ -215,12 +248,13 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={rookieCount}
-                  onChange={(e) => setRookieCount(Number(e.target.value))}
+                  onChange={(e) => setRookieCount(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
-                  max="10"
+                  placeholder="Number of rookies to hire"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Salary: $85/day | Training: 15 days → Expert ($150/day) | Productivity: 40% during training</p>
               </div>
             )}
 
@@ -235,9 +269,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                     onChange={(e) => setMachineType(e.target.value as MachineType)}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="MCE">MCE (Station 1)</option>
-                    <option value="WMA">WMA (Station 2)</option>
-                    <option value="PUC">PUC (Station 3)</option>
+                    <option value="MCE">MCE (Station 1) - Buy: $20k, Sell: $10k</option>
+                    <option value="WMA">WMA (Station 2) - Buy: $15k, Sell: $7.5k</option>
+                    <option value="PUC">PUC (Station 3) - Buy: $12k, Sell: $4k</option>
                   </select>
                 </div>
                 <div>
@@ -247,12 +281,15 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   <input
                     type="number"
                     value={machineCount}
-                    onChange={(e) => setMachineCount(Number(e.target.value))}
+                    onChange={(e) => setMachineCount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="1"
-                    max="5"
+                    placeholder="Number of machines"
                     required
                   />
+                  {actionType === 'SELL_MACHINE' && (
+                    <p className="text-xs text-gray-500 mt-1">⚠️ At least 1 machine must remain at each station</p>
+                  )}
                 </div>
               </>
             )}
@@ -269,7 +306,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="standard">Standard Product</option>
-                    <option value="custom">Custom Product</option>
+                    <option value="custom">Custom Product Base Price</option>
                   </select>
                 </div>
                 <div>
@@ -279,13 +316,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   <input
                     type="number"
                     value={newPrice}
-                    onChange={(e) => setNewPrice(Number(e.target.value))}
+                    onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min="400"
-                    max="1200"
-                    step="10"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="Enter new price"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">💡 Price affects demand (higher price = lower demand)</p>
                 </div>
               </>
             )}
@@ -298,13 +336,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={debtPaymentAmount}
-                  onChange={(e) => setDebtPaymentAmount(Number(e.target.value))}
+                  onChange={(e) => setDebtPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="1000"
-                  max="100000"
-                  step="1000"
+                  min="0.01"
+                  step="100"
+                  placeholder="Enter payment amount"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Interest rate: 36.5% annual (0.1% daily)</p>
               </div>
             )}
 
@@ -316,12 +355,13 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={expertCount}
-                  onChange={(e) => setExpertCount(Number(e.target.value))}
+                  onChange={(e) => setExpertCount(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
-                  max="5"
+                  placeholder="Number of experts to hire"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Salary: $150/day | Note: Direct expert hiring may not match business case (only rookies mentioned)</p>
               </div>
             )}
 
@@ -333,13 +373,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={newBatchSize}
-                  onChange={(e) => setNewBatchSize(Number(e.target.value))}
+                  onChange={(e) => setNewBatchSize(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="10"
-                  max="200"
-                  step="5"
+                  min="1"
+                  step="1"
+                  placeholder="Enter batch size"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Current default: 60 units | Affects production batching time</p>
               </div>
             )}
 
@@ -351,13 +392,86 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 <input
                   type="number"
                   value={newMCEAllocation}
-                  onChange={(e) => setNewMCEAllocation(Number(e.target.value))}
+                  onChange={(e) => setNewMCEAllocation(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="0"
                   max="100"
-                  step="5"
+                  step="1"
+                  placeholder="Enter allocation percentage (0-100)"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 Custom: {newMCEAllocation || 0}% | Standard: {100 - (Number(newMCEAllocation) || 0)}%</p>
+              </div>
+            )}
+
+            {actionType === 'FIRE_EMPLOYEE' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Employee Type
+                  </label>
+                  <select
+                    value={fireEmployeeType}
+                    onChange={(e) => setFireEmployeeType(e.target.value as EmployeeType)}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="expert">Experts ($150/day)</option>
+                    <option value="rookie">Rookies ($85/day)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number to Fire
+                  </label>
+                  <input
+                    type="number"
+                    value={fireEmployeeCount}
+                    onChange={(e) => setFireEmployeeCount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="1"
+                    placeholder="Number of employees to fire"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">⚠️ Cannot fire rookies in training (first 15 days)</p>
+                </div>
+              </>
+            )}
+
+            {actionType === 'SET_REORDER_POINT' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Reorder Point (units)
+                </label>
+                <input
+                  type="number"
+                  value={reorderPoint}
+                  onChange={(e) => setReorderPoint(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="0"
+                  step="1"
+                  placeholder="Enter reorder point"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">💡 Inventory level that triggers new material order | Documented as management decision</p>
+              </div>
+            )}
+
+            {actionType === 'SET_ORDER_QUANTITY' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Order Quantity (units)
+                </label>
+                <input
+                  type="number"
+                  value={orderQuantity}
+                  onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="1"
+                  step="1"
+                  placeholder="Enter order quantity"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">💡 Amount to order when reorder point is reached | Documented as management decision</p>
               </div>
             )}
 

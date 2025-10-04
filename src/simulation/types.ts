@@ -213,13 +213,16 @@ export type StrategyAction =
   | PayDebtAction
   | HireRookieAction
   | HireExpertAction
+  | FireEmployeeAction
   | BuyMachineAction
   | SellMachineAction
   | OrderMaterialsAction
   | StopMaterialOrdersAction
   | AdjustBatchSizeAction
   | AdjustMCEAllocationAction
-  | AdjustPriceAction;
+  | AdjustPriceAction
+  | SetReorderPointAction
+  | SetOrderQuantityAction;
 
 export interface TakeLoanAction {
   day: number;
@@ -287,6 +290,25 @@ export interface AdjustPriceAction {
   type: 'ADJUST_PRICE';
   productType: 'standard' | 'custom';
   newPrice: number;
+}
+
+export interface FireEmployeeAction {
+  day: number;
+  type: 'FIRE_EMPLOYEE';
+  employeeType: 'expert' | 'rookie';
+  count: number;
+}
+
+export interface SetReorderPointAction {
+  day: number;
+  type: 'SET_REORDER_POINT';
+  newReorderPoint: number;
+}
+
+export interface SetOrderQuantityAction {
+  day: number;
+  type: 'SET_ORDER_QUANTITY';
+  newOrderQuantity: number;
 }
 
 // ============================================================================

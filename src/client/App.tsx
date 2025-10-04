@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Layout from './components/common/Layout';
 import PolicyForm from './components/strategy/PolicyForm';
 import TimelineEditor from './components/strategy/TimelineEditor';
+import StrategyVisualization from './components/strategy/StrategyVisualization';
 import SimulationRunner from './components/simulation/SimulationRunner';
 import ResultsDashboard from './components/simulation/ResultsDashboard';
 
@@ -25,6 +26,7 @@ function App() {
             <div className="space-y-6">
               <PolicyForm />
               <TimelineEditor />
+              <StrategyVisualization />
               <SimulationRunner />
             </div>
           </div>
@@ -39,7 +41,7 @@ function App() {
                 Detailed analysis of your factory's performance
               </p>
             </div>
-            <ResultsDashboard />
+            <ResultsDashboard onEditStrategy={() => setActiveTab('builder')} />
           </div>
         )}
         {activeTab === 'library' && (

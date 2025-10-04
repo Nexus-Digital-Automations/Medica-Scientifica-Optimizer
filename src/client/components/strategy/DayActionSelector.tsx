@@ -12,8 +12,8 @@ type ProductType = 'standard' | 'custom';
 export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const { addTimedAction } = useStrategyStore();
 
-  // Day input
-  const [day, setDay] = useState(100);
+  // Day input (empty by default = user must specify)
+  const [day, setDay] = useState<number | ''>('');
 
   // Action enablement checkboxes
   const [enableTakeLoan, setEnableTakeLoan] = useState(false);
@@ -27,59 +27,76 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const [enableAdjustPrice, setEnableAdjustPrice] = useState(false);
   const [enableAdjustBatchSize, setEnableAdjustBatchSize] = useState(false);
   const [enableAdjustMCEAllocation, setEnableAdjustMCEAllocation] = useState(false);
+  const [enableSetReorderPoint, setEnableSetReorderPoint] = useState(false);
+  const [enableSetOrderQuantity, setEnableSetOrderQuantity] = useState(false);
+  const [enableFireEmployee, setEnableFireEmployee] = useState(false);
 
-  // Action parameters with defaults
-  const [loanAmount, setLoanAmount] = useState(50000);
-  const [debtPaymentAmount, setDebtPaymentAmount] = useState(10000);
-  const [materialQuantity, setMaterialQuantity] = useState(500);
-  const [rookieCount, setRookieCount] = useState(2);
-  const [expertCount, setExpertCount] = useState(1);
+  // Action parameters (empty by default = "no changes")
+  const [loanAmount, setLoanAmount] = useState<number | ''>('');
+  const [debtPaymentAmount, setDebtPaymentAmount] = useState<number | ''>('');
+  const [materialQuantity, setMaterialQuantity] = useState<number | ''>('');
+  const [rookieCount, setRookieCount] = useState<number | ''>('');
+  const [expertCount, setExpertCount] = useState<number | ''>('');
   const [buyMachineType, setBuyMachineType] = useState<MachineType>('MCE');
-  const [buyMachineCount, setBuyMachineCount] = useState(1);
+  const [buyMachineCount, setBuyMachineCount] = useState<number | ''>('');
   const [sellMachineType, setSellMachineType] = useState<MachineType>('MCE');
-  const [sellMachineCount, setSellMachineCount] = useState(1);
+  const [sellMachineCount, setSellMachineCount] = useState<number | ''>('');
   const [priceProductType, setPriceProductType] = useState<ProductType>('standard');
-  const [newPrice, setNewPrice] = useState(800);
-  const [newBatchSize, setNewBatchSize] = useState(50);
-  const [newMCEAllocation, setNewMCEAllocation] = useState(50);
+  const [newPrice, setNewPrice] = useState<number | ''>('');
+  const [newBatchSize, setNewBatchSize] = useState<number | ''>('');
+  const [newMCEAllocation, setNewMCEAllocation] = useState<number | ''>('');
+  const [reorderPoint, setReorderPoint] = useState<number | ''>('');
+  const [orderQuantity, setOrderQuantity] = useState<number | ''>('');
+  const [fireEmployeeType, setFireEmployeeType] = useState<'expert' | 'rookie'>('expert');
+  const [fireEmployeeCount, setFireEmployeeCount] = useState<number | ''>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const actions: StrategyAction[] = [];
+    const dayNum = Number(day);
 
     if (enableTakeLoan) {
-      actions.push({ day, type: 'TAKE_LOAN', amount: loanAmount });
+      actions.push({ day: dayNum, type: 'TAKE_LOAN', amount: Number(loanAmount) });
     }
     if (enablePayDebt) {
-      actions.push({ day, type: 'PAY_DEBT', amount: debtPaymentAmount });
+      actions.push({ day: dayNum, type: 'PAY_DEBT', amount: Number(debtPaymentAmount) });
     }
     if (enableOrderMaterials) {
-      actions.push({ day, type: 'ORDER_MATERIALS', quantity: materialQuantity });
+      actions.push({ day: dayNum, type: 'ORDER_MATERIALS', quantity: Number(materialQuantity) });
     }
     if (enableStopMaterials) {
-      actions.push({ day, type: 'STOP_MATERIAL_ORDERS' });
+      actions.push({ day: dayNum, type: 'STOP_MATERIAL_ORDERS' });
     }
     if (enableHireRookie) {
-      actions.push({ day, type: 'HIRE_ROOKIE', count: rookieCount });
+      actions.push({ day: dayNum, type: 'HIRE_ROOKIE', count: Number(rookieCount) });
     }
     if (enableHireExpert) {
-      actions.push({ day, type: 'HIRE_EXPERT', count: expertCount });
+      actions.push({ day: dayNum, type: 'HIRE_EXPERT', count: Number(expertCount) });
     }
     if (enableBuyMachine) {
-      actions.push({ day, type: 'BUY_MACHINE', machineType: buyMachineType, count: buyMachineCount });
+      actions.push({ day: dayNum, type: 'BUY_MACHINE', machineType: buyMachineType, count: Number(buyMachineCount) });
     }
     if (enableSellMachine) {
-      actions.push({ day, type: 'SELL_MACHINE', machineType: sellMachineType, count: sellMachineCount });
+      actions.push({ day: dayNum, type: 'SELL_MACHINE', machineType: sellMachineType, count: Number(sellMachineCount) });
     }
     if (enableAdjustPrice) {
-      actions.push({ day, type: 'ADJUST_PRICE', productType: priceProductType, newPrice });
+      actions.push({ day: dayNum, type: 'ADJUST_PRICE', productType: priceProductType, newPrice: Number(newPrice) });
     }
     if (enableAdjustBatchSize) {
-      actions.push({ day, type: 'ADJUST_BATCH_SIZE', newSize: newBatchSize });
+      actions.push({ day: dayNum, type: 'ADJUST_BATCH_SIZE', newSize: Number(newBatchSize) });
     }
     if (enableAdjustMCEAllocation) {
-      actions.push({ day, type: 'ADJUST_MCE_ALLOCATION', newAllocation: newMCEAllocation });
+      actions.push({ day: dayNum, type: 'ADJUST_MCE_ALLOCATION', newAllocation: Number(newMCEAllocation) / 100 });
+    }
+    if (enableSetReorderPoint) {
+      actions.push({ day: dayNum, type: 'SET_REORDER_POINT', newReorderPoint: Number(reorderPoint) });
+    }
+    if (enableSetOrderQuantity) {
+      actions.push({ day: dayNum, type: 'SET_ORDER_QUANTITY', newOrderQuantity: Number(orderQuantity) });
+    }
+    if (enableFireEmployee) {
+      actions.push({ day: dayNum, type: 'FIRE_EMPLOYEE', employeeType: fireEmployeeType, count: Number(fireEmployeeCount) });
     }
 
     // Add all enabled actions
@@ -100,17 +117,19 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
             {/* Day Input */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <label className="block text-sm font-medium text-gray-900 mb-2">
-                Day (51-500)
+                📅 Day (51-500)
               </label>
               <input
                 type="number"
                 value={day}
-                onChange={(e) => setDay(Number(e.target.value))}
+                onChange={(e) => setDay(e.target.value === '' ? '' : Number(e.target.value))}
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="51"
                 max="500"
+                placeholder="Enter day number (51-500)"
                 required
               />
+              <p className="text-xs text-gray-600 mt-2">💡 All selected actions will be scheduled for this day</p>
             </div>
 
             {/* All Action Types */}
@@ -133,14 +152,14 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={loanAmount}
-                      onChange={(e) => setLoanAmount(Number(e.target.value))}
+                      onChange={(e) => setLoanAmount(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableTakeLoan}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="10000"
-                      max="500000"
-                      step="10000"
-                      placeholder="$50,000"
+                      min="1"
+                      step="1000"
+                      placeholder="Loan amount ($)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 Commission: 2% | Interest: 36.5% annual</p>
                   </div>
                 </div>
               </div>
@@ -161,14 +180,14 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={debtPaymentAmount}
-                      onChange={(e) => setDebtPaymentAmount(Number(e.target.value))}
+                      onChange={(e) => setDebtPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enablePayDebt}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="1000"
-                      max="100000"
-                      step="1000"
-                      placeholder="$10,000"
+                      min="0.01"
+                      step="100"
+                      placeholder="Payment amount ($)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 Interest rate: 36.5% annual (0.1% daily)</p>
                   </div>
                 </div>
               </div>
@@ -189,14 +208,14 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={materialQuantity}
-                      onChange={(e) => setMaterialQuantity(Number(e.target.value))}
+                      onChange={(e) => setMaterialQuantity(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableOrderMaterials}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="100"
-                      max="5000"
-                      step="100"
-                      placeholder="500 units"
+                      min="1"
+                      step="1"
+                      placeholder="Quantity (units)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 Cost: $50/part + $1,000 fee | Lead time: 4 days</p>
                   </div>
                 </div>
               </div>
@@ -235,13 +254,13 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={rookieCount}
-                      onChange={(e) => setRookieCount(Number(e.target.value))}
+                      onChange={(e) => setRookieCount(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableHireRookie}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       min="1"
-                      max="10"
-                      placeholder="2"
+                      placeholder="Number of rookies"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 $85/day | Training: 15 days → Expert | 40% productivity</p>
                   </div>
                 </div>
               </div>
@@ -262,13 +281,13 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={expertCount}
-                      onChange={(e) => setExpertCount(Number(e.target.value))}
+                      onChange={(e) => setExpertCount(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableHireExpert}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       min="1"
-                      max="5"
-                      placeholder="1"
+                      placeholder="Number of experts"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 $150/day | ⚠️ May not match business case (only rookies mentioned)</p>
                   </div>
                 </div>
               </div>
@@ -293,18 +312,17 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                         disabled={!enableBuyMachine}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="MCE">MCE (Station 1)</option>
-                        <option value="WMA">WMA (Station 2)</option>
-                        <option value="PUC">PUC (Station 3)</option>
+                        <option value="MCE">MCE - $20k</option>
+                        <option value="WMA">WMA - $15k</option>
+                        <option value="PUC">PUC - $12k</option>
                       </select>
                       <input
                         type="number"
                         value={buyMachineCount}
-                        onChange={(e) => setBuyMachineCount(Number(e.target.value))}
+                        onChange={(e) => setBuyMachineCount(e.target.value === '' ? '' : Number(e.target.value))}
                         disabled={!enableBuyMachine}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                         min="1"
-                        max="5"
                         placeholder="Count"
                       />
                     </div>
@@ -332,21 +350,21 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                         disabled={!enableSellMachine}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="MCE">MCE (Station 1)</option>
-                        <option value="WMA">WMA (Station 2)</option>
-                        <option value="PUC">PUC (Station 3)</option>
+                        <option value="MCE">MCE - Sell $10k</option>
+                        <option value="WMA">WMA - Sell $7.5k</option>
+                        <option value="PUC">PUC - Sell $4k</option>
                       </select>
                       <input
                         type="number"
                         value={sellMachineCount}
-                        onChange={(e) => setSellMachineCount(Number(e.target.value))}
+                        onChange={(e) => setSellMachineCount(e.target.value === '' ? '' : Number(e.target.value))}
                         disabled={!enableSellMachine}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                         min="1"
-                        max="5"
                         placeholder="Count"
                       />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">⚠️ At least 1 machine must remain at each station</p>
                   </div>
                 </div>
               </div>
@@ -377,15 +395,15 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                       <input
                         type="number"
                         value={newPrice}
-                        onChange={(e) => setNewPrice(Number(e.target.value))}
+                        onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
                         disabled={!enableAdjustPrice}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                        min="400"
-                        max="1200"
-                        step="10"
-                        placeholder="$800"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="New price ($)"
                       />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">💡 Price affects demand (higher price = lower demand)</p>
                   </div>
                 </div>
               </div>
@@ -406,14 +424,14 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={newBatchSize}
-                      onChange={(e) => setNewBatchSize(Number(e.target.value))}
+                      onChange={(e) => setNewBatchSize(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableAdjustBatchSize}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="10"
-                      max="200"
-                      step="5"
-                      placeholder="50"
+                      min="1"
+                      step="1"
+                      placeholder="Batch size"
                     />
+                    <p className="text-xs text-gray-500 mt-1">💡 Current default: 60 units | Affects batching time</p>
                   </div>
                 </div>
               </div>
@@ -434,15 +452,109 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     <input
                       type="number"
                       value={newMCEAllocation}
-                      onChange={(e) => setNewMCEAllocation(Number(e.target.value))}
+                      onChange={(e) => setNewMCEAllocation(e.target.value === '' ? '' : Number(e.target.value))}
                       disabled={!enableAdjustMCEAllocation}
                       className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       min="0"
                       max="100"
-                      step="5"
-                      placeholder="50% custom"
+                      step="1"
+                      placeholder="Custom allocation %"
                     />
-                    <p className="text-xs text-gray-600 mt-1">Standard allocation will be {100 - newMCEAllocation}%</p>
+                    <p className="text-xs text-gray-600 mt-1">Standard: {100 - (Number(newMCEAllocation) || 0)}% | Custom: {Number(newMCEAllocation) || 0}%</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SET_REORDER_POINT */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableSetReorderPoint}
+                    onChange={(e) => setEnableSetReorderPoint(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">📍</span> Set Reorder Point
+                    </label>
+                    <input
+                      type="number"
+                      value={reorderPoint}
+                      onChange={(e) => setReorderPoint(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableSetReorderPoint}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="1"
+                      placeholder="Reorder point (units)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">💡 Inventory level that triggers new material order</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SET_ORDER_QUANTITY */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableSetOrderQuantity}
+                    onChange={(e) => setEnableSetOrderQuantity(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">📏</span> Set Order Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableSetOrderQuantity}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="1"
+                      step="1"
+                      placeholder="Order quantity (units)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">💡 Amount to order when reorder point is reached</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* FIRE_EMPLOYEE */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableFireEmployee}
+                    onChange={(e) => setEnableFireEmployee(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">🚪</span> Fire Employees
+                    </label>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <select
+                        value={fireEmployeeType}
+                        onChange={(e) => setFireEmployeeType(e.target.value as 'expert' | 'rookie')}
+                        disabled={!enableFireEmployee}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="expert">Experts ($150/day)</option>
+                        <option value="rookie">Rookies ($85/day)</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={fireEmployeeCount}
+                        onChange={(e) => setFireEmployeeCount(e.target.value === '' ? '' : Number(e.target.value))}
+                        disabled={!enableFireEmployee}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                        min="1"
+                        placeholder="Count"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">⚠️ Cannot fire rookies in training (first 15 days)</p>
                   </div>
                 </div>
               </div>
