@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy, StrategyAction, SimulationResult } from '../../types/ui.types';
 import {
-  generateInitialPopulation,
+  generateFormulaBasedActions,
+  generateRandomActions,
   mutateActions,
   crossoverActions,
   type OptimizationCandidate,
@@ -30,6 +31,9 @@ export default function BulkOptimizer() {
     elitePercentage: 0.3,
   });
 
+  const [formulaPercentage, setFormulaPercentage] = useState(0.4); // 40% formula-based
+  const [topResultsCount, setTopResultsCount] = useState(10);
+
   const runSimulation = async (testStrategy: Strategy): Promise<number> => {
     try {
       const response = await fetch('http://localhost:3000/api/simulate', {
@@ -54,8 +58,28 @@ export default function BulkOptimizer() {
     setProgress({ current: 0, total: config.populationSize * config.generations, generation: 0 });
 
     try {
-      // Generate initial population
-      const initialPop = generateInitialPopulation(testDay, strategy, config.populationSize);
+      // Generate initial population with user-specified formula percentage
+      const formulaCount = Math.floor(config.populationSize * formulaPercentage);
+      const variationCount = Math.floor(config.populationSize * 0.3);
+      const randomCount = config.populationSize - formulaCount - variationCount;
+
+      const initialPop: StrategyAction[][] = [];
+
+      // Formula-based
+      for (let i = 0; i < formulaCount; i++) {
+        initialPop.push(generateFormulaBasedActions(testDay, strategy));
+      }
+
+      // Variations around formulas
+      for (let i = 0; i < variationCount; i++) {
+        const base = generateFormulaBasedActions(testDay, strategy);
+        initialPop.push(mutateActions(base, 0.5));
+      }
+
+      // Random exploration
+      for (let i = 0; i < randomCount; i++) {
+        initialPop.push(generateRandomActions(testDay));
+      }
 
       let population = initialPop.map((actions, idx) => ({
         id: `gen0-${idx}`,
@@ -99,7 +123,7 @@ export default function BulkOptimizer() {
         // If last generation, save results and break
         if (gen === config.generations - 1) {
           setResults({
-            topCandidates: population.slice(0, 10),
+            topCandidates: population.slice(0, topResultsCount),
             generation: gen + 1,
             totalCandidates: population.length,
           });
@@ -157,76 +181,101 @@ export default function BulkOptimizer() {
 
   return (
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-1">
-            🧬 Genetic Algorithm Optimizer
-          </h3>
-          <p className="text-sm text-gray-400">
-            Find optimal actions for a specific day using evolutionary optimization
-          </p>
-        </div>
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
-        >
-          {showConfig ? 'Hide' : 'Show'} Config
-        </button>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-white mb-1">
+          🧬 Genetic Algorithm Optimizer
+        </h3>
+        <p className="text-sm text-gray-400">
+          Find optimal actions for a specific day using evolutionary optimization
+        </p>
       </div>
 
-      {showConfig && (
-        <div className="mb-4 p-4 bg-gray-750 rounded-lg border border-gray-600">
-          <h4 className="text-sm font-semibold text-white mb-3">Algorithm Configuration</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Population Size</label>
-              <input
-                type="number"
-                value={config.populationSize}
-                onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                min="10"
-                max="50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Generations</label>
-              <input
-                type="number"
-                value={config.generations}
-                onChange={(e) => setConfig(prev => ({ ...prev, generations: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                min="5"
-                max="20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Mutation Rate</label>
-              <input
-                type="number"
-                value={config.mutationRate}
-                onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                min="0.1"
-                max="0.5"
-                step="0.05"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Elite %</label>
-              <input
-                type="number"
-                value={config.elitePercentage}
-                onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                min="0.2"
-                max="0.5"
-                step="0.1"
-              />
-            </div>
+      <div className="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
+        <h4 className="text-sm font-semibold text-white mb-3">Algorithm Configuration</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Population Size</label>
+            <input
+              type="number"
+              value={config.populationSize}
+              onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="10"
+              max="50"
+            />
+            <p className="text-xs text-gray-500 mt-1">Strategies per generation</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Generations</label>
+            <input
+              type="number"
+              value={config.generations}
+              onChange={(e) => setConfig(prev => ({ ...prev, generations: Number(e.target.value) }))}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="5"
+              max="30"
+            />
+            <p className="text-xs text-gray-500 mt-1">Evolution cycles</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Mutation Rate (%)</label>
+            <input
+              type="number"
+              value={config.mutationRate * 100}
+              onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: Number(e.target.value) / 100 }))}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="10"
+              max="50"
+              step="5"
+            />
+            <p className="text-xs text-gray-500 mt-1">Random variation rate</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Elite Survival (%)</label>
+            <input
+              type="number"
+              value={config.elitePercentage * 100}
+              onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: Number(e.target.value) / 100 }))}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="20"
+              max="50"
+              step="10"
+            />
+            <p className="text-xs text-gray-500 mt-1">Top % kept each gen</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Formula-Based (%)</label>
+            <input
+              type="number"
+              value={formulaPercentage * 100}
+              onChange={(e) => setFormulaPercentage(Number(e.target.value) / 100)}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="20"
+              max="80"
+              step="10"
+            />
+            <p className="text-xs text-gray-500 mt-1">Use OR formulas vs random</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Top Results to Show</label>
+            <input
+              type="number"
+              value={topResultsCount}
+              onChange={(e) => setTopResultsCount(Number(e.target.value))}
+              disabled={isRunning}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
+              min="5"
+              max="20"
+            />
+            <p className="text-xs text-gray-500 mt-1">Best performers displayed</p>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="space-y-4">
         <div>
