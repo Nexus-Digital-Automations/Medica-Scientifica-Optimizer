@@ -38,6 +38,37 @@ export default function AdvancedOptimizer() {
     endDay: 500,
   });
 
+  // Get current values from most recent timed actions
+  const getCurrentPolicyValues = () => {
+    const values = {
+      reorderPoint: strategy.reorderPoint,
+      orderQuantity: strategy.orderQuantity,
+      standardPrice: strategy.standardPrice,
+      standardBatchSize: strategy.standardBatchSize,
+      mceAllocationCustom: strategy.mceAllocationCustom,
+      dailyOvertimeHours: strategy.dailyOvertimeHours,
+    };
+
+    // Find the most recent timed action for each policy
+    for (const action of strategy.timedActions) {
+      if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
+        values.reorderPoint = action.newReorderPoint;
+      } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
+        values.orderQuantity = action.newOrderQuantity;
+      } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action && action.productType === 'standard') {
+        values.standardPrice = action.newPrice;
+      } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+        values.standardBatchSize = action.newSize;
+      } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+        values.mceAllocationCustom = action.newAllocation;
+      }
+    }
+
+    return values;
+  };
+
+  const currentValues = getCurrentPolicyValues();
+
   // Optimization state
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationResults, setOptimizationResults] = useState<OptimizationCandidate[]>([]);
@@ -305,12 +336,12 @@ export default function AdvancedOptimizer() {
               </div>
               <div className="text-xs text-gray-300 mt-1">
                 Current: {
-                  policy === 'reorderPoint' ? `${strategy.reorderPoint} units` :
-                  policy === 'orderQuantity' ? `${strategy.orderQuantity} units` :
-                  policy === 'standardPrice' ? `$${strategy.standardPrice}` :
-                  policy === 'standardBatchSize' ? `${strategy.standardBatchSize} units` :
-                  policy === 'mceAllocationCustom' ? `${(strategy.mceAllocationCustom * 100).toFixed(0)}%` :
-                  policy === 'dailyOvertimeHours' ? `${strategy.dailyOvertimeHours}h` :
+                  policy === 'reorderPoint' ? `${currentValues.reorderPoint} units` :
+                  policy === 'orderQuantity' ? `${currentValues.orderQuantity} units` :
+                  policy === 'standardPrice' ? `$${currentValues.standardPrice}` :
+                  policy === 'standardBatchSize' ? `${currentValues.standardBatchSize} units` :
+                  policy === 'mceAllocationCustom' ? `${(currentValues.mceAllocationCustom * 100).toFixed(0)}%` :
+                  policy === 'dailyOvertimeHours' ? `${currentValues.dailyOvertimeHours}h` :
                   'N/A'
                 }
               </div>

@@ -101,20 +101,22 @@ export function calculateROP(params: {
 
 /**
  * Calculate Optimal Price using Price Elasticity
- * Find revenue-maximizing price point
+ * Find profit-maximizing price point
  */
 export function calculateOptimalPrice(params: {
-  demandIntercept: number; // 'a' in Demand = a - b*Price
-  priceSlope: number; // 'b' (negative value)
+  demandIntercept: number; // 'a' in Demand = a + b*Price
+  priceSlope: number; // 'b' (negative value for downward sloping demand)
   unitCost: number;
 }): FormulaResult {
   const { demandIntercept, priceSlope, unitCost } = params;
 
-  // For linear demand curve: Optimal Price = (a + b*c) / (2b)
-  // where a = intercept, b = slope, c = marginal cost
-  const optimalPrice = (demandIntercept + priceSlope * unitCost) / (2 * priceSlope);
+  // For linear demand curve Q = a + b×P (where b < 0):
+  // Optimal Price for profit max = (b×c - a) / (2b)
+  // which simplifies to (a - b×c) / (-2b)
+  const optimalPrice = (priceSlope * unitCost - demandIntercept) / (2 * priceSlope);
   const optimalQuantity = demandIntercept + priceSlope * optimalPrice;
   const revenue = optimalPrice * optimalQuantity;
+  const profit = revenue - (unitCost * optimalQuantity);
 
   return {
     value: optimalPrice,
@@ -122,10 +124,11 @@ export function calculateOptimalPrice(params: {
       { symbol: 'a', description: 'Demand intercept', value: demandIntercept },
       { symbol: 'b', description: 'Price slope', value: priceSlope },
       { symbol: 'c', description: 'Unit cost', value: unitCost },
-      { symbol: 'Q*', description: 'Optimal quantity', value: optimalQuantity },
-      { symbol: 'R*', description: 'Maximum revenue', value: revenue }
+      { symbol: 'Q*', description: 'Optimal quantity', value: Math.round(optimalQuantity) },
+      { symbol: 'R*', description: 'Revenue at P*', value: Math.round(revenue) },
+      { symbol: 'π*', description: 'Maximum profit', value: Math.round(profit) }
     ],
-    explanation: 'This price maximizes total revenue given the linear demand curve: Q = a + b×P'
+    explanation: 'This price maximizes total profit given the linear demand curve: Q = a + b×P and unit cost c'
   };
 }
 
@@ -286,8 +289,8 @@ export function getFormulaForAction(
 
     case 'ADJUST_PRICE':
       return {
-        title: 'Optimal Price (Revenue Maximization)',
-        formula: 'P* = (a + b×c) / (2b)',
+        title: 'Optimal Price (Profit Maximization)',
+        formula: 'P* = (bc - a) / (2b)',
         result: calculateOptimalPrice({
           demandIntercept: strategy.standardDemandIntercept,
           priceSlope: strategy.standardDemandSlope,
