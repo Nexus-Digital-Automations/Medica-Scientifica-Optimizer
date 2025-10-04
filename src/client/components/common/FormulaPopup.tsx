@@ -36,16 +36,17 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 bg-black/20 z-[60]"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Popup Content */}
-          <div className="absolute left-0 top-8 z-50 w-96 bg-white rounded-lg shadow-xl border border-gray-300 p-5">
+          <div className="absolute left-0 top-8 z-[70] w-96 bg-white rounded-lg shadow-xl border border-gray-300 p-5">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -109,6 +110,7 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
 
             {/* Close Button */}
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="mt-3 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >

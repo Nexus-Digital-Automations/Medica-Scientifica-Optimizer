@@ -128,9 +128,180 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
               <p className="text-xs text-gray-600 mt-2">💡 All selected actions will be scheduled for this day</p>
             </div>
 
-            {/* All Action Types */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 uppercase">Select Actions</h4>
+            {/* All Action Types - Two Column Layout */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* LEFT COLUMN - Policy Decisions */}
+              <div className="border-r border-gray-200 pr-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📋</span> Policy Decisions
+                </h4>
+                <div className="space-y-3">
+
+              {/* SET_REORDER_POINT */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableSetReorderPoint}
+                    onChange={(e) => setEnableSetReorderPoint(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">📍</span> Set Reorder Point
+                      <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
+                    </label>
+                    <input
+                      type="number"
+                      value={reorderPoint}
+                      onChange={(e) => setReorderPoint(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableSetReorderPoint}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="1"
+                      placeholder="Reorder point (units)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">💡 Inventory level that triggers new material order</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SET_ORDER_QUANTITY */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableSetOrderQuantity}
+                    onChange={(e) => setEnableSetOrderQuantity(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">📏</span> Set Order Quantity
+                      <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
+                    </label>
+                    <input
+                      type="number"
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableSetOrderQuantity}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="1"
+                      step="1"
+                      placeholder="Order quantity (units)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">💡 Amount to order when reorder point is reached</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ADJUST_BATCH_SIZE */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableAdjustBatchSize}
+                    onChange={(e) => setEnableAdjustBatchSize(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">📊</span> Adjust Standard Batch Size
+                      <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
+                    </label>
+                    <input
+                      type="number"
+                      value={newBatchSize}
+                      onChange={(e) => setNewBatchSize(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableAdjustBatchSize}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="1"
+                      step="1"
+                      placeholder="Batch size"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">💡 Current default: 60 units | Affects batching time</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ADJUST_PRICE */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableAdjustPrice}
+                    onChange={(e) => setEnableAdjustPrice(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">💵</span> Adjust Price
+                      <FormulaPopup actionType="ADJUST_PRICE" day={Number(day) || 51} />
+                    </label>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <select
+                        value={priceProductType}
+                        onChange={(e) => setPriceProductType(e.target.value as ProductType)}
+                        disabled={!enableAdjustPrice}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="standard">Standard Product</option>
+                        <option value="custom">Custom Product</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={newPrice}
+                        onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                        disabled={!enableAdjustPrice}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="New price ($)"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">💡 Price affects demand (higher price = lower demand)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ADJUST_MCE_ALLOCATION */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={enableAdjustMCEAllocation}
+                    onChange={(e) => setEnableAdjustMCEAllocation(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-lg">⚙️</span> Adjust MCE Custom Allocation
+                    </label>
+                    <input
+                      type="number"
+                      value={newMCEAllocation}
+                      onChange={(e) => setNewMCEAllocation(e.target.value === '' ? '' : Number(e.target.value))}
+                      disabled={!enableAdjustMCEAllocation}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      max="100"
+                      step="1"
+                      placeholder="Custom allocation %"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Standard: {100 - (Number(newMCEAllocation) || 0)}% | Custom: {Number(newMCEAllocation) || 0}%</p>
+                  </div>
+                </div>
+              </div>
+
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN - One-Time Actions */}
+              <div className="pl-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="text-lg">⚡</span> One-Time Actions
+                </h4>
+                <div className="space-y-3">
 
               {/* TAKE_LOAN */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -340,162 +511,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                 </div>
               </div>
 
-              {/* ADJUST_PRICE */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableAdjustPrice}
-                    onChange={(e) => setEnableAdjustPrice(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">💵</span> Adjust Price
-                      <FormulaPopup actionType="ADJUST_PRICE" day={Number(day) || 51} />
-                    </label>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <select
-                        value={priceProductType}
-                        onChange={(e) => setPriceProductType(e.target.value as ProductType)}
-                        disabled={!enableAdjustPrice}
-                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="standard">Standard Product</option>
-                        <option value="custom">Custom Product</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={newPrice}
-                        onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                        disabled={!enableAdjustPrice}
-                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                        min="0.01"
-                        step="0.01"
-                        placeholder="New price ($)"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">💡 Price affects demand (higher price = lower demand)</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ADJUST_BATCH_SIZE */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableAdjustBatchSize}
-                    onChange={(e) => setEnableAdjustBatchSize(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📊</span> Adjust Standard Batch Size
-                      <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
-                    </label>
-                    <input
-                      type="number"
-                      value={newBatchSize}
-                      onChange={(e) => setNewBatchSize(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={!enableAdjustBatchSize}
-                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="1"
-                      step="1"
-                      placeholder="Batch size"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">💡 Current default: 60 units | Affects batching time</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ADJUST_MCE_ALLOCATION */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableAdjustMCEAllocation}
-                    onChange={(e) => setEnableAdjustMCEAllocation(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">⚙️</span> Adjust MCE Custom Allocation
-                    </label>
-                    <input
-                      type="number"
-                      value={newMCEAllocation}
-                      onChange={(e) => setNewMCEAllocation(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={!enableAdjustMCEAllocation}
-                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="0"
-                      max="100"
-                      step="1"
-                      placeholder="Custom allocation %"
-                    />
-                    <p className="text-xs text-gray-600 mt-1">Standard: {100 - (Number(newMCEAllocation) || 0)}% | Custom: {Number(newMCEAllocation) || 0}%</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* SET_REORDER_POINT */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableSetReorderPoint}
-                    onChange={(e) => setEnableSetReorderPoint(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📍</span> Set Reorder Point
-                      <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
-                    </label>
-                    <input
-                      type="number"
-                      value={reorderPoint}
-                      onChange={(e) => setReorderPoint(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={!enableSetReorderPoint}
-                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="0"
-                      step="1"
-                      placeholder="Reorder point (units)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">💡 Inventory level that triggers new material order</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* SET_ORDER_QUANTITY */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableSetOrderQuantity}
-                    onChange={(e) => setEnableSetOrderQuantity(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📏</span> Set Order Quantity
-                      <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
-                    </label>
-                    <input
-                      type="number"
-                      value={orderQuantity}
-                      onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={!enableSetOrderQuantity}
-                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="1"
-                      step="1"
-                      placeholder="Order quantity (units)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">💡 Amount to order when reorder point is reached</p>
-                  </div>
-                </div>
-              </div>
-
               {/* FIRE_EMPLOYEE */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -531,6 +546,9 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                     </div>
                     <p className="text-xs text-gray-500 mt-1">⚠️ Cannot fire rookies in training (first 15 days)</p>
                   </div>
+                </div>
+              </div>
+
                 </div>
               </div>
             </div>
