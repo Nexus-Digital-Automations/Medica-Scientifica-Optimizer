@@ -231,55 +231,6 @@ export function calculatePriceElasticity(params: {
 }
 
 /**
- * Calculate Learning Curve (Experience Curve)
- * Model realistic productivity improvement for rookies
- */
-export function calculateLearningCurve(params: {
-  initialProductivity: number; // e.g., 0.4 for 40%
-  learningRate: number; // e.g., 0.9 for 90% learning curve
-  targetUnit: number; // cumulative units to calculate for
-}): FormulaResult {
-  const { initialProductivity, learningRate, targetUnit } = params;
-
-  // Learning exponent: n = log(p) / log(2)
-  const n = Math.log(learningRate) / Math.log(2);
-
-  // Time reduction factor at target unit: x^n
-  // If rookie starts 2.5x slower (40% productivity), time factor is 2.5
-  const initialTimeFactor = 1 / initialProductivity;
-
-  // Time per unit at x-th unit: T_x = T_1 * x^n
-  const timeFactorAtX = initialTimeFactor * Math.pow(targetUnit, n);
-  const productivityAtX = 1 / timeFactorAtX;
-
-  // Calculate cumulative productivity over first N units
-  let cumulativeTime = 0;
-  for (let x = 1; x <= targetUnit; x++) {
-    const timeFactor = initialTimeFactor * Math.pow(x, n);
-    cumulativeTime += timeFactor;
-  }
-  const averageProductivity = targetUnit / cumulativeTime;
-
-  // Compare to simplified model (40% for 15 days, then 100%)
-  const simplifiedTime = Math.min(targetUnit, 15) * 2.5 + Math.max(0, targetUnit - 15);
-  const simplifiedAvgProductivity = targetUnit / simplifiedTime;
-
-  return {
-    value: productivityAtX,
-    variables: [
-      { symbol: 'K', description: 'Initial time factor', value: initialTimeFactor },
-      { symbol: 'p', description: 'Learning rate', value: learningRate },
-      { symbol: 'n', description: 'Learning exponent', value: n },
-      { symbol: 'x', description: 'Unit number', value: targetUnit },
-      { symbol: 'P(x)', description: `Productivity at unit ${targetUnit}`, value: productivityAtX },
-      { symbol: 'P_avg', description: `Avg productivity (units 1-${targetUnit})`, value: averageProductivity },
-      { symbol: 'P_simple', description: 'Avg productivity (simplified model)', value: simplifiedAvgProductivity }
-    ],
-    explanation: `Learning curve shows gradual productivity improvement. At unit ${targetUnit}, rookie achieves ${(productivityAtX * 100).toFixed(1)}% productivity vs. expert. Average productivity over ${targetUnit} units: ${(averageProductivity * 100).toFixed(1)}% (learning curve) vs. ${(simplifiedAvgProductivity * 100).toFixed(1)}% (simplified model). More realistic than flat 40% → 100% transition.`
-  };
-}
-
-/**
  * Get formula calculations based on strategy state at a specific day
  */
 export function getFormulaForAction(
@@ -345,16 +296,6 @@ export function getFormulaForAction(
       };
 
     case 'HIRE_ROOKIE':
-      return {
-        title: 'Learning Curve (Experience Curve)',
-        formula: 'Yₓ = K × xⁿ, where n = log(p)/log(2)',
-        result: calculateLearningCurve({
-          initialProductivity: 0.4, // 40% starting productivity
-          learningRate: 0.9, // 90% learning curve (realistic improvement)
-          targetUnit: 100 // Calculate for first 100 units of experience
-        })
-      };
-
     case 'HIRE_EXPERT':
       return {
         title: 'Queuing Theory (M/M/s) - Wait Time',
