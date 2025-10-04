@@ -143,9 +143,28 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
     onClose();
   };
 
+  const policyActions = [
+    { type: 'SET_REORDER_POINT' as const, icon: '📍', label: 'Set Reorder Point' },
+    { type: 'SET_ORDER_QUANTITY' as const, icon: '📏', label: 'Set Order Quantity' },
+    { type: 'ADJUST_BATCH_SIZE' as const, icon: '📊', label: 'Adjust Batch Size' },
+    { type: 'ADJUST_PRICE' as const, icon: '💵', label: 'Adjust Price' },
+    { type: 'ADJUST_MCE_ALLOCATION' as const, icon: '⚙️', label: 'Adjust MCE Allocation' },
+  ];
+
+  const oneTimeActions = [
+    { type: 'TAKE_LOAN' as const, icon: '💰', label: 'Take Loan' },
+    { type: 'PAY_DEBT' as const, icon: '💳', label: 'Pay Debt' },
+    { type: 'ORDER_MATERIALS' as const, icon: '📦', label: 'Order Materials' },
+    { type: 'STOP_MATERIAL_ORDERS' as const, icon: '🛑', label: 'Stop Material Orders' },
+    { type: 'HIRE_ROOKIE' as const, icon: '👷', label: 'Hire Rookies' },
+    { type: 'FIRE_EMPLOYEE' as const, icon: '🚪', label: 'Fire Employees' },
+    { type: 'BUY_MACHINE' as const, icon: '🏭', label: 'Buy Machine' },
+    { type: 'SELL_MACHINE' as const, icon: '💸', label: 'Sell Machine' },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full shadow-xl border border-gray-200">
+      <div className="bg-white rounded-lg max-w-4xl w-full shadow-xl border border-gray-200 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">
             {editingIndex !== null ? 'Edit User Action' : 'Add User Action'}
@@ -155,7 +174,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {/* Day Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Day (51-500)
+                Day (51-500) - When should this action take place?
               </label>
               <input
                 type="number"
@@ -169,34 +188,51 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
               />
             </div>
 
-            {/* Action Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Action Type
-              </label>
-              <select
-                value={actionType}
-                onChange={(e) => setActionType(e.target.value as ActionType)}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <optgroup label="📋 Policy Decisions">
-                  <option value="SET_REORDER_POINT">📍 Set Reorder Point</option>
-                  <option value="SET_ORDER_QUANTITY">📏 Set Order Quantity</option>
-                  <option value="ADJUST_BATCH_SIZE">📊 Adjust Batch Size</option>
-                  <option value="ADJUST_PRICE">💵 Adjust Price</option>
-                  <option value="ADJUST_MCE_ALLOCATION">⚙️ Adjust MCE Allocation</option>
-                </optgroup>
-                <optgroup label="⚡ Timed One-Time Actions">
-                  <option value="TAKE_LOAN">💰 Take Loan</option>
-                  <option value="PAY_DEBT">💳 Pay Debt</option>
-                  <option value="ORDER_MATERIALS">📦 Order Materials</option>
-                  <option value="STOP_MATERIAL_ORDERS">🛑 Stop Material Orders</option>
-                  <option value="HIRE_ROOKIE">👷 Hire Rookies</option>
-                  <option value="FIRE_EMPLOYEE">🚪 Fire Employees</option>
-                  <option value="BUY_MACHINE">🏭 Buy Machine</option>
-                  <option value="SELL_MACHINE">💸 Sell Machine</option>
-                </optgroup>
-              </select>
+            {/* Two Column Action Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Policy Decisions Column */}
+              <div className="border-r border-gray-200 pr-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 Policy Decisions</h4>
+                <div className="space-y-2">
+                  {policyActions.map((action) => (
+                    <button
+                      key={action.type}
+                      type="button"
+                      onClick={() => setActionType(action.type)}
+                      className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
+                        actionType === action.type
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg mr-2">{action.icon}</span>
+                      <span className="text-sm font-medium">{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* One-Time Actions Column */}
+              <div className="pl-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">⚡ One-Time Actions</h4>
+                <div className="space-y-2">
+                  {oneTimeActions.map((action) => (
+                    <button
+                      key={action.type}
+                      type="button"
+                      onClick={() => setActionType(action.type)}
+                      className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
+                        actionType === action.type
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg mr-2">{action.icon}</span>
+                      <span className="text-sm font-medium">{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Conditional Fields Based on Action Type */}
