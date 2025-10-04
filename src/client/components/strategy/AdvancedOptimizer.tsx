@@ -3,6 +3,7 @@ import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams } from '../../utils/geneticOptimizer';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -168,6 +169,13 @@ export default function AdvancedOptimizer() {
         });
       }
 
+      // Debug: Log first 3 candidates' parameters to verify they're different
+      console.log('🔍 First 3 candidates parameters:', population.slice(0, 3).map(c => ({
+        id: c.id,
+        params: c.strategyParams,
+        actionCount: c.actions.length
+      })));
+
       // Evolution loop
       for (let gen = 0; gen < generations; gen++) {
         console.log(`🧬 Generation ${gen + 1}/${generations}`);
@@ -221,9 +229,21 @@ export default function AdvancedOptimizer() {
               if (netWorthAfterTestDay.length > 0) {
                 peakNetWorth = Math.max(...netWorthAfterTestDay.map((d: { value: number }) => d.value));
               }
+
+              // Store complete history for graphing
+              candidate.history = dailyNetWorth;
             }
 
-            console.log(`Candidate ${candidate.id}: Peak Net Worth = $${peakNetWorth.toLocaleString()}`);
+            // Debug logging with more details
+            console.log(`Candidate ${candidate.id}:`, {
+              peakNetWorth: peakNetWorth.toLocaleString(),
+              finalNetWorth: result.finalNetWorth.toLocaleString(),
+              hasHistory: !!result.state?.history?.dailyNetWorth,
+              historyLength: result.state?.history?.dailyNetWorth?.length || 0,
+              testDay: constraints.testDay,
+              endDay: constraints.endDay,
+              params: candidate.strategyParams
+            });
 
             candidate.netWorth = peakNetWorth;
             candidate.fitness = peakNetWorth;
@@ -255,6 +275,18 @@ export default function AdvancedOptimizer() {
             `3. API endpoint error\n\n` +
             `First error: ${firstError}`
           );
+        }
+
+        // Debug: Check if all candidates have identical fitness (suspicious!)
+        const uniqueFitnesses = new Set(population.map(c => c.fitness));
+        if (uniqueFitnesses.size === 1) {
+          console.warn('⚠️ WARNING: All candidates have IDENTICAL fitness!', {
+            fitness: population[0].fitness,
+            netWorth: population[0].netWorth,
+            candidateCount: population.length
+          });
+        } else {
+          console.log(`✅ Generation ${gen + 1}: ${uniqueFitnesses.size} unique fitness values found`);
         }
 
         // Sort by fitness
@@ -641,8 +673,8 @@ export default function AdvancedOptimizer() {
           )}
         </button>
         <p className="text-xs text-gray-500 text-center mt-2">
-          Will only optimize the {Object.values(constraints.fixedPolicies).filter(v => !v).length} variable policies,
-          respecting all fixed policies and {constraints.fixedActions.size} locked actions
+          Will test {Object.values(constraints.fixedPolicies).filter(v => !v).length} variable policy actions on Day {constraints.testDay},
+          respecting {Object.values(constraints.fixedPolicies).filter(v => v).length} fixed policies and {constraints.fixedActions.size} locked actions
         </p>
       </div>
 
@@ -746,6 +778,48 @@ export default function AdvancedOptimizer() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* Net Worth Over Time Graph */}
+                {result.history && result.history.length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-900/50 rounded">
+                    <div className="text-xs text-gray-400 mb-3 font-semibold">
+                      📈 Net Worth Over Time
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={result.history}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis
+                          dataKey="day"
+                          stroke="#9CA3AF"
+                          style={{ fontSize: '10px' }}
+                          label={{ value: 'Day', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
+                        />
+                        <YAxis
+                          stroke="#9CA3AF"
+                          style={{ fontSize: '10px' }}
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1F2937',
+                            border: '1px solid #374151',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                          }}
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Net Worth']}
+                          labelFormatter={(label) => `Day ${label}`}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke={idx === 0 ? '#10B981' : idx === 1 ? '#3B82F6' : '#8B5CF6'}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </div>

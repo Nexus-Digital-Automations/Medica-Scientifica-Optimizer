@@ -7,6 +7,8 @@ export interface OptimizationCandidate {
   fitness: number;
   netWorth: number;
   error?: string; // Error message if simulation failed
+  // Daily net worth history for graphing
+  history?: Array<{ day: number; value: number }>;
   // Strategy parameter overrides
   strategyParams?: {
     reorderPoint?: number;
