@@ -586,10 +586,12 @@ export default function AdvancedOptimizer() {
           <h5 className="text-sm font-semibold text-gray-300 mb-3">📅 Simulation Range</h5>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="test-start-day" className="block text-sm font-medium text-white mb-2">
                 Test Starting Day
               </label>
               <input
+                id="test-start-day"
+                name="testStartDay"
                 type="number"
                 value={constraints.testDay}
                 onChange={(e) => {
@@ -605,10 +607,12 @@ export default function AdvancedOptimizer() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="simulation-end-day" className="block text-sm font-medium text-white mb-2">
                 Simulation End Day
               </label>
               <input
+                id="simulation-end-day"
+                name="simulationEndDay"
                 type="number"
                 value={constraints.endDay}
                 onChange={(e) => {
@@ -630,10 +634,12 @@ export default function AdvancedOptimizer() {
           <h5 className="text-sm font-semibold text-gray-300 mb-3">🧬 Genetic Algorithm Parameters</h5>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="population-size" className="block text-sm font-medium text-white mb-2">
                 Population Size
               </label>
               <input
+                id="population-size"
+                name="populationSize"
                 type="number"
                 value={gaParams.populationSize}
                 onChange={(e) => {
@@ -651,10 +657,12 @@ export default function AdvancedOptimizer() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="generations" className="block text-sm font-medium text-white mb-2">
                 Generations
               </label>
               <input
+                id="generations"
+                name="generations"
                 type="number"
                 value={gaParams.generations}
                 onChange={(e) => {
@@ -672,10 +680,12 @@ export default function AdvancedOptimizer() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="mutation-rate" className="block text-sm font-medium text-white mb-2">
                 Mutation Rate
               </label>
               <input
+                id="mutation-rate"
+                name="mutationRate"
                 type="number"
                 value={gaParams.mutationRate}
                 onChange={(e) => {
@@ -693,10 +703,12 @@ export default function AdvancedOptimizer() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="elite-count" className="block text-sm font-medium text-white mb-2">
                 Elite Count
               </label>
               <input
+                id="elite-count"
+                name="eliteCount"
                 type="number"
                 value={gaParams.eliteCount}
                 onChange={(e) => {
