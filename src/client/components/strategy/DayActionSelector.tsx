@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { StrategyAction } from '../../types/ui.types';
+import FormulaPopup from '../common/FormulaPopup';
 
 interface DayActionSelectorProps {
   onClose: () => void;
@@ -250,6 +251,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">👷</span> Hire Rookies
+                      <FormulaPopup actionType="HIRE_ROOKIE" day={Number(day) || 51} />
                     </label>
                     <input
                       type="number"
@@ -277,6 +279,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">👨‍🔬</span> Hire Experts
+                      <FormulaPopup actionType="HIRE_EXPERT" day={Number(day) || 51} />
                     </label>
                     <input
                       type="number"
@@ -304,6 +307,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">🏭</span> Buy Machine
+                      <FormulaPopup actionType="BUY_MACHINE" day={Number(day) || 51} />
                     </label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <select
@@ -381,6 +385,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">💵</span> Adjust Price
+                      <FormulaPopup actionType="ADJUST_PRICE" day={Number(day) || 51} />
                     </label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <select
@@ -420,6 +425,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">📊</span> Adjust Standard Batch Size
+                      <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
                     </label>
                     <input
                       type="number"
@@ -477,6 +483,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">📍</span> Set Reorder Point
+                      <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
                     </label>
                     <input
                       type="number"
@@ -505,6 +512,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                       <span className="text-lg">📏</span> Set Order Quantity
+                      <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
                     </label>
                     <input
                       type="number"

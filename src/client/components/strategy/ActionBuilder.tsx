@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { StrategyAction } from '../../types/ui.types';
+import FormulaPopup from '../common/FormulaPopup';
 
 interface ActionBuilderProps {
   editingIndex: number | null;
@@ -242,8 +243,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'HIRE_ROOKIE' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   Number of Rookies
+                  <FormulaPopup actionType="HIRE_ROOKIE" day={Number(day) || 51} />
                 </label>
                 <input
                   type="number"
@@ -275,8 +277,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                     Count
+                    {actionType === 'BUY_MACHINE' && <FormulaPopup actionType="BUY_MACHINE" day={Number(day) || 51} />}
                   </label>
                   <input
                     type="number"
@@ -310,8 +313,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                     New Price ($)
+                    <FormulaPopup actionType="ADJUST_PRICE" day={Number(day) || 51} />
                   </label>
                   <input
                     type="number"
@@ -349,8 +353,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'HIRE_EXPERT' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   Number of Experts
+                  <FormulaPopup actionType="HIRE_EXPERT" day={Number(day) || 51} />
                 </label>
                 <input
                   type="number"
@@ -367,8 +372,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'ADJUST_BATCH_SIZE' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Standard Batch Size
+                  <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
                 </label>
                 <input
                   type="number"
@@ -439,8 +445,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'SET_REORDER_POINT' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Reorder Point (units)
+                  <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
                 </label>
                 <input
                   type="number"
@@ -458,8 +465,9 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'SET_ORDER_QUANTITY' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Order Quantity (units)
+                  <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
                 </label>
                 <input
                   type="number"
