@@ -31,10 +31,13 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       orderingCost: ORDER_FEE,
       holdingCostPerUnit: MATERIAL_COST * 0.2,
     });
+    // Constrain order quantity to reasonable range (100-2000 units)
+    const proposedQty = Math.round(eoq.value * (0.8 + Math.random() * 0.4));
+    const boundedQty = Math.max(100, Math.min(2000, proposedQty));
     actions.push({
       day,
       type: 'SET_ORDER_QUANTITY',
-      newOrderQuantity: Math.round(eoq.value * (0.8 + Math.random() * 0.4)), // ±20% variation
+      newOrderQuantity: boundedQty,
     });
   }
 
@@ -46,10 +49,13 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       demandStdDev: 50,
       serviceLevel: 0.95,
     });
+    // Constrain reorder point to reasonable range (200-1000 units)
+    const proposedROP = Math.round(rop.value * (0.8 + Math.random() * 0.4));
+    const boundedROP = Math.max(200, Math.min(1000, proposedROP));
     actions.push({
       day,
       type: 'SET_REORDER_POINT',
-      newReorderPoint: Math.round(rop.value * (0.8 + Math.random() * 0.4)),
+      newReorderPoint: boundedROP,
     });
   }
 
@@ -62,10 +68,13 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       dailyDemandRate: 140,
       dailyProductionRate: 200,
     });
+    // Constrain batch size to reasonable range (50-500 units)
+    const proposedBatch = Math.round(epq.value * (0.8 + Math.random() * 0.4));
+    const boundedBatch = Math.max(50, Math.min(500, proposedBatch));
     actions.push({
       day,
       type: 'ADJUST_BATCH_SIZE',
-      newSize: Math.round(epq.value * (0.8 + Math.random() * 0.4)),
+      newSize: boundedBatch,
     });
   }
 
@@ -114,11 +123,14 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       priceSlope: baseStrategy.standardDemandSlope,
       unitCost: 200,
     });
+    // Ensure price stays within reasonable bounds ($400-$1200)
+    const proposedPrice = Math.round(optimalPrice.value * (0.9 + Math.random() * 0.2));
+    const boundedPrice = Math.max(400, Math.min(1200, proposedPrice));
     actions.push({
       day,
       type: 'ADJUST_PRICE',
       productType: 'standard',
-      newPrice: Math.round(optimalPrice.value * (0.9 + Math.random() * 0.2)),
+      newPrice: boundedPrice,
     });
   }
 
@@ -159,26 +171,26 @@ export function generateRandomActions(day: number): StrategyAction[] {
       actions.push({
         day,
         type: 'SET_ORDER_QUANTITY',
-        newOrderQuantity: Math.floor(100 + Math.random() * 900), // 100-1000
+        newOrderQuantity: Math.floor(200 + Math.random() * 1300), // 200-1500
       });
     } else if (actionType < 0.65) {
       actions.push({
         day,
         type: 'SET_REORDER_POINT',
-        newReorderPoint: Math.floor(50 + Math.random() * 450), // 50-500
+        newReorderPoint: Math.floor(200 + Math.random() * 600), // 200-800
       });
     } else if (actionType < 0.80) {
       actions.push({
         day,
         type: 'ADJUST_BATCH_SIZE',
-        newSize: Math.floor(20 + Math.random() * 180), // 20-200
+        newSize: Math.floor(50 + Math.random() * 400), // 50-450
       });
     } else {
       actions.push({
         day,
         type: 'ADJUST_PRICE',
         productType: 'standard',
-        newPrice: Math.floor(600 + Math.random() * 400), // 600-1000
+        newPrice: Math.floor(500 + Math.random() * 600), // 500-1100
       });
     }
   }
@@ -197,19 +209,23 @@ export function mutateActions(actions: StrategyAction[], mutationRate: number): 
     const mutated = { ...action };
 
     if ('count' in mutated) {
-      mutated.count = Math.max(1, Math.floor(mutated.count * (0.7 + Math.random() * 0.6)));
+      mutated.count = Math.max(1, Math.min(5, Math.floor(mutated.count * (0.7 + Math.random() * 0.6))));
     }
     if ('newOrderQuantity' in mutated) {
-      mutated.newOrderQuantity = Math.max(50, Math.floor(mutated.newOrderQuantity * (0.7 + Math.random() * 0.6)));
+      const mutatedQty = Math.floor(mutated.newOrderQuantity * (0.7 + Math.random() * 0.6));
+      mutated.newOrderQuantity = Math.max(100, Math.min(2000, mutatedQty));
     }
     if ('newReorderPoint' in mutated) {
-      mutated.newReorderPoint = Math.max(20, Math.floor(mutated.newReorderPoint * (0.7 + Math.random() * 0.6)));
+      const mutatedROP = Math.floor(mutated.newReorderPoint * (0.7 + Math.random() * 0.6));
+      mutated.newReorderPoint = Math.max(200, Math.min(1000, mutatedROP));
     }
     if ('newSize' in mutated) {
-      mutated.newSize = Math.max(10, Math.floor(mutated.newSize * (0.7 + Math.random() * 0.6)));
+      const mutatedSize = Math.floor(mutated.newSize * (0.7 + Math.random() * 0.6));
+      mutated.newSize = Math.max(50, Math.min(500, mutatedSize));
     }
     if ('newPrice' in mutated) {
-      mutated.newPrice = Math.max(400, Math.floor(mutated.newPrice * (0.8 + Math.random() * 0.4)));
+      const mutatedPrice = Math.floor(mutated.newPrice * (0.8 + Math.random() * 0.4));
+      mutated.newPrice = Math.max(400, Math.min(1200, mutatedPrice));
     }
 
     return mutated;
