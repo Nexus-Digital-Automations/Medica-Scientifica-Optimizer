@@ -102,14 +102,16 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg max-w-4xl w-full shadow-xl border border-gray-200 my-8">
-        <div className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-6xl w-full shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
+        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+          <h3 className="text-xl font-semibold text-gray-900">
             Schedule Actions for Day
           </h3>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="overflow-y-auto px-6 py-4 space-y-4">
             {/* Day Input */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -552,9 +554,10 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+            <div className="flex gap-3 p-6 border-t border-gray-200 flex-shrink-0">
               <button
                 type="button"
                 onClick={onClose}
@@ -570,7 +573,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
               </button>
             </div>
           </form>
-        </div>
       </div>
     </div>
   );
