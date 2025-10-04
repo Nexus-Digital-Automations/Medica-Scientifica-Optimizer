@@ -96,23 +96,23 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg max-w-md w-full shadow-2xl border border-gray-700">
+      <div className="bg-white rounded-lg max-w-md w-full shadow-xl border border-gray-200">
         <div className="p-6">
-          <h3 className="text-2xl font-bold text-white mb-4">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
             {editingIndex !== null ? 'Edit Action' : 'Add Timed Action'}
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Day Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Day (51-500)
               </label>
               <input
                 type="number"
                 value={day}
                 onChange={(e) => setDay(Number(e.target.value))}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="51"
                 max="500"
                 required
@@ -121,13 +121,13 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {/* Action Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Action Type
               </label>
               <select
                 value={actionType}
                 onChange={(e) => setActionType(e.target.value as ActionType)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="TAKE_LOAN">💰 Take Loan</option>
                 <option value="ORDER_MATERIALS">📦 Order Materials</option>
@@ -141,14 +141,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {/* Conditional Fields Based on Action Type */}
             {actionType === 'TAKE_LOAN' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Loan Amount ($)
                 </label>
                 <input
                   type="number"
                   value={loanAmount}
                   onChange={(e) => setLoanAmount(Number(e.target.value))}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="10000"
                   max="500000"
                   step="10000"
@@ -159,14 +159,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'ORDER_MATERIALS' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Quantity (units)
                 </label>
                 <input
                   type="number"
                   value={materialQuantity}
                   onChange={(e) => setMaterialQuantity(Number(e.target.value))}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="100"
                   max="5000"
                   step="100"
@@ -177,14 +177,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'HIRE_ROOKIE' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Number of Rookies
                 </label>
                 <input
                   type="number"
                   value={rookieCount}
                   onChange={(e) => setRookieCount(Number(e.target.value))}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
                   max="10"
                   required
@@ -195,13 +195,13 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {(actionType === 'BUY_MACHINE' || actionType === 'SELL_MACHINE') && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Machine Type
                   </label>
                   <select
                     value={machineType}
                     onChange={(e) => setMachineType(e.target.value as MachineType)}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="MCE">MCE (Station 1)</option>
                     <option value="WMA">WMA (Station 2)</option>
@@ -209,14 +209,14 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Count
                   </label>
                   <input
                     type="number"
                     value={machineCount}
                     onChange={(e) => setMachineCount(Number(e.target.value))}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="1"
                     max="5"
                     required
@@ -228,27 +228,27 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {actionType === 'ADJUST_PRICE' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Type
                   </label>
                   <select
                     value={productType}
                     onChange={(e) => setProductType(e.target.value as ProductType)}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="standard">Standard Product</option>
                     <option value="custom">Custom Product</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     New Price ($)
                   </label>
                   <input
                     type="number"
                     value={newPrice}
                     onChange={(e) => setNewPrice(Number(e.target.value))}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="400"
                     max="1200"
                     step="10"
@@ -263,7 +263,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
               >
                 Cancel
               </button>

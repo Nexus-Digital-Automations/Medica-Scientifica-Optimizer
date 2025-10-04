@@ -15,19 +15,19 @@ export default function SimulationRunner() {
   const hasActions = strategy.timedActions.length > 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border-4 border-emerald-500 overflow-hidden">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 px-8 py-5 flex items-center justify-between">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
-          <h3 className="text-3xl font-black text-white flex items-center gap-3">
-            <span className="text-4xl">▶️</span> Run Simulation
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <span className="text-2xl">▶️</span> Run Simulation
           </h3>
-          <p className="text-emerald-100 text-lg mt-1 font-medium">
+          <p className="text-gray-600 text-sm mt-1">
             Execute your strategy and see how it performs over 450 days
           </p>
         </div>
         {lastRun && (
-          <div className="bg-white rounded-2xl px-6 py-4 shadow-xl">
-            <p className="text-xs text-emerald-700 font-bold">Last run</p>
+          <div className="bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+            <p className="text-xs text-gray-600 font-medium">Last run</p>
             <p className="text-lg text-gray-900 font-black">{lastRun.toLocaleTimeString()}</p>
           </div>
         )}
