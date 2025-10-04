@@ -370,23 +370,39 @@ export default function AdvancedOptimizer() {
       }
 
       // Set top 5 results
-      setOptimizationResults(population.slice(0, 5));
-      console.log('✅ Optimization complete! Top 5 results:', population.slice(0, 5));
+      const top5 = population.slice(0, 5);
+      setOptimizationResults(top5);
+      console.log('✅ Optimization complete! Top 5 results:', top5);
 
       // Debug: Check if all have same history reference (shallow copy issue)
-      const firstHistory = population[0].history;
-      const allSameHistory = population.every(c => c.history === firstHistory);
+      const firstHistory = top5[0].history;
+      const allSameHistory = top5.every(c => c.history === firstHistory);
       if (allSameHistory) {
         console.error('🐛 BUG FOUND: All candidates share the SAME history array reference! This is a shallow copy issue.');
       }
 
-      // Debug: Check actual history values
-      console.log('📊 History comparison:', {
-        candidate0_day75: population[0].history?.[24]?.value,
-        candidate1_day75: population[1].history?.[24]?.value,
-        candidate2_day75: population[2].history?.[24]?.value,
-        sameReference: allSameHistory
+      // Debug: Critical check - are the actions actually different?
+      console.log('🔍 ACTIONS COMPARISON:');
+      top5.forEach((candidate, idx) => {
+        const priceAction = candidate.actions.find(a => a.type === 'ADJUST_PRICE');
+        const ropAction = candidate.actions.find(a => a.type === 'SET_REORDER_POINT');
+        console.log(`Candidate ${idx} (${candidate.id}):`, {
+          price: priceAction && 'newPrice' in priceAction ? priceAction.newPrice : 'N/A',
+          reorderPoint: ropAction && 'newReorderPoint' in ropAction ? ropAction.newReorderPoint : 'N/A',
+          netWorth: candidate.netWorth,
+          actionCount: candidate.actions.length
+        });
       });
+
+      // Check if all net worths are identical
+      const uniqueNetWorths = new Set(top5.map(c => c.netWorth));
+      if (uniqueNetWorths.size === 1) {
+        console.error('🐛 CRITICAL BUG: All top 5 candidates have IDENTICAL net worth despite different parameters!');
+        console.error('This suggests the backend is either:');
+        console.error('1. Caching responses');
+        console.error('2. Ignoring timed actions');
+        console.error('3. All actions are actually the same (check above)');
+      }
     } catch (error) {
       console.error('❌ Optimization failed:', error);
       alert('Optimization failed. Check console for details.');

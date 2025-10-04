@@ -173,10 +173,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Day Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="action-day" className="block text-sm font-medium text-gray-700 mb-2">
                 Day (51-500) - When should this action take place?
               </label>
               <input
+                id="action-day"
                 type="number"
                 value={day}
                 onChange={(e) => setDay(e.target.value === '' ? '' : Number(e.target.value))}

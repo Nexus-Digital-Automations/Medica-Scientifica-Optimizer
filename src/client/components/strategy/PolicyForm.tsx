@@ -34,10 +34,11 @@ export default function PolicyForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Standard Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="standard-price" className="block text-sm font-medium text-gray-700 mb-2">
                 💎 Standard Price ($/unit)
               </label>
               <input
+                id="standard-price"
                 type="number"
                 value={strategy.standardPrice}
                 onChange={(e) => handleInputChange('standardPrice', Number(e.target.value))}
@@ -53,10 +54,11 @@ export default function PolicyForm() {
 
             {/* Custom Base Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="custom-base-price" className="block text-sm font-medium text-gray-700 mb-2">
                 🎨 Custom Base Price ($)
               </label>
               <input
+                id="custom-base-price"
                 type="number"
                 value={strategy.customBasePrice}
                 onChange={(e) => handleInputChange('customBasePrice', Number(e.target.value))}
@@ -72,10 +74,11 @@ export default function PolicyForm() {
 
             {/* Custom Penalty */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="custom-penalty-per-day" className="block text-sm font-medium text-gray-700 mb-2">
                 ⚠️ Custom Penalty ($/day late)
               </label>
               <input
+                id="custom-penalty-per-day"
                 type="number"
                 value={strategy.customPenaltyPerDay}
                 onChange={(e) => handleInputChange('customPenaltyPerDay', Number(e.target.value))}
@@ -91,10 +94,11 @@ export default function PolicyForm() {
 
             {/* Custom Target Delivery */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="custom-target-delivery-days" className="block text-sm font-medium text-gray-700 mb-2">
                 ⏱️ Custom Target Delivery (days)
               </label>
               <input
+                id="custom-target-delivery-days"
                 type="number"
                 value={strategy.customTargetDeliveryDays}
                 onChange={(e) => handleInputChange('customTargetDeliveryDays', Number(e.target.value))}
@@ -123,10 +127,11 @@ export default function PolicyForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Daily Overtime */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="daily-overtime-hours" className="block text-sm font-medium text-gray-700 mb-2">
                 ⏰ Daily Overtime (hours)
               </label>
               <input
+                id="daily-overtime-hours"
                 type="number"
                 value={strategy.dailyOvertimeHours}
                 onChange={(e) => handleInputChange('dailyOvertimeHours', Number(e.target.value))}
@@ -142,10 +147,11 @@ export default function PolicyForm() {
 
             {/* Overtime Trigger */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="overtime-trigger-days" className="block text-sm font-medium text-gray-700 mb-2">
                 📅 Overtime Trigger (days)
               </label>
               <input
+                id="overtime-trigger-days"
                 type="number"
                 value={strategy.overtimeTriggerDays}
                 onChange={(e) => handleInputChange('overtimeTriggerDays', Number(e.target.value))}
@@ -161,10 +167,11 @@ export default function PolicyForm() {
 
             {/* Daily Quit Probability */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="daily-quit-probability" className="block text-sm font-medium text-gray-700 mb-2">
                 🚨 Daily Quit Probability
               </label>
               <input
+                id="daily-quit-probability"
                 type="number"
                 value={strategy.dailyQuitProbability}
                 onChange={(e) => handleInputChange('dailyQuitProbability', Number(e.target.value))}
@@ -197,10 +204,11 @@ export default function PolicyForm() {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="custom-demand-mean-1" className="block text-base font-semibold text-gray-900 mb-3">
                   Phase 1 Mean (orders/day)
                 </label>
                 <input
+                  id="custom-demand-mean-1"
                   type="number"
                   value={strategy.customDemandMean1}
                   onChange={(e) => handleInputChange('customDemandMean1', Number(e.target.value))}
@@ -213,10 +221,11 @@ export default function PolicyForm() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="custom-demand-std-dev-1" className="block text-base font-semibold text-gray-900 mb-3">
                   Phase 1 Std Dev
                 </label>
                 <input
+                  id="custom-demand-std-dev-1"
                   type="number"
                   value={strategy.customDemandStdDev1}
                   onChange={(e) => handleInputChange('customDemandStdDev1', Number(e.target.value))}
@@ -228,10 +237,11 @@ export default function PolicyForm() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="custom-demand-mean-2" className="block text-base font-semibold text-gray-900 mb-3">
                   Phase 2 Mean (orders/day)
                 </label>
                 <input
+                  id="custom-demand-mean-2"
                   type="number"
                   value={strategy.customDemandMean2}
                   onChange={(e) => handleInputChange('customDemandMean2', Number(e.target.value))}
@@ -244,10 +254,11 @@ export default function PolicyForm() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="custom-demand-std-dev-2" className="block text-base font-semibold text-gray-900 mb-3">
                   Phase 2 Std Dev
                 </label>
                 <input
+                  id="custom-demand-std-dev-2"
                   type="number"
                   value={strategy.customDemandStdDev2}
                   onChange={(e) => handleInputChange('customDemandStdDev2', Number(e.target.value))}
@@ -267,10 +278,11 @@ export default function PolicyForm() {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="standard-demand-intercept" className="block text-base font-semibold text-gray-900 mb-3">
                   Demand Intercept
                 </label>
                 <input
+                  id="standard-demand-intercept"
                   type="number"
                   value={strategy.standardDemandIntercept}
                   onChange={(e) => handleInputChange('standardDemandIntercept', Number(e.target.value))}
@@ -283,10 +295,11 @@ export default function PolicyForm() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <label className="block text-base font-semibold text-gray-900 mb-3">
+                <label htmlFor="standard-demand-slope" className="block text-base font-semibold text-gray-900 mb-3">
                   Demand Slope
                 </label>
                 <input
+                  id="standard-demand-slope"
                   type="number"
                   value={strategy.standardDemandSlope}
                   onChange={(e) => handleInputChange('standardDemandSlope', Number(e.target.value))}
