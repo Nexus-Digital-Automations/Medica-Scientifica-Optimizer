@@ -1,0 +1,313 @@
+import { useState } from 'react';
+import { useStrategyStore } from '../../stores/strategyStore';
+import type { Strategy, StrategyAction, SimulationResult } from '../../types/ui.types';
+import {
+  generateInitialPopulation,
+  mutateActions,
+  crossoverActions,
+  type OptimizationCandidate,
+  type OptimizationConfig,
+} from '../../utils/geneticOptimizer';
+
+interface OptimizerResults {
+  topCandidates: OptimizationCandidate[];
+  generation: number;
+  totalCandidates: number;
+}
+
+export default function BulkOptimizer() {
+  const { strategy } = useStrategyStore();
+  const [testDay, setTestDay] = useState<number>(200);
+  const [isRunning, setIsRunning] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, generation: 0 });
+  const [results, setResults] = useState<OptimizerResults | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
+
+  const [config, setConfig] = useState<OptimizationConfig>({
+    populationSize: 20,
+    generations: 10,
+    mutationRate: 0.2,
+    elitePercentage: 0.3,
+  });
+
+  const runSimulation = async (testStrategy: Strategy): Promise<number> => {
+    try {
+      const response = await fetch('http://localhost:3000/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ strategy: testStrategy }),
+      });
+
+      if (!response.ok) throw new Error('Simulation failed');
+
+      const result: SimulationResult = await response.json();
+      return result.finalNetWorth || 0;
+    } catch (error) {
+      console.error('Simulation error:', error);
+      return -Infinity; // Failed simulations get worst fitness
+    }
+  };
+
+  const runOptimization = async () => {
+    setIsRunning(true);
+    setResults(null);
+    setProgress({ current: 0, total: config.populationSize * config.generations, generation: 0 });
+
+    try {
+      // Generate initial population
+      const initialPop = generateInitialPopulation(testDay, strategy, config.populationSize);
+
+      let population = initialPop.map((actions, idx) => ({
+        id: `gen0-${idx}`,
+        actions,
+        fitness: 0,
+        netWorth: 0,
+      }));
+
+      // Evolutionary loop
+      for (let gen = 0; gen < config.generations; gen++) {
+        setProgress(prev => ({ ...prev, generation: gen + 1 }));
+
+        // Evaluate fitness for all candidates
+        for (let i = 0; i < population.length; i++) {
+          const candidate = population[i];
+
+          // Create test strategy: base strategy + actions up to testDay + candidate actions
+          const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < testDay);
+          const testStrategy: Strategy = {
+            ...strategy,
+            timedActions: [
+              ...actionsBeforeTestDay,
+              ...candidate.actions,
+            ].sort((a, b) => a.day - b.day),
+          };
+
+          // Run simulation
+          const netWorth = await runSimulation(testStrategy);
+          population[i].fitness = netWorth;
+          population[i].netWorth = netWorth;
+
+          setProgress(prev => ({
+            ...prev,
+            current: gen * config.populationSize + i + 1,
+          }));
+        }
+
+        // Sort by fitness (descending)
+        population.sort((a, b) => b.fitness - a.fitness);
+
+        // If last generation, save results and break
+        if (gen === config.generations - 1) {
+          setResults({
+            topCandidates: population.slice(0, 10),
+            generation: gen + 1,
+            totalCandidates: population.length,
+          });
+          break;
+        }
+
+        // Selection: Keep top performers
+        const eliteCount = Math.floor(config.populationSize * config.elitePercentage);
+        const elite = population.slice(0, eliteCount);
+
+        // Create next generation
+        const nextGen: OptimizationCandidate[] = [...elite];
+
+        while (nextGen.length < config.populationSize) {
+          // Select two parents from elite
+          const parent1 = elite[Math.floor(Math.random() * elite.length)];
+          const parent2 = elite[Math.floor(Math.random() * elite.length)];
+
+          // Crossover
+          let childActions = crossoverActions(parent1.actions, parent2.actions);
+
+          // Mutate
+          childActions = mutateActions(childActions, config.mutationRate);
+
+          nextGen.push({
+            id: `gen${gen + 1}-${nextGen.length}`,
+            actions: childActions,
+            fitness: 0,
+            netWorth: 0,
+          });
+        }
+
+        population = nextGen;
+      }
+    } catch (error) {
+      console.error('Optimization error:', error);
+      alert('Optimization failed. Check console for details.');
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const formatActions = (actions: StrategyAction[]) => {
+    return actions.map(a => {
+      let details = `${a.type}`;
+      if ('count' in a) details += ` (${a.count})`;
+      if ('newPrice' in a) details += ` ($${a.newPrice})`;
+      if ('newOrderQuantity' in a) details += ` (${a.newOrderQuantity} units)`;
+      if ('newReorderPoint' in a) details += ` (${a.newReorderPoint} units)`;
+      if ('newSize' in a) details += ` (${a.newSize} units)`;
+      if ('machineType' in a) details += ` (${a.machineType})`;
+      return details;
+    }).join(', ');
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-1">
+            🧬 Genetic Algorithm Optimizer
+          </h3>
+          <p className="text-sm text-gray-400">
+            Find optimal actions for a specific day using evolutionary optimization
+          </p>
+        </div>
+        <button
+          onClick={() => setShowConfig(!showConfig)}
+          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+        >
+          {showConfig ? 'Hide' : 'Show'} Config
+        </button>
+      </div>
+
+      {showConfig && (
+        <div className="mb-4 p-4 bg-gray-750 rounded-lg border border-gray-600">
+          <h4 className="text-sm font-semibold text-white mb-3">Algorithm Configuration</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Population Size</label>
+              <input
+                type="number"
+                value={config.populationSize}
+                onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                min="10"
+                max="50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Generations</label>
+              <input
+                type="number"
+                value={config.generations}
+                onChange={(e) => setConfig(prev => ({ ...prev, generations: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                min="5"
+                max="20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Mutation Rate</label>
+              <input
+                type="number"
+                value={config.mutationRate}
+                onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                min="0.1"
+                max="0.5"
+                step="0.05"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Elite %</label>
+              <input
+                type="number"
+                value={config.elitePercentage}
+                onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: Number(e.target.value) }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                min="0.2"
+                max="0.5"
+                step="0.1"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Test Starting Day
+          </label>
+          <input
+            type="number"
+            value={testDay}
+            onChange={(e) => setTestDay(Number(e.target.value))}
+            disabled={isRunning}
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            min="51"
+            max="450"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Algorithm will find optimal actions to execute on this day forward (using current strategy state as context)
+          </p>
+        </div>
+
+        <button
+          onClick={runOptimization}
+          disabled={isRunning}
+          className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg font-medium transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isRunning ? (
+            <>
+              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Evolving... Gen {progress.generation}/{config.generations} ({progress.current}/{progress.total})
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Run Optimization ({config.populationSize} × {config.generations} = {config.populationSize * config.generations} simulations)
+            </>
+          )}
+        </button>
+
+        {results && (
+          <div className="mt-6">
+            <h4 className="text-md font-semibold text-white mb-3">
+              🏆 Top Performing Strategies (Generation {results.generation})
+            </h4>
+            <div className="space-y-2">
+              {results.topCandidates.map((candidate, idx) => (
+                <div
+                  key={candidate.id}
+                  className={`p-4 rounded-lg border ${
+                    idx === 0
+                      ? 'bg-yellow-900/20 border-yellow-600'
+                      : 'bg-gray-750 border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {idx === 0 && <span className="text-2xl">👑</span>}
+                      <span className="text-sm font-semibold text-white">
+                        #{idx + 1}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-400">
+                        ${candidate.netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-xs text-gray-500">Final Net Worth</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    <span className="font-semibold">Actions on Day {testDay}:</span> {formatActions(candidate.actions)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

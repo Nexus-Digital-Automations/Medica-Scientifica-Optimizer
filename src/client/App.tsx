@@ -7,6 +7,7 @@ import SimulationRunner from './components/simulation/SimulationRunner';
 import ResultsDashboard from './components/simulation/ResultsDashboard';
 import SaveStrategyButton from './components/strategy/SaveStrategyButton';
 import StrategyLibrary from './components/strategy/StrategyLibrary';
+import BulkOptimizer from './components/strategy/BulkOptimizer';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library'>('builder');
@@ -33,6 +34,7 @@ function App() {
               <TimelineEditor />
               <StrategyVisualization />
               <SimulationRunner />
+              <BulkOptimizer />
             </div>
           </div>
         )}
