@@ -6,6 +6,15 @@ export interface OptimizationCandidate {
   actions: StrategyAction[];
   fitness: number;
   netWorth: number;
+  // Strategy parameter overrides
+  strategyParams?: {
+    reorderPoint?: number;
+    orderQuantity?: number;
+    standardPrice?: number;
+    standardBatchSize?: number;
+    mceAllocationCustom?: number;
+    dailyOvertimeHours?: number;
+  };
 }
 
 export interface OptimizationConfig {
@@ -241,6 +250,63 @@ export function crossoverActions(parent1: StrategyAction[], parent2: StrategyAct
     ...parent1.slice(0, splitPoint),
     ...parent2.slice(splitPoint),
   ];
+}
+
+/**
+ * Generate random strategy parameters within valid bounds
+ */
+export function generateRandomStrategyParams(): OptimizationCandidate['strategyParams'] {
+  return {
+    reorderPoint: Math.floor(200 + Math.random() * 800), // 200-1000
+    orderQuantity: Math.floor(200 + Math.random() * 1800), // 200-2000
+    standardPrice: Math.floor(500 + Math.random() * 700), // 500-1200
+    standardBatchSize: Math.floor(50 + Math.random() * 450), // 50-500
+    mceAllocationCustom: Math.random() * 0.6 + 0.2, // 0.2-0.8 (20%-80% to custom)
+    dailyOvertimeHours: Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0, // 0-2 hours, 30% chance
+  };
+}
+
+/**
+ * Mutate strategy parameters
+ */
+export function mutateStrategyParams(
+  params: OptimizationCandidate['strategyParams'],
+  mutationRate: number
+): OptimizationCandidate['strategyParams'] {
+  if (!params) return generateRandomStrategyParams();
+
+  const mutated = { ...params };
+
+  if (Math.random() < mutationRate && mutated.reorderPoint) {
+    const change = Math.floor((Math.random() - 0.5) * 200); // ±100
+    mutated.reorderPoint = Math.max(200, Math.min(1000, mutated.reorderPoint + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.orderQuantity) {
+    const change = Math.floor((Math.random() - 0.5) * 400); // ±200
+    mutated.orderQuantity = Math.max(200, Math.min(2000, mutated.orderQuantity + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.standardPrice) {
+    const change = Math.floor((Math.random() - 0.5) * 200); // ±100
+    mutated.standardPrice = Math.max(400, Math.min(1200, mutated.standardPrice + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.standardBatchSize) {
+    const change = Math.floor((Math.random() - 0.5) * 100); // ±50
+    mutated.standardBatchSize = Math.max(50, Math.min(500, mutated.standardBatchSize + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.mceAllocationCustom !== undefined) {
+    const change = (Math.random() - 0.5) * 0.2; // ±0.1
+    mutated.mceAllocationCustom = Math.max(0.2, Math.min(0.8, mutated.mceAllocationCustom + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.dailyOvertimeHours !== undefined) {
+    mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3);
+  }
+
+  return mutated;
 }
 
 /**

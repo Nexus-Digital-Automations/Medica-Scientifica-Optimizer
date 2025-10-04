@@ -6,6 +6,8 @@ import {
   generateRandomActions,
   mutateActions,
   crossoverActions,
+  generateRandomStrategyParams,
+  mutateStrategyParams,
   type OptimizationCandidate,
   type OptimizationConfig,
 } from '../../utils/geneticOptimizer';
@@ -112,40 +114,33 @@ export default function BulkOptimizer() {
     setProgress({ current: 0, total: config.populationSize * config.generations, generation: 0 });
 
     try {
-      // Generate initial population with user-specified formula percentage
-      // Reserve 1 slot for "do nothing" baseline
-      const populationWithoutBaseline = config.populationSize - 1;
-      const formulaCount = Math.floor(populationWithoutBaseline * formulaPercentage);
-      const variationCount = Math.floor(populationWithoutBaseline * 0.3);
-      const randomCount = populationWithoutBaseline - formulaCount - variationCount;
+      // Generate initial population with varied strategy parameters
+      let population: OptimizationCandidate[] = [];
 
-      const initialPop: StrategyAction[][] = [];
-
-      // ALWAYS include "do nothing" baseline as first candidate
-      initialPop.push([]);
-
-      // Formula-based
-      for (let i = 0; i < formulaCount; i++) {
-        initialPop.push(generateFormulaBasedActions(testDay, strategy));
-      }
-
-      // Variations around formulas
-      for (let i = 0; i < variationCount; i++) {
-        const base = generateFormulaBasedActions(testDay, strategy);
-        initialPop.push(mutateActions(base, 0.5));
-      }
-
-      // Random exploration
-      for (let i = 0; i < randomCount; i++) {
-        initialPop.push(generateRandomActions(testDay));
-      }
-
-      let population = initialPop.map((actions, idx) => ({
-        id: `gen0-${idx}`,
-        actions,
+      // ALWAYS include baseline (no changes)
+      population.push({
+        id: 'gen0-baseline',
+        actions: [],
         fitness: 0,
         netWorth: 0,
-      }));
+        strategyParams: undefined, // Use base strategy as-is
+      });
+
+      // Generate diverse candidates with varied strategy parameters
+      for (let i = 1; i < config.populationSize; i++) {
+        const useFormulaActions = Math.random() < formulaPercentage;
+        const actions = useFormulaActions
+          ? generateFormulaBasedActions(testDay, strategy)
+          : (Math.random() < 0.5 ? generateRandomActions(testDay) : []);
+
+        population.push({
+          id: `gen0-${i}`,
+          actions,
+          fitness: 0,
+          netWorth: 0,
+          strategyParams: generateRandomStrategyParams(), // VARY base strategy parameters
+        });
+      }
 
       // Evolutionary loop
       for (let gen = 0; gen < config.generations; gen++) {
@@ -159,12 +154,22 @@ export default function BulkOptimizer() {
             candidateId: candidate.id,
             actionsCount: candidate.actions.length,
             actions: candidate.actions,
+            strategyParams: candidate.strategyParams,
           });
 
-          // Create test strategy: base strategy + actions up to testDay + candidate actions
+          // Create test strategy: base strategy + parameter overrides + actions
           const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < testDay);
           const testStrategy: Strategy = {
             ...strategy,
+            // Apply strategy parameter overrides if provided
+            ...(candidate.strategyParams && {
+              reorderPoint: candidate.strategyParams.reorderPoint ?? strategy.reorderPoint,
+              orderQuantity: candidate.strategyParams.orderQuantity ?? strategy.orderQuantity,
+              standardPrice: candidate.strategyParams.standardPrice ?? strategy.standardPrice,
+              standardBatchSize: candidate.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
+              mceAllocationCustom: candidate.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+              dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
+            }),
             timedActions: [
               ...actionsBeforeTestDay,
               ...candidate.actions,
@@ -175,6 +180,11 @@ export default function BulkOptimizer() {
             totalActions: testStrategy.timedActions.length,
             actionsBeforeTestDay: actionsBeforeTestDay.length,
             candidateActions: candidate.actions.length,
+            reorderPoint: testStrategy.reorderPoint,
+            orderQuantity: testStrategy.orderQuantity,
+            standardPrice: testStrategy.standardPrice,
+            batchSize: testStrategy.standardBatchSize,
+            mceAllocation: testStrategy.mceAllocationCustom,
           });
 
           // Run simulation and get peak net worth after test day
@@ -215,17 +225,27 @@ export default function BulkOptimizer() {
           const parent1 = elite[Math.floor(Math.random() * elite.length)];
           const parent2 = elite[Math.floor(Math.random() * elite.length)];
 
-          // Crossover
+          // Crossover actions
           let childActions = crossoverActions(parent1.actions, parent2.actions);
 
-          // Mutate
+          // Mutate actions
           childActions = mutateActions(childActions, config.mutationRate);
+
+          // Crossover strategy parameters (inherit from random parent)
+          const inheritFromParent = Math.random() < 0.5 ? parent1 : parent2;
+          let childStrategyParams = inheritFromParent.strategyParams
+            ? { ...inheritFromParent.strategyParams }
+            : generateRandomStrategyParams();
+
+          // Mutate strategy parameters
+          childStrategyParams = mutateStrategyParams(childStrategyParams, config.mutationRate);
 
           nextGen.push({
             id: `gen${gen + 1}-${nextGen.length}`,
             actions: childActions,
             fitness: 0,
             netWorth: 0,
+            strategyParams: childStrategyParams,
           });
         }
 
@@ -531,10 +551,25 @@ export default function BulkOptimizer() {
                 </div>
                 <div className="text-sm text-gray-400">Peak Net Worth After Day {testDay}</div>
               </div>
-              <div className="text-sm">
-                <span className="font-semibold text-white mb-2 block">Recommended Actions for Day {testDay}:</span>
-                <div className="mt-2 bg-gray-900/30 rounded p-3">
-                  {formatActions(results.topCandidates[0].actions)}
+              <div className="text-sm space-y-3">
+                {results.topCandidates[0].strategyParams && (
+                  <div className="bg-blue-900/20 border border-blue-600/30 rounded p-3">
+                    <span className="font-semibold text-blue-300 block mb-2">Strategy Parameters:</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div><span className="text-gray-400">Reorder Point:</span> <span className="text-white">{results.topCandidates[0].strategyParams.reorderPoint} units</span></div>
+                      <div><span className="text-gray-400">Order Quantity:</span> <span className="text-white">{results.topCandidates[0].strategyParams.orderQuantity} units</span></div>
+                      <div><span className="text-gray-400">Standard Price:</span> <span className="text-white">${results.topCandidates[0].strategyParams.standardPrice}</span></div>
+                      <div><span className="text-gray-400">Batch Size:</span> <span className="text-white">{results.topCandidates[0].strategyParams.standardBatchSize} units</span></div>
+                      <div><span className="text-gray-400">MCE to Custom:</span> <span className="text-white">{(results.topCandidates[0].strategyParams.mceAllocationCustom! * 100).toFixed(0)}%</span></div>
+                      <div><span className="text-gray-400">Daily Overtime:</span> <span className="text-white">{results.topCandidates[0].strategyParams.dailyOvertimeHours}h</span></div>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <span className="font-semibold text-white block mb-2">Timed Actions for Day {testDay}:</span>
+                  <div className="bg-gray-900/30 rounded p-3">
+                    {formatActions(results.topCandidates[0].actions)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -564,9 +599,24 @@ export default function BulkOptimizer() {
                           <div className="text-xs text-gray-500">Peak Net Worth After Day {testDay}</div>
                         </div>
                       </div>
-                      <div className="text-xs">
-                        <span className="font-semibold text-gray-400 block mb-1">Actions on Day {testDay}:</span>
-                        <div className="ml-2">{formatActions(candidate.actions)}</div>
+                      <div className="text-xs space-y-2">
+                        {candidate.strategyParams && (
+                          <div className="bg-blue-900/10 border border-blue-600/20 rounded p-2">
+                            <span className="font-semibold text-blue-400 block mb-1">Strategy Params:</span>
+                            <div className="grid grid-cols-3 gap-1 text-xs ml-1">
+                              <div className="text-gray-400">ROP: <span className="text-gray-300">{candidate.strategyParams.reorderPoint}</span></div>
+                              <div className="text-gray-400">Qty: <span className="text-gray-300">{candidate.strategyParams.orderQuantity}</span></div>
+                              <div className="text-gray-400">Price: <span className="text-gray-300">${candidate.strategyParams.standardPrice}</span></div>
+                              <div className="text-gray-400">Batch: <span className="text-gray-300">{candidate.strategyParams.standardBatchSize}</span></div>
+                              <div className="text-gray-400">MCE: <span className="text-gray-300">{(candidate.strategyParams.mceAllocationCustom! * 100).toFixed(0)}%</span></div>
+                              <div className="text-gray-400">OT: <span className="text-gray-300">{candidate.strategyParams.dailyOvertimeHours}h</span></div>
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-semibold text-gray-400 block mb-1">Actions on Day {testDay}:</span>
+                          <div className="ml-2">{formatActions(candidate.actions)}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
