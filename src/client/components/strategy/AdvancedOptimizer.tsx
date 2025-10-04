@@ -91,6 +91,63 @@ export default function AdvancedOptimizer() {
     timestamp: Date;
   }>>([]);
 
+  // Convert strategy parameters to policy decision actions for a specific day
+  const createPolicyActionsForDay = (
+    day: number,
+    params: OptimizationCandidate['strategyParams']
+  ): Strategy['timedActions'] => {
+    const actions: Strategy['timedActions'] = [];
+
+    if (params) {
+      // Only add actions for non-fixed policies
+      if (!constraints.fixedPolicies.reorderPoint && params.reorderPoint !== undefined) {
+        actions.push({
+          day,
+          type: 'SET_REORDER_POINT',
+          newReorderPoint: params.reorderPoint,
+        });
+      }
+
+      if (!constraints.fixedPolicies.orderQuantity && params.orderQuantity !== undefined) {
+        actions.push({
+          day,
+          type: 'SET_ORDER_QUANTITY',
+          newOrderQuantity: params.orderQuantity,
+        });
+      }
+
+      if (!constraints.fixedPolicies.standardBatchSize && params.standardBatchSize !== undefined) {
+        actions.push({
+          day,
+          type: 'ADJUST_BATCH_SIZE',
+          newSize: params.standardBatchSize,
+        });
+      }
+
+      if (!constraints.fixedPolicies.standardPrice && params.standardPrice !== undefined) {
+        actions.push({
+          day,
+          type: 'ADJUST_PRICE',
+          productType: 'standard',
+          newPrice: params.standardPrice,
+        });
+      }
+
+      if (!constraints.fixedPolicies.mceAllocationCustom && params.mceAllocationCustom !== undefined) {
+        actions.push({
+          day,
+          type: 'ADJUST_MCE_ALLOCATION',
+          newAllocation: params.mceAllocationCustom,
+        });
+      }
+
+      // Note: dailyOvertimeHours is not a policy action, it's a strategy parameter
+      // It affects daily operations, not a one-time decision
+    }
+
+    return actions;
+  };
+
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
     setOptimizationResults([]);
@@ -104,7 +161,7 @@ export default function AdvancedOptimizer() {
         const strategyParams = generateConstrainedStrategyParams(strategy, constraints);
         population.push({
           id: `gen0-${i}`,
-          actions: [...strategy.timedActions],
+          actions: createPolicyActionsForDay(constraints.testDay, strategyParams),
           fitness: 0,
           netWorth: 0,
           strategyParams,
@@ -118,17 +175,18 @@ export default function AdvancedOptimizer() {
 
         // Test each candidate in parallel
         const testPromises = population.map(async (candidate) => {
+          // Build test strategy:
+          // 1. Keep base strategy actions BEFORE test day
+          // 2. Add candidate's policy actions ON test day only
+          // 3. All candidates start from same context at test day
+          const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+
           const testStrategy: Strategy = {
             ...strategy,
-            timedActions: candidate.actions,
-            ...(candidate.strategyParams && {
-              reorderPoint: candidate.strategyParams.reorderPoint ?? strategy.reorderPoint,
-              orderQuantity: candidate.strategyParams.orderQuantity ?? strategy.orderQuantity,
-              standardPrice: candidate.strategyParams.standardPrice ?? strategy.standardPrice,
-              standardBatchSize: candidate.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
-              mceAllocationCustom: candidate.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
-              dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
-            }),
+            timedActions: [
+              ...actionsBeforeTestDay,
+              ...candidate.actions, // These are actions for test day only
+            ].sort((a, b) => a.day - b.day),
           };
 
           try {
@@ -142,15 +200,27 @@ export default function AdvancedOptimizer() {
               throw new Error(`Simulation failed: ${response.statusText}`);
             }
 
-            const result = await response.json();
+            const data = await response.json();
+
+            if (!data.success || !data.result) {
+              throw new Error(`Simulation failed: ${data.error}`);
+            }
+
+            const result = data.result;
 
             // Find peak net worth after test day
+            const dailyNetWorth = result.state.history.dailyNetWorth;
+            const netWorthAfterTestDay = dailyNetWorth.filter(
+              (d: { day: number; value: number }) =>
+                d.day >= constraints.testDay && d.day <= constraints.endDay
+            );
+
             let peakNetWorth = -Infinity;
-            result.dailySnapshots.forEach((snapshot: { day: number; netWorth: number }) => {
-              if (snapshot.day >= constraints.testDay && snapshot.day <= constraints.endDay) {
-                peakNetWorth = Math.max(peakNetWorth, snapshot.netWorth);
-              }
-            });
+            if (netWorthAfterTestDay.length === 0) {
+              peakNetWorth = result.finalNetWorth || 0;
+            } else {
+              peakNetWorth = Math.max(...netWorthAfterTestDay.map((d: { value: number }) => d.value));
+            }
 
             candidate.netWorth = peakNetWorth;
             candidate.fitness = peakNetWorth;
@@ -198,7 +268,7 @@ export default function AdvancedOptimizer() {
 
           newPopulation.push({
             id: `gen${gen + 1}-${newPopulation.length}`,
-            actions: [...strategy.timedActions], // Keep base actions
+            actions: createPolicyActionsForDay(constraints.testDay, childParams),
             fitness: 0,
             netWorth: 0,
             strategyParams: childParams,
@@ -224,16 +294,17 @@ export default function AdvancedOptimizer() {
     const name = prompt('Enter a name for this strategy:');
     if (!name) return;
 
+    // Merge candidate actions with existing strategy actions
+    const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+    const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+
     const strategyToSave: Strategy = {
       ...strategy,
-      ...(candidate.strategyParams && {
-        reorderPoint: candidate.strategyParams.reorderPoint ?? strategy.reorderPoint,
-        orderQuantity: candidate.strategyParams.orderQuantity ?? strategy.orderQuantity,
-        standardPrice: candidate.strategyParams.standardPrice ?? strategy.standardPrice,
-        standardBatchSize: candidate.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
-        mceAllocationCustom: candidate.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
-        dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
-      }),
+      timedActions: [
+        ...actionsBeforeTestDay,
+        ...candidate.actions, // Actions on test day
+        ...actionsAfterTestDay,
+      ].sort((a, b) => a.day - b.day),
     };
 
     const newStrategy = {
@@ -577,16 +648,17 @@ export default function AdvancedOptimizer() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
+                        // Merge candidate actions with existing strategy actions
+                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+
                         loadStrategy({
                           ...strategy,
-                          ...(result.strategyParams && {
-                            reorderPoint: result.strategyParams.reorderPoint ?? strategy.reorderPoint,
-                            orderQuantity: result.strategyParams.orderQuantity ?? strategy.orderQuantity,
-                            standardPrice: result.strategyParams.standardPrice ?? strategy.standardPrice,
-                            standardBatchSize: result.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
-                            mceAllocationCustom: result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
-                            dailyOvertimeHours: result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
-                          }),
+                          timedActions: [
+                            ...actionsBeforeTestDay,
+                            ...result.actions, // Actions on test day
+                            ...actionsAfterTestDay,
+                          ].sort((a, b) => a.day - b.day),
                         });
                       }}
                       className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
@@ -600,17 +672,19 @@ export default function AdvancedOptimizer() {
                       Save
                     </button>
                     <button
-                      onClick={() => exportStrategy({
-                        ...strategy,
-                        ...(result.strategyParams && {
-                          reorderPoint: result.strategyParams.reorderPoint ?? strategy.reorderPoint,
-                          orderQuantity: result.strategyParams.orderQuantity ?? strategy.orderQuantity,
-                          standardPrice: result.strategyParams.standardPrice ?? strategy.standardPrice,
-                          standardBatchSize: result.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
-                          mceAllocationCustom: result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
-                          dailyOvertimeHours: result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
-                        }),
-                      })}
+                      onClick={() => {
+                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+
+                        exportStrategy({
+                          ...strategy,
+                          timedActions: [
+                            ...actionsBeforeTestDay,
+                            ...result.actions,
+                            ...actionsAfterTestDay,
+                          ].sort((a, b) => a.day - b.day),
+                        });
+                      }}
                       className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
                     >
                       Export
@@ -618,43 +692,35 @@ export default function AdvancedOptimizer() {
                   </div>
                 </div>
 
-                {result.strategyParams && (
-                  <div className="grid grid-cols-3 gap-3 mt-3 p-3 bg-gray-900/50 rounded">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Reorder Point</div>
-                      <div className="text-sm text-white font-semibold">
-                        {result.strategyParams.reorderPoint ?? strategy.reorderPoint} units
-                      </div>
+                {result.actions && result.actions.length > 0 && (
+                  <div className="mt-3 p-3 bg-gray-900/50 rounded">
+                    <div className="text-xs text-gray-400 mb-2 font-semibold">
+                      📋 Policy Actions on Day {constraints.testDay}:
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Order Quantity</div>
-                      <div className="text-sm text-white font-semibold">
-                        {result.strategyParams.orderQuantity ?? strategy.orderQuantity} units
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Standard Price</div>
-                      <div className="text-sm text-white font-semibold">
-                        ${result.strategyParams.standardPrice ?? strategy.standardPrice}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Batch Size</div>
-                      <div className="text-sm text-white font-semibold">
-                        {result.strategyParams.standardBatchSize ?? strategy.standardBatchSize} units
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">MCE Custom %</div>
-                      <div className="text-sm text-white font-semibold">
-                        {((result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom) * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Overtime Hours</div>
-                      <div className="text-sm text-white font-semibold">
-                        {result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours}h
-                      </div>
+                    <div className="space-y-1">
+                      {result.actions.map((action, actionIdx) => {
+                        let actionText = '';
+                        if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
+                          actionText = `Set Reorder Point → ${action.newReorderPoint} units`;
+                        } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
+                          actionText = `Set Order Quantity → ${action.newOrderQuantity} units`;
+                        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+                          actionText = `Adjust Batch Size → ${action.newSize} units`;
+                        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+                          actionText = `Adjust Standard Price → $${action.newPrice}`;
+                        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+                          actionText = `Adjust MCE Custom Allocation → ${(action.newAllocation * 100).toFixed(0)}%`;
+                        } else {
+                          actionText = action.type;
+                        }
+
+                        return (
+                          <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
+                            <span className="text-blue-400">•</span>
+                            {actionText}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
