@@ -75,9 +75,9 @@ export default function TimelineEditor() {
       case 'ADJUST_PRICE':
         return `Adjust ${action.productType} price to $${action.newPrice}`;
       case 'ADJUST_BATCH_SIZE':
-        return `Adjust ${action.arcpType} batch size to ${action.batchSize}`;
+        return `Adjust standard batch size to ${action.newSize}`;
       case 'ADJUST_MCE_ALLOCATION':
-        return `Adjust MCE allocation: ${action.standardAllocation}% standard`;
+        return `Adjust MCE custom allocation: ${action.newAllocation}%`;
       default:
         return 'Unknown Action';
     }

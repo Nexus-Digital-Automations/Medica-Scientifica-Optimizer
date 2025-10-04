@@ -8,7 +8,6 @@ interface DayActionSelectorProps {
 
 type MachineType = 'MCE' | 'WMA' | 'PUC';
 type ProductType = 'standard' | 'custom';
-type ARCPType = 'standard' | 'custom';
 
 export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const { addTimedAction } = useStrategyStore();
@@ -41,7 +40,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const [sellMachineCount, setSellMachineCount] = useState(1);
   const [priceProductType, setPriceProductType] = useState<ProductType>('standard');
   const [newPrice, setNewPrice] = useState(800);
-  const [batchSizeArcpType, setBatchSizeArcpType] = useState<ARCPType>('standard');
   const [newBatchSize, setNewBatchSize] = useState(50);
   const [newMCEAllocation, setNewMCEAllocation] = useState(50);
 
@@ -78,10 +76,10 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
       actions.push({ day, type: 'ADJUST_PRICE', productType: priceProductType, newPrice });
     }
     if (enableAdjustBatchSize) {
-      actions.push({ day, type: 'ADJUST_BATCH_SIZE', arcpType: batchSizeArcpType, batchSize: newBatchSize });
+      actions.push({ day, type: 'ADJUST_BATCH_SIZE', newSize: newBatchSize });
     }
     if (enableAdjustMCEAllocation) {
-      actions.push({ day, type: 'ADJUST_MCE_ALLOCATION', standardAllocation: newMCEAllocation });
+      actions.push({ day, type: 'ADJUST_MCE_ALLOCATION', newAllocation: newMCEAllocation });
     }
 
     // Add all enabled actions
@@ -403,30 +401,19 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📊</span> Adjust Batch Size
+                      <span className="text-lg">📊</span> Adjust Standard Batch Size
                     </label>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <select
-                        value={batchSizeArcpType}
-                        onChange={(e) => setBatchSizeArcpType(e.target.value as ARCPType)}
-                        disabled={!enableAdjustBatchSize}
-                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="standard">Standard ARCP</option>
-                        <option value="custom">Custom ARCP</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={newBatchSize}
-                        onChange={(e) => setNewBatchSize(Number(e.target.value))}
-                        disabled={!enableAdjustBatchSize}
-                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                        min="10"
-                        max="200"
-                        step="5"
-                        placeholder="50"
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      value={newBatchSize}
+                      onChange={(e) => setNewBatchSize(Number(e.target.value))}
+                      disabled={!enableAdjustBatchSize}
+                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
+                      min="10"
+                      max="200"
+                      step="5"
+                      placeholder="50"
+                    />
                   </div>
                 </div>
               </div>
@@ -442,7 +429,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">⚙️</span> Adjust MCE Allocation
+                      <span className="text-lg">⚙️</span> Adjust MCE Custom Allocation
                     </label>
                     <input
                       type="number"
@@ -453,9 +440,9 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                       min="0"
                       max="100"
                       step="5"
-                      placeholder="50% standard"
+                      placeholder="50% custom"
                     />
-                    <p className="text-xs text-gray-600 mt-1">Custom allocation will be {100 - newMCEAllocation}%</p>
+                    <p className="text-xs text-gray-600 mt-1">Standard allocation will be {100 - newMCEAllocation}%</p>
                   </div>
                 </div>
               </div>
