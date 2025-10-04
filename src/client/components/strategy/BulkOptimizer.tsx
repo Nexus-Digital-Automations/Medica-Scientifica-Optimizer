@@ -35,9 +35,16 @@ export default function BulkOptimizer() {
 
   const runSimulation = async (testStrategy: Strategy, testDay: number): Promise<number> => {
     try {
+      // Log strategy details for debugging
+      const actionsOnTestDay = testStrategy.timedActions.filter(a => a.day === testDay);
       console.log('[Genetic Optimizer] Running simulation with strategy:', {
         timedActionsCount: testStrategy.timedActions.length,
+        actionsOnTestDay: actionsOnTestDay.length,
         testDay,
+        orderQuantity: testStrategy.orderQuantity,
+        reorderPoint: testStrategy.reorderPoint,
+        standardPrice: testStrategy.standardPrice,
+        actionsDetails: actionsOnTestDay,
       });
 
       const response = await fetch('http://localhost:3000/api/simulate', {
@@ -138,6 +145,12 @@ export default function BulkOptimizer() {
         for (let i = 0; i < population.length; i++) {
           const candidate = population[i];
 
+          console.log(`[Genetic Optimizer] Evaluating candidate ${i + 1}/${population.length}:`, {
+            candidateId: candidate.id,
+            actionsCount: candidate.actions.length,
+            actions: candidate.actions,
+          });
+
           // Create test strategy: base strategy + actions up to testDay + candidate actions
           const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < testDay);
           const testStrategy: Strategy = {
@@ -148,10 +161,18 @@ export default function BulkOptimizer() {
             ].sort((a, b) => a.day - b.day),
           };
 
+          console.log(`[Genetic Optimizer] Test strategy for candidate ${i + 1}:`, {
+            totalActions: testStrategy.timedActions.length,
+            actionsBeforeTestDay: actionsBeforeTestDay.length,
+            candidateActions: candidate.actions.length,
+          });
+
           // Run simulation and get peak net worth after test day
           const peakNetWorth = await runSimulation(testStrategy, testDay);
           population[i].fitness = peakNetWorth;
           population[i].netWorth = peakNetWorth;
+
+          console.log(`[Genetic Optimizer] Candidate ${i + 1} result: $${peakNetWorth.toLocaleString()}`);
 
           setProgress(prev => ({
             ...prev,
@@ -435,6 +456,15 @@ export default function BulkOptimizer() {
           <p className="text-xs text-gray-500 mt-1">
             Algorithm will find optimal actions to execute on this day forward (using current strategy state as context)
           </p>
+          {testDay > 150 && (
+            <div className="mt-2 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
+              <p className="text-xs text-yellow-300">
+                ⚠️ <strong>Warning:</strong> Testing actions late in the simulation (day {testDay}) may produce identical results if your base strategy has already failed by then.
+                Actions requiring cash (buying machines, ordering materials) won't execute if the company is bankrupt.
+                Consider testing earlier (day 51-100) for more meaningful optimization.
+              </p>
+            </div>
+          )}
         </div>
 
         <button
