@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy } from '../../types/ui.types';
+import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
+import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams } from '../../utils/geneticOptimizer';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -36,14 +38,179 @@ export default function AdvancedOptimizer() {
     endDay: 500,
   });
 
-  // Saved strategies state - will be populated when optimizer results are saved
-  const [savedStrategies] = useState<Array<{
+  // Optimization state
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationResults, setOptimizationResults] = useState<OptimizationCandidate[]>([]);
+  const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
+
+  // Saved strategies state
+  const [savedStrategies, setSavedStrategies] = useState<Array<{
     id: string;
     name: string;
     strategy: Strategy;
     netWorth: number;
     timestamp: Date;
   }>>([]);
+
+  const runConstrainedOptimization = async () => {
+    setIsOptimizing(true);
+    setOptimizationResults([]);
+
+    try {
+      const populationSize = 30;
+      const generations = 10;
+      const mutationRate = 0.3;
+
+      // Generate initial population with constrained strategy parameters
+      let population: OptimizationCandidate[] = [];
+      for (let i = 0; i < populationSize; i++) {
+        const strategyParams = generateConstrainedStrategyParams(strategy, constraints);
+        population.push({
+          id: `gen0-${i}`,
+          actions: [...strategy.timedActions],
+          fitness: 0,
+          netWorth: 0,
+          strategyParams,
+        });
+      }
+
+      // Evolution loop
+      for (let gen = 0; gen < generations; gen++) {
+        console.log(`🧬 Generation ${gen + 1}/${generations}`);
+        setOptimizationProgress({ current: gen, total: generations });
+
+        // Test each candidate in parallel
+        const testPromises = population.map(async (candidate) => {
+          const testStrategy: Strategy = {
+            ...strategy,
+            timedActions: candidate.actions,
+            ...(candidate.strategyParams && {
+              reorderPoint: candidate.strategyParams.reorderPoint ?? strategy.reorderPoint,
+              orderQuantity: candidate.strategyParams.orderQuantity ?? strategy.orderQuantity,
+              standardPrice: candidate.strategyParams.standardPrice ?? strategy.standardPrice,
+              standardBatchSize: candidate.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
+              mceAllocationCustom: candidate.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+              dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
+            }),
+          };
+
+          try {
+            const response = await fetch('http://localhost:3001/api/simulate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ strategy: testStrategy }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Simulation failed: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            // Find peak net worth after test day
+            let peakNetWorth = -Infinity;
+            result.dailySnapshots.forEach((snapshot: { day: number; netWorth: number }) => {
+              if (snapshot.day >= constraints.testDay && snapshot.day <= constraints.endDay) {
+                peakNetWorth = Math.max(peakNetWorth, snapshot.netWorth);
+              }
+            });
+
+            candidate.netWorth = peakNetWorth;
+            candidate.fitness = peakNetWorth;
+          } catch (error) {
+            console.error('Simulation error:', error);
+            candidate.fitness = -Infinity;
+            candidate.netWorth = -Infinity;
+          }
+        });
+
+        await Promise.all(testPromises);
+
+        // Sort by fitness
+        population.sort((a, b) => b.fitness - a.fitness);
+
+        // If last generation, break
+        if (gen === generations - 1) break;
+
+        // Select elite (top 20%)
+        const eliteCount = Math.floor(populationSize * 0.2);
+        const elite = population.slice(0, eliteCount);
+
+        // Generate new population
+        const newPopulation: OptimizationCandidate[] = [...elite];
+
+        while (newPopulation.length < populationSize) {
+          // Tournament selection
+          const parent1 = population[Math.floor(Math.random() * Math.min(10, population.length))];
+          const parent2 = population[Math.floor(Math.random() * Math.min(10, population.length))];
+
+          // Crossover strategy params
+          let childParams: OptimizationCandidate['strategyParams'] = {};
+          if (parent1.strategyParams && parent2.strategyParams) {
+            Object.keys(parent1.strategyParams).forEach(key => {
+              const k = key as keyof typeof parent1.strategyParams;
+              if (parent1.strategyParams![k] !== undefined && parent2.strategyParams![k] !== undefined) {
+                if (!childParams) childParams = {};
+                childParams[k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
+              }
+            });
+          }
+
+          // Mutate with constraints
+          const mutatedParams = mutateConstrainedStrategyParams(childParams, constraints, mutationRate);
+          childParams = mutatedParams;
+
+          newPopulation.push({
+            id: `gen${gen + 1}-${newPopulation.length}`,
+            actions: [...strategy.timedActions], // Keep base actions
+            fitness: 0,
+            netWorth: 0,
+            strategyParams: childParams,
+          });
+        }
+
+        population = newPopulation;
+      }
+
+      // Set top 5 results
+      setOptimizationResults(population.slice(0, 5));
+      console.log('✅ Optimization complete! Top 5 results:', population.slice(0, 5));
+    } catch (error) {
+      console.error('❌ Optimization failed:', error);
+      alert('Optimization failed. Check console for details.');
+    } finally {
+      setIsOptimizing(false);
+      setOptimizationProgress({ current: 0, total: 0 });
+    }
+  };
+
+  const saveRecommendedStrategy = (candidate: OptimizationCandidate) => {
+    const name = prompt('Enter a name for this strategy:');
+    if (!name) return;
+
+    const strategyToSave: Strategy = {
+      ...strategy,
+      ...(candidate.strategyParams && {
+        reorderPoint: candidate.strategyParams.reorderPoint ?? strategy.reorderPoint,
+        orderQuantity: candidate.strategyParams.orderQuantity ?? strategy.orderQuantity,
+        standardPrice: candidate.strategyParams.standardPrice ?? strategy.standardPrice,
+        standardBatchSize: candidate.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
+        mceAllocationCustom: candidate.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+        dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
+      }),
+    };
+
+    const newStrategy = {
+      id: `saved-${Date.now()}`,
+      name,
+      strategy: strategyToSave,
+      netWorth: candidate.netWorth,
+      timestamp: new Date(),
+    };
+
+    setSavedStrategies(prev => [...prev, newStrategy]);
+    alert(`Strategy "${name}" saved successfully!`);
+  };
 
   const togglePolicyFixed = (policy: keyof OptimizationConstraints['fixedPolicies']) => {
     setConstraints(prev => ({
@@ -104,8 +271,8 @@ export default function AdvancedOptimizer() {
       <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-600/30 rounded-lg p-6">
         <h3 className="text-xl font-bold text-white mb-2">🎯 Advanced Optimizer</h3>
         <p className="text-sm text-gray-300">
-          Configure exactly which parameters the optimizer can change. Mark policies and actions as "Fixed" (locked) or "Variable" (optimizable).
-          Save recommended strategies for later use.
+          Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
+          but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
         </p>
       </div>
 
@@ -245,19 +412,145 @@ export default function AdvancedOptimizer() {
       {/* Run Optimization Button */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
         <button
-          className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-          onClick={() => alert('Optimization with constraints will be implemented next!')}
+          className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+          onClick={runConstrainedOptimization}
+          disabled={isOptimizing}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Run Constrained Optimization
+          {isOptimizing ? (
+            <>
+              <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Optimizing... (Gen {optimizationProgress.current + 1}/{optimizationProgress.total})
+            </>
+          ) : (
+            <>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Run Constrained Optimization
+            </>
+          )}
         </button>
         <p className="text-xs text-gray-500 text-center mt-2">
           Will only optimize the {Object.values(constraints.fixedPolicies).filter(v => !v).length} variable policies,
           respecting all fixed policies and {constraints.fixedActions.size} locked actions
         </p>
       </div>
+
+      {/* Optimization Results */}
+      {optimizationResults.length > 0 && (
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+          <h4 className="text-lg font-semibold text-white mb-4">🎯 Optimization Results</h4>
+          <p className="text-sm text-gray-400 mb-4">
+            Top {optimizationResults.length} strategies found (tested from day {constraints.testDay} to {constraints.endDay})
+          </p>
+          <div className="space-y-3">
+            {optimizationResults.map((result, idx) => (
+              <div
+                key={result.id}
+                className="p-4 bg-gradient-to-r from-gray-750 to-gray-800 border border-gray-600 rounded-lg"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '⭐'}</span>
+                      <h5 className="text-white font-semibold">Strategy #{idx + 1}</h5>
+                    </div>
+                    <p className="text-lg text-green-400 font-bold mt-1">
+                      Peak Net Worth: ${result.netWorth.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        loadStrategy({
+                          ...strategy,
+                          ...(result.strategyParams && {
+                            reorderPoint: result.strategyParams.reorderPoint ?? strategy.reorderPoint,
+                            orderQuantity: result.strategyParams.orderQuantity ?? strategy.orderQuantity,
+                            standardPrice: result.strategyParams.standardPrice ?? strategy.standardPrice,
+                            standardBatchSize: result.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
+                            mceAllocationCustom: result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+                            dailyOvertimeHours: result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
+                          }),
+                        });
+                      }}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
+                    >
+                      Load
+                    </button>
+                    <button
+                      onClick={() => saveRecommendedStrategy(result)}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => exportStrategy({
+                        ...strategy,
+                        ...(result.strategyParams && {
+                          reorderPoint: result.strategyParams.reorderPoint ?? strategy.reorderPoint,
+                          orderQuantity: result.strategyParams.orderQuantity ?? strategy.orderQuantity,
+                          standardPrice: result.strategyParams.standardPrice ?? strategy.standardPrice,
+                          standardBatchSize: result.strategyParams.standardBatchSize ?? strategy.standardBatchSize,
+                          mceAllocationCustom: result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom,
+                          dailyOvertimeHours: result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours,
+                        }),
+                      })}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
+                    >
+                      Export
+                    </button>
+                  </div>
+                </div>
+
+                {result.strategyParams && (
+                  <div className="grid grid-cols-3 gap-3 mt-3 p-3 bg-gray-900/50 rounded">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Reorder Point</div>
+                      <div className="text-sm text-white font-semibold">
+                        {result.strategyParams.reorderPoint ?? strategy.reorderPoint} units
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Order Quantity</div>
+                      <div className="text-sm text-white font-semibold">
+                        {result.strategyParams.orderQuantity ?? strategy.orderQuantity} units
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Standard Price</div>
+                      <div className="text-sm text-white font-semibold">
+                        ${result.strategyParams.standardPrice ?? strategy.standardPrice}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Batch Size</div>
+                      <div className="text-sm text-white font-semibold">
+                        {result.strategyParams.standardBatchSize ?? strategy.standardBatchSize} units
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">MCE Custom %</div>
+                      <div className="text-sm text-white font-semibold">
+                        {((result.strategyParams.mceAllocationCustom ?? strategy.mceAllocationCustom) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Overtime Hours</div>
+                      <div className="text-sm text-white font-semibold">
+                        {result.strategyParams.dailyOvertimeHours ?? strategy.dailyOvertimeHours}h
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Saved Strategies */}
       {savedStrategies.length > 0 && (

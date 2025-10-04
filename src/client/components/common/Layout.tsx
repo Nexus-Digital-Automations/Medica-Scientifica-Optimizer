@@ -3,8 +3,8 @@ import Header from './Header';
 import Tabs from './Tabs';
 
 interface LayoutProps {
-  activeTab: 'builder' | 'results' | 'library' | 'optimizer';
-  onTabChange: (tab: 'builder' | 'results' | 'library' | 'optimizer') => void;
+  activeTab: 'builder' | 'results' | 'library';
+  onTabChange: (tab: 'builder' | 'results' | 'library') => void;
   children: ReactNode;
 }
 

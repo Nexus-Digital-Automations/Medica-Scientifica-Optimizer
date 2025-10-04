@@ -24,6 +24,23 @@ export interface OptimizationConfig {
   elitePercentage: number;
 }
 
+export interface OptimizationConstraints {
+  // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
+  fixedPolicies: {
+    reorderPoint: boolean;
+    orderQuantity: boolean;
+    standardPrice: boolean;
+    standardBatchSize: boolean;
+    mceAllocationCustom: boolean;
+    dailyOvertimeHours: boolean;
+  };
+  // Timed actions - can mark specific actions as fixed
+  fixedActions: Set<string>; // Action IDs that cannot be changed
+  // Test day configuration
+  testDay: number;
+  endDay: number;
+}
+
 /**
  * Generate formula-based action suggestions for a specific day
  */
@@ -307,6 +324,96 @@ export function mutateStrategyParams(
   }
 
   return mutated;
+}
+
+/**
+ * Generate random strategy parameters respecting constraints
+ */
+export function generateConstrainedStrategyParams(
+  _baseStrategy: Strategy,
+  constraints: OptimizationConstraints
+): OptimizationCandidate['strategyParams'] {
+  const params: OptimizationCandidate['strategyParams'] = {};
+
+  // Only generate random values for variable (non-fixed) policies
+  if (!constraints.fixedPolicies.reorderPoint) {
+    params.reorderPoint = Math.floor(200 + Math.random() * 800); // 200-1000
+  }
+  if (!constraints.fixedPolicies.orderQuantity) {
+    params.orderQuantity = Math.floor(200 + Math.random() * 1800); // 200-2000
+  }
+  if (!constraints.fixedPolicies.standardPrice) {
+    params.standardPrice = Math.floor(500 + Math.random() * 700); // 500-1200
+  }
+  if (!constraints.fixedPolicies.standardBatchSize) {
+    params.standardBatchSize = Math.floor(50 + Math.random() * 450); // 50-500
+  }
+  if (!constraints.fixedPolicies.mceAllocationCustom) {
+    params.mceAllocationCustom = Math.random() * 0.6 + 0.2; // 0.2-0.8
+  }
+  if (!constraints.fixedPolicies.dailyOvertimeHours) {
+    params.dailyOvertimeHours = Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0;
+  }
+
+  return params;
+}
+
+/**
+ * Mutate strategy parameters respecting constraints
+ */
+export function mutateConstrainedStrategyParams(
+  params: OptimizationCandidate['strategyParams'],
+  constraints: OptimizationConstraints,
+  mutationRate: number
+): OptimizationCandidate['strategyParams'] {
+  if (!params) return {};
+
+  const mutated = { ...params };
+
+  // Only mutate variable (non-fixed) policies
+  if (!constraints.fixedPolicies.reorderPoint && Math.random() < mutationRate && mutated.reorderPoint) {
+    const change = Math.floor((Math.random() - 0.5) * 200);
+    mutated.reorderPoint = Math.max(200, Math.min(1000, mutated.reorderPoint + change));
+  }
+
+  if (!constraints.fixedPolicies.orderQuantity && Math.random() < mutationRate && mutated.orderQuantity) {
+    const change = Math.floor((Math.random() - 0.5) * 400);
+    mutated.orderQuantity = Math.max(200, Math.min(2000, mutated.orderQuantity + change));
+  }
+
+  if (!constraints.fixedPolicies.standardPrice && Math.random() < mutationRate && mutated.standardPrice) {
+    const change = Math.floor((Math.random() - 0.5) * 200);
+    mutated.standardPrice = Math.max(400, Math.min(1200, mutated.standardPrice + change));
+  }
+
+  if (!constraints.fixedPolicies.standardBatchSize && Math.random() < mutationRate && mutated.standardBatchSize) {
+    const change = Math.floor((Math.random() - 0.5) * 100);
+    mutated.standardBatchSize = Math.max(50, Math.min(500, mutated.standardBatchSize + change));
+  }
+
+  if (!constraints.fixedPolicies.mceAllocationCustom && Math.random() < mutationRate && mutated.mceAllocationCustom !== undefined) {
+    const change = (Math.random() - 0.5) * 0.2;
+    mutated.mceAllocationCustom = Math.max(0.2, Math.min(0.8, mutated.mceAllocationCustom + change));
+  }
+
+  if (!constraints.fixedPolicies.dailyOvertimeHours && Math.random() < mutationRate && mutated.dailyOvertimeHours !== undefined) {
+    mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3);
+  }
+
+  return mutated;
+}
+
+/**
+ * Filter actions to exclude fixed ones
+ */
+export function filterConstrainedActions(
+  actions: StrategyAction[],
+  fixedActions: Set<string>
+): StrategyAction[] {
+  return actions.filter(action => {
+    const actionId = `action-${action.day}-${action.type}-${actions.indexOf(action)}`;
+    return !fixedActions.has(actionId);
+  });
 }
 
 /**
