@@ -216,8 +216,8 @@ export default function BulkOptimizer() {
               type="number"
               value={config.populationSize}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, populationSize: val }));
+                const val = e.target.valueAsNumber;
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, populationSize: Math.floor(val) }));
               }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
@@ -232,8 +232,8 @@ export default function BulkOptimizer() {
               type="number"
               value={config.generations}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, generations: val }));
+                const val = e.target.valueAsNumber;
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, generations: Math.floor(val) }));
               }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
@@ -248,7 +248,7 @@ export default function BulkOptimizer() {
               type="number"
               value={config.mutationRate * 100}
               onChange={(e) => {
-                const val = parseFloat(e.target.value);
+                const val = e.target.valueAsNumber;
                 if (!isNaN(val)) setConfig(prev => ({ ...prev, mutationRate: val / 100 }));
               }}
               disabled={isRunning}
@@ -265,7 +265,7 @@ export default function BulkOptimizer() {
               type="number"
               value={config.elitePercentage * 100}
               onChange={(e) => {
-                const val = parseFloat(e.target.value);
+                const val = e.target.valueAsNumber;
                 if (!isNaN(val)) setConfig(prev => ({ ...prev, elitePercentage: val / 100 }));
               }}
               disabled={isRunning}
@@ -282,7 +282,7 @@ export default function BulkOptimizer() {
               type="number"
               value={formulaPercentage * 100}
               onChange={(e) => {
-                const val = parseFloat(e.target.value);
+                const val = e.target.valueAsNumber;
                 if (!isNaN(val)) setFormulaPercentage(val / 100);
               }}
               disabled={isRunning}
@@ -299,8 +299,8 @@ export default function BulkOptimizer() {
               type="number"
               value={topResultsCount}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) setTopResultsCount(val);
+                const val = e.target.valueAsNumber;
+                if (!isNaN(val)) setTopResultsCount(Math.floor(val));
               }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
@@ -321,8 +321,8 @@ export default function BulkOptimizer() {
             type="number"
             value={testDay}
             onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              if (!isNaN(val)) setTestDay(val);
+              const val = e.target.valueAsNumber;
+              if (!isNaN(val)) setTestDay(Math.floor(val));
             }}
             disabled={isRunning}
             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
