@@ -8,6 +8,7 @@ import {
   crossoverActions,
   generateRandomStrategyParams,
   mutateStrategyParams,
+  ensureSufficientCash,
   type OptimizationCandidate,
   type OptimizationConfig,
 } from '../../utils/geneticOptimizer';
@@ -129,9 +130,12 @@ export default function BulkOptimizer() {
       // Generate diverse candidates with varied strategy parameters
       for (let i = 1; i < config.populationSize; i++) {
         const useFormulaActions = Math.random() < formulaPercentage;
-        const actions = useFormulaActions
+        const rawActions = useFormulaActions
           ? generateFormulaBasedActions(testDay, strategy)
           : (Math.random() < 0.5 ? generateRandomActions(testDay) : []);
+
+        // Add automatic loan management to prevent cash violations
+        const actions = ensureSufficientCash(rawActions, 100000, 50000);
 
         population.push({
           id: `gen0-${i}`,

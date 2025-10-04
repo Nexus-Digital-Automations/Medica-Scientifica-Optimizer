@@ -107,26 +107,29 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
     });
   }
 
-  // Queuing theory-based hiring (40% chance)
-  if (Math.random() < 0.4) {
+  // Queuing theory-based hiring (50% chance, removed restrictive condition)
+  if (Math.random() < 0.5) {
     const queue = calculateQueueMetrics({
       arrivalRate: 150,
       serviceRate: 3,
       numServers: 2,
     });
 
-    if (queue.value > 5) { // High wait time, hire workers
-      actions.push({
-        day,
-        type: 'HIRE_ROOKIE',
-        count: Math.floor(1 + Math.random() * 3), // 1-3 workers
-      });
-    }
+    // Test more aggressive hiring strategies
+    const hireCount = queue.value > 5
+      ? Math.floor(2 + Math.random() * 3) // 2-4 workers if high queue
+      : Math.floor(1 + Math.random() * 2); // 1-2 workers otherwise
+
+    actions.push({
+      day,
+      type: 'HIRE_ROOKIE',
+      count: hireCount,
+    });
   }
 
-  // NPV-based machine purchase (30% chance, only if enough days remain)
+  // NPV-based machine purchase (50% chance, test early and aggressive strategies)
   const daysLeft = 500 - day;
-  if (daysLeft > 100 && Math.random() < 0.3) {
+  if (Math.random() < 0.5) {
     const npv = calculateNPV({
       initialInvestment: 20000,
       dailyCashFlow: 100,
@@ -134,15 +137,18 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       dailyDiscountRate: DAILY_INTEREST,
     });
 
-    if (npv.value > 0) { // Positive NPV
-      const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
-      actions.push({
-        day,
-        type: 'BUY_MACHINE',
-        machineType: machineTypes[Math.floor(Math.random() * machineTypes.length)],
-        count: 1,
-      });
-    }
+    // Test more aggressive machine purchases (removed NPV restriction)
+    const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
+    const machineCount = npv.value > 0 && daysLeft > 100
+      ? Math.floor(1 + Math.random() * 2) // 1-2 machines if good NPV
+      : 1; // 1 machine for aggressive testing
+
+    actions.push({
+      day,
+      type: 'BUY_MACHINE',
+      machineType: machineTypes[Math.floor(Math.random() * machineTypes.length)],
+      count: machineCount,
+    });
   }
 
   // Optimal pricing (40% chance)
@@ -168,52 +174,69 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
 
 /**
  * Generate random action variations
+ * Enhanced to test more diverse strategies including hiring, machines, and one-time actions
  */
 export function generateRandomActions(day: number): StrategyAction[] {
   const actions: StrategyAction[] = [];
-  const actionCount = Math.floor(1 + Math.random() * 3); // 1-3 actions
+  const actionCount = Math.floor(2 + Math.random() * 4); // 2-5 actions for more diversity
 
   for (let i = 0; i < actionCount; i++) {
     const actionType = Math.random();
 
-    if (actionType < 0.2) {
+    if (actionType < 0.45) { // 45% - HIRE_ROOKIE (increased from 20%)
       actions.push({
         day,
         type: 'HIRE_ROOKIE',
-        count: Math.floor(1 + Math.random() * 4),
+        count: Math.floor(1 + Math.random() * 4), // 1-4 workers
       });
-    } else if (actionType < 0.35) {
+    } else if (actionType < 0.85) { // 40% - BUY_MACHINE (increased from 15%)
       const machines: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
       actions.push({
         day,
         type: 'BUY_MACHINE',
         machineType: machines[Math.floor(Math.random() * 3)],
+        count: Math.floor(1 + Math.random() * 2), // 1-2 machines
+      });
+    } else if (actionType < 0.87) { // 2% - FIRE_EMPLOYEE (new action type)
+      const employeeTypes: Array<'expert' | 'rookie'> = ['expert', 'rookie'];
+      actions.push({
+        day,
+        type: 'FIRE_EMPLOYEE',
+        employeeType: employeeTypes[Math.floor(Math.random() * 2)],
+        count: Math.floor(1 + Math.random() * 2), // 1-2 employees
+      });
+    } else if (actionType < 0.89) { // 2% - SELL_MACHINE (new action type)
+      const machines: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
+      actions.push({
+        day,
+        type: 'SELL_MACHINE',
+        machineType: machines[Math.floor(Math.random() * 3)],
         count: 1,
       });
-    } else if (actionType < 0.50) {
+    } else if (actionType < 0.92) { // 3% - SET_ORDER_QUANTITY
       actions.push({
         day,
         type: 'SET_ORDER_QUANTITY',
-        newOrderQuantity: Math.floor(200 + Math.random() * 1300), // 200-1500
+        newOrderQuantity: Math.floor(200 + Math.random() * 1800), // 200-2000
       });
-    } else if (actionType < 0.65) {
+    } else if (actionType < 0.95) { // 3% - SET_REORDER_POINT
       actions.push({
         day,
         type: 'SET_REORDER_POINT',
-        newReorderPoint: Math.floor(200 + Math.random() * 600), // 200-800
+        newReorderPoint: Math.floor(200 + Math.random() * 800), // 200-1000
       });
-    } else if (actionType < 0.80) {
+    } else if (actionType < 0.97) { // 2% - ADJUST_BATCH_SIZE
       actions.push({
         day,
         type: 'ADJUST_BATCH_SIZE',
-        newSize: Math.floor(50 + Math.random() * 400), // 50-450
+        newSize: Math.floor(50 + Math.random() * 450), // 50-500
       });
-    } else {
+    } else { // 3% - ADJUST_PRICE
       actions.push({
         day,
         type: 'ADJUST_PRICE',
         productType: 'standard',
-        newPrice: Math.floor(500 + Math.random() * 600), // 500-1100
+        newPrice: Math.floor(400 + Math.random() * 800), // 400-1200
       });
     }
   }
@@ -253,6 +276,69 @@ export function mutateActions(actions: StrategyAction[], mutationRate: number): 
 
     return mutated;
   });
+}
+
+/**
+ * Estimate the cash cost of an action
+ * Returns negative value for costs, positive for revenue
+ */
+function estimateActionCost(action: StrategyAction): number {
+  switch (action.type) {
+    case 'HIRE_ROOKIE':
+      return -5000 * (action.count || 1); // $5000 per worker
+    case 'BUY_MACHINE':
+      return -20000 * (action.count || 1); // $20000 per machine
+    case 'ORDER_MATERIALS':
+      return -50 * (action.quantity || 0); // ~$50 per unit
+    case 'TAKE_LOAN':
+      return action.amount || 0; // Positive cash inflow
+    case 'PAY_DEBT':
+      return -(action.amount || 0); // Negative cash outflow
+    default:
+      return 0; // Most actions (pricing, batch size, etc.) have no immediate cash impact
+  }
+}
+
+/**
+ * Add automatic loan management to ensure actions don't violate cash minimums
+ * Inserts TAKE_LOAN actions before cash-negative actions when needed
+ */
+export function ensureSufficientCash(
+  actions: StrategyAction[],
+  initialCash: number = 100000,
+  minCashThreshold: number = 50000
+): StrategyAction[] {
+  const result: StrategyAction[] = [];
+  let estimatedCash = initialCash;
+
+  for (const action of actions) {
+    const actionCost = estimateActionCost(action);
+    const cashAfterAction = estimatedCash + actionCost;
+
+    // If action would violate minimum cash threshold, insert loan first
+    if (cashAfterAction < minCashThreshold && actionCost < 0) {
+      // Calculate loan amount needed: cover the cost + restore to 75% above minimum
+      const loanAmount = Math.ceil(
+        Math.abs(actionCost) + (minCashThreshold * 0.75)
+      );
+
+      // Round loan to nearest $10,000 for realism
+      const roundedLoan = Math.ceil(loanAmount / 10000) * 10000;
+
+      result.push({
+        day: action.day,
+        type: 'TAKE_LOAN',
+        amount: roundedLoan,
+      });
+
+      estimatedCash += roundedLoan;
+    }
+
+    result.push(action);
+    estimatedCash += actionCost;
+  }
+
+  return result;
 }
 
 /**

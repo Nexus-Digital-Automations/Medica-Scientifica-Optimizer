@@ -5,7 +5,7 @@
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
-    "updated": "2025-10-04T04:23:19.371Z",
+    "updated": "2025-10-04T23:36:43.682Z",
     "total_features": 0,
     "approval_history": [],
     "initialization_stats": {
@@ -226,6 +226,33 @@
       },
       "progress_percentage": 100,
       "completed_at": "2025-10-04T04:23:19.371Z"
+    },
+    {
+      "id": "task_1759620906664_66b5e92f5818",
+      "feature_id": null,
+      "title": "Enhance genetic optimizer with one-time actions and automatic loan management",
+      "description": "Improve the genetic optimizer to test more diverse strategies:\n\n1. **Increase one-time action frequency**:\n   - Boost HIRE_ROOKIE probability from 20% to 40-50%\n   - Boost BUY_MACHINE probability from 15% to 30-40%\n   - Add FIRE_EMPLOYEE and SELL_MACHINE actions\n   - Test combinations of multiple one-time actions\n\n2. **Add automatic loan management**:\n   - Before each action, calculate if it would violate minimum cash threshold\n   - If yes, automatically insert TAKE_LOAN action before it\n   - Calculate exact loan amount needed to maintain threshold\n   - Ensure loans are only taken when necessary\n\n3. **Smarter action generation**:\n   - Remove overly restrictive conditions (queue > 5, NPV > 0)\n   - Test more aggressive strategies (early hiring, early machine purchases)\n   - Generate multi-action sequences (hire workers + buy machines + adjust prices)\n\nAcceptance Criteria:\n- Optimizer logs show HIRE_ROOKIE, BUY_MACHINE actions in at least 30% of candidates\n- TAKE_LOAN actions appear automatically before cash-negative actions\n- No simulation failures due to insufficient cash\n- Action diversity increases (currently only seeing 5 policy actions)",
+      "type": "feature",
+      "priority": "high",
+      "status": "approved",
+      "dependencies": [],
+      "estimated_effort": 5,
+      "required_capabilities": [
+        "general"
+      ],
+      "created_at": "2025-10-04T23:35:06.664Z",
+      "updated_at": "2025-10-04T23:36:43.682Z",
+      "created_by": "manual_creation",
+      "verificationGate": {
+        "status": "pending",
+        "requirements": [],
+        "evidence": null,
+        "verifiedAt": null,
+        "verifiedBy": null
+      },
+      "metadata": {
+        "auto_generated": false
+      }
     }
   ],
   "completed_tasks": []
