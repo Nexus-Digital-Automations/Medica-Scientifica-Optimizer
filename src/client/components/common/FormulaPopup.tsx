@@ -37,33 +37,17 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/20 z-[60]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-            }}
+            onClick={() => setIsOpen(false)}
           />
 
           {/* Popup Content */}
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-96 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-300 p-5">
+          <div
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-96 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-300 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="mb-4">
               <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
             </div>
 
             {/* Formula */}
@@ -113,18 +97,6 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
                 </div>
               </>
             )}
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(false);
-              }}
-              className="mt-3 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Close
-            </button>
           </div>
         </>
       )}
