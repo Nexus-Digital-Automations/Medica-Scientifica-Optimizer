@@ -201,6 +201,10 @@ export default function AdvancedOptimizer() {
 
           const testStrategy: Strategy = {
             ...strategy,
+            // Apply candidate's strategy parameters that aren't timed actions
+            ...(candidate.strategyParams?.dailyOvertimeHours !== undefined && {
+              dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours
+            }),
             timedActions: [
               ...actionsBeforeTestDay,
               ...candidate.actions, // These are actions for test day only
@@ -212,7 +216,16 @@ export default function AdvancedOptimizer() {
             console.log(`📤 Sending to backend - Candidate ${candidate.id}:`, {
               totalActions: testStrategy.timedActions.length,
               testDayActions: candidate.actions,
-              strategyParams: candidate.strategyParams
+              strategyParams: candidate.strategyParams,
+              // Check if actions are actually different
+              actionDetails: candidate.actions.map(a => ({
+                type: a.type,
+                value: 'newReorderPoint' in a ? a.newReorderPoint :
+                       'newOrderQuantity' in a ? a.newOrderQuantity :
+                       'newPrice' in a ? a.newPrice :
+                       'newSize' in a ? a.newSize :
+                       'newAllocation' in a ? a.newAllocation : 'N/A'
+              }))
             });
           }
 
@@ -355,6 +368,21 @@ export default function AdvancedOptimizer() {
       // Set top 5 results
       setOptimizationResults(population.slice(0, 5));
       console.log('✅ Optimization complete! Top 5 results:', population.slice(0, 5));
+
+      // Debug: Check if all have same history reference (shallow copy issue)
+      const firstHistory = population[0].history;
+      const allSameHistory = population.every(c => c.history === firstHistory);
+      if (allSameHistory) {
+        console.error('🐛 BUG FOUND: All candidates share the SAME history array reference! This is a shallow copy issue.');
+      }
+
+      // Debug: Check actual history values
+      console.log('📊 History comparison:', {
+        candidate0_day75: population[0].history?.[24]?.value,
+        candidate1_day75: population[1].history?.[24]?.value,
+        candidate2_day75: population[2].history?.[24]?.value,
+        sameReference: allSameHistory
+      });
     } catch (error) {
       console.error('❌ Optimization failed:', error);
       alert('Optimization failed. Check console for details.');
