@@ -11,10 +11,11 @@ import type { Strategy } from '../simulation/types.js';
  * Strategy Parameter Bounds - Hard limits on what the GA can generate
  */
 export const STRATEGY_BOUNDS = {
-  // MCE Allocation: Custom line needs minimum capacity to meet 7-day delivery target
+  // MCE Allocation: Balance custom capacity with standard revenue generation
   // With 25-32 custom orders/day and MCE capacity of 30 units/day/machine:
-  // Need at least 25/30 = 83% of 1 machine = 0.83, but use 0.3 minimum to allow optimization
-  mceAllocationCustom: { min: 0.30, max: 0.85 }, // Give custom 30-85% of MCE capacity
+  // 60% = 18 units/day custom (allows backlog but manageable)
+  // 40% = 12 units/day standard (consistent revenue to pay salaries)
+  mceAllocationCustom: { min: 0.30, max: 0.60 }, // Give custom 30-60% of MCE capacity (balanced)
 
   // Standard Pricing: Must be profitable but not price ourselves out of market
   standardPrice: { min: 400, max: 1200 }, // Below $400 likely unprofitable, above $1200 no demand
@@ -158,6 +159,87 @@ export function generateBoundedRandomStrategy(): Strategy {
     // Timed actions (evolved by GA)
     timedActions: [],
   };
+
+  return strategy;
+}
+
+/**
+ * Generate a cash-flow-aware strategy with guaranteed cash flow safety
+ * This ensures strategies start with solid fundamentals and are less likely to fail validation
+ */
+export function generateCashFlowAwareStrategy(): Strategy {
+  // Start with bounded random strategy
+  const strategy = generateBoundedRandomStrategy();
+
+  // GUARANTEED CASH FLOW SAFETY: Always include early loans
+  // These loans ensure the factory has operating capital throughout the simulation
+  const guaranteedLoans = [
+    { day: 52, type: 'TAKE_LOAN' as const, amount: 30000 + Math.floor(Math.random() * 20000) }, // $30K-$50K
+    { day: 70, type: 'TAKE_LOAN' as const, amount: 40000 + Math.floor(Math.random() * 30000) }, // $40K-$70K
+    { day: 100, type: 'TAKE_LOAN' as const, amount: 50000 + Math.floor(Math.random() * 40000) }, // $50K-$90K
+  ];
+
+  // GUARANTEED INVENTORY SAFETY: Always include early material order
+  // This ensures the factory doesn't hit stockouts in the critical early period
+  const guaranteedMaterialOrder = [
+    { day: 51, type: 'ORDER_MATERIALS' as const, quantity: 300 + Math.floor(Math.random() * 200) }, // 300-500 units
+  ];
+
+  // GUARANTEED WORKFORCE GROWTH: Always include hiring actions
+  // Without hiring, the factory cannot scale to meet demand
+  const guaranteedHiring = [
+    { day: 60 + Math.floor(Math.random() * 20), type: 'HIRE_ROOKIE' as const, count: 1 + Math.floor(Math.random() * 2) }, // Hire 1-2 rookies around day 60-80
+    { day: 120 + Math.floor(Math.random() * 30), type: 'HIRE_ROOKIE' as const, count: 1 + Math.floor(Math.random() * 2) }, // Hire 1-2 rookies around day 120-150
+  ];
+
+  // ADDITIONAL RANDOM ACTIONS: Add 3-8 more actions for GA to optimize
+  const additionalActions = [];
+  const numAdditionalActions = 3 + Math.floor(Math.random() * 6); // 3-8 actions
+
+  for (let i = 0; i < numAdditionalActions; i++) {
+    const day = 51 + Math.floor(Math.random() * 400); // Days 51-450
+    const actionType = Math.random();
+
+    if (actionType < 0.3) {
+      // Additional loan
+      additionalActions.push({
+        day,
+        type: 'TAKE_LOAN' as const,
+        amount: 20000 + Math.floor(Math.random() * 80000), // $20K-$100K
+      });
+    } else if (actionType < 0.5) {
+      // Additional hiring
+      additionalActions.push({
+        day,
+        type: 'HIRE_ROOKIE' as const,
+        count: 1 + Math.floor(Math.random() * 2), // 1-2 rookies
+      });
+    } else if (actionType < 0.7) {
+      // Additional material order
+      additionalActions.push({
+        day,
+        type: 'ORDER_MATERIALS' as const,
+        quantity: 200 + Math.floor(Math.random() * 500), // 200-700 units
+      });
+    } else {
+      // Machine purchase
+      const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
+      additionalActions.push({
+        day,
+        type: 'BUY_MACHINE' as const,
+        machineType: machineTypes[Math.floor(Math.random() * machineTypes.length)],
+        count: 1,
+      });
+    }
+  }
+
+  // Combine all actions and sort by day
+  strategy.timedActions = [
+    ...guaranteedLoans,
+    ...guaranteedMaterialOrder,
+    ...guaranteedHiring,
+    ...additionalActions,
+  ].sort((a, b) => a.day - b.day);
 
   return strategy;
 }

@@ -8,7 +8,7 @@ import { CONSTANTS } from '../simulation/constants.js';
 import { runSimulation } from '../simulation/simulationEngine.js';
 import type { DemandForecast } from '../simulation/demandModule.js';
 import { AnalyticalOptimizer } from './analyticalOptimizer.js';
-import { constrainStrategy, generateBoundedRandomStrategy } from './strategyConstraints.js';
+import { constrainStrategy, generateBoundedRandomStrategy, generateCashFlowAwareStrategy } from './strategyConstraints.js';
 import { validateBusinessRules } from '../simulation/businessRules.js';
 
 export interface GeneticAlgorithmConfig {
@@ -24,7 +24,7 @@ export interface GeneticAlgorithmConfig {
   enableEarlyStopping?: boolean; // Stop if converged
   earlyStopGenerations?: number; // Generations without improvement to trigger stop (default: 15)
   minImprovementThreshold?: number; // Minimum improvement to avoid early stop (default: 0.005 = 0.5%)
-  seedWithAnalytical?: boolean; // Seed 20% of population with analytical solutions
+  seedWithAnalytical?: boolean; // Seed 80% of population with analytical solutions (intelligent baseline)
 }
 
 export interface StrategyOverrides {
@@ -269,12 +269,16 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
   // These are calculated dynamically by OR formulas based on factory state
 
   // Mutate GA-OPTIMIZABLE operational parameters only
+  // IMPROVED: Smaller, more conservative mutations to preserve viability
   if (Math.random() < mutationRate) {
-    mutated.mceAllocationCustom += (Math.random() - 0.5) * 0.2;
+    // MCE allocation: smaller adjustments around current value (±10% instead of ±20%)
+    // This preserves balanced allocation and prevents wild swings
+    mutated.mceAllocationCustom += (Math.random() - 0.5) * 0.1;
   }
 
   if (Math.random() < mutationRate) {
-    mutated.standardPrice += Math.floor(Math.random() * 100) - 50;
+    // Standard price: smaller adjustments (±$25 instead of ±$50)
+    mutated.standardPrice += Math.floor(Math.random() * 50) - 25;
   }
 
   if (Math.random() < mutationRate) {
@@ -286,8 +290,12 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
   // and quit risk model (overtimeTriggerDays, dailyQuitProbability)
   // are FIXED market/environment conditions and are NEVER mutated
 
-  // Mutate timed actions with hybrid approach (90% gentle, 10% wild)
+  // IMPROVED: Mutate timed actions while preserving cash flow safety
   if (Math.random() < mutationRate) {
+    // Identify critical early loans (days 40-110) - these ensure cash flow safety
+    const isCriticalLoan = (action: StrategyAction) =>
+      action.type === 'TAKE_LOAN' && action.day >= 40 && action.day <= 110;
+
     // 10% chance: WILD mutation (long-range exploration)
     if (Math.random() < 0.1) {
       // 50% chance: Add completely random new action
@@ -295,73 +303,91 @@ function mutate(strategy: Strategy, mutationRate: number): Strategy {
         mutated.timedActions.push(...generateRandomTimedActions().slice(0, 1));
         mutated.timedActions.sort((a, b) => a.day - b.day);
       }
-      // 50% chance: Drastically modify existing action (if any exist)
+      // 50% chance: Drastically modify existing NON-CRITICAL action (if any exist)
       else if (mutated.timedActions.length > 0) {
-        const actionIndex = Math.floor(Math.random() * mutated.timedActions.length);
-        const action = mutated.timedActions[actionIndex];
+        // Find non-critical actions
+        const nonCriticalIndices = mutated.timedActions
+          .map((action, idx) => (!isCriticalLoan(action) ? idx : -1))
+          .filter(idx => idx !== -1);
 
-        // Completely random day
-        action.day = Math.floor(
-          Math.random() * (CONSTANTS.SIMULATION_END_DAY - CONSTANTS.SIMULATION_START_DAY)
-        ) + CONSTANTS.SIMULATION_START_DAY;
+        if (nonCriticalIndices.length > 0) {
+          const actionIndex = nonCriticalIndices[Math.floor(Math.random() * nonCriticalIndices.length)];
+          const action = mutated.timedActions[actionIndex];
 
-        // Completely random amounts
-        if (action.type === 'TAKE_LOAN' && 'amount' in action) {
-          action.amount = Math.floor(Math.random() * 150000) + 20000; // $20K-$170K
-        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
-          action.count = Math.floor(Math.random() * 4) + 1; // 1-4 rookies
-        } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
-          action.quantity = Math.floor(Math.random() * 700) + 200; // 200-900 units
-        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-          action.newPrice = Math.floor(Math.random() * 400) + 600; // $600-$1000
-        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-          action.newAllocation = Math.random() * 0.5 + 0.5; // 50%-100% to custom
-        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-          action.newSize = Math.floor(Math.random() * 30) + 10; // 10-40 units
+          // Completely random day
+          action.day = Math.floor(
+            Math.random() * (CONSTANTS.SIMULATION_END_DAY - CONSTANTS.SIMULATION_START_DAY)
+          ) + CONSTANTS.SIMULATION_START_DAY;
+
+          // Completely random amounts
+          if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+            action.amount = Math.floor(Math.random() * 150000) + 20000; // $20K-$170K
+          } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+            action.count = Math.floor(Math.random() * 4) + 1; // 1-4 rookies
+          } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
+            action.quantity = Math.floor(Math.random() * 700) + 200; // 200-900 units
+          } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+            action.newPrice = Math.floor(Math.random() * 400) + 600; // $600-$1000
+          } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+            action.newAllocation = Math.random() * 0.5 + 0.5; // 50%-100% to custom
+          } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+            action.newSize = Math.floor(Math.random() * 30) + 10; // 10-40 units
+          }
+
+          mutated.timedActions.sort((a, b) => a.day - b.day);
         }
-
-        mutated.timedActions.sort((a, b) => a.day - b.day);
       }
     }
     // 90% chance: GENTLE mutation (local refinement)
     else if (mutated.timedActions.length > 0) {
       const actionIndex = Math.floor(Math.random() * mutated.timedActions.length);
       const action = mutated.timedActions[actionIndex];
+      const isCritical = isCriticalLoan(action);
 
-      // 70% chance: modify existing action, 30% chance: remove it
-      if (Math.random() < 0.7) {
-        // Modify action timing slightly (±20 days)
-        action.day = Math.max(
-          CONSTANTS.SIMULATION_START_DAY,
-          Math.min(CONSTANTS.SIMULATION_END_DAY, action.day + Math.floor(Math.random() * 41) - 20)
-        );
+      // 70% chance: modify existing action, 30% chance: remove it (but NEVER remove critical loans)
+      if (Math.random() < 0.7 || isCritical) {
+        // Critical loans: only modify amount, NEVER timing
+        if (isCritical) {
+          // Only adjust loan amount (±20% instead of ±30%)
+          if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+            const variation = action.amount * 0.2;
+            action.amount = Math.floor(action.amount + (Math.random() * variation * 2 - variation));
+            action.amount = Math.max(20000, Math.min(100000, action.amount)); // $20K-$100K
+          }
+        } else {
+          // Non-critical actions: modify timing slightly (±20 days)
+          action.day = Math.max(
+            CONSTANTS.SIMULATION_START_DAY,
+            Math.min(CONSTANTS.SIMULATION_END_DAY, action.day + Math.floor(Math.random() * 41) - 20)
+          );
 
-        // Modify action amount slightly (±30%)
-        if (action.type === 'TAKE_LOAN' && 'amount' in action) {
-          const variation = action.amount * 0.3;
-          action.amount = Math.floor(action.amount + (Math.random() * variation * 2 - variation));
-          action.amount = Math.max(10000, Math.min(200000, action.amount));
-        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
-          action.count = Math.max(1, Math.min(5, action.count + (Math.random() < 0.5 ? 1 : -1)));
-        } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
-          const variation = action.quantity * 0.3;
-          action.quantity = Math.floor(action.quantity + (Math.random() * variation * 2 - variation));
-          action.quantity = Math.max(100, Math.min(1000, action.quantity));
-        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-          const variation = action.newPrice * 0.3;
-          action.newPrice = Math.floor(action.newPrice + (Math.random() * variation * 2 - variation));
-          action.newPrice = Math.max(500, Math.min(1200, action.newPrice));
-        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-          action.newAllocation += (Math.random() - 0.5) * 0.2; // ±10% variation
-          action.newAllocation = Math.max(0.3, Math.min(1.0, action.newAllocation));
-        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-          action.newSize += Math.floor(Math.random() * 11) - 5; // ±5 units
-          action.newSize = Math.max(5, Math.min(50, action.newSize));
+          // Modify action amount slightly (±30%)
+          if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+            const variation = action.amount * 0.3;
+            action.amount = Math.floor(action.amount + (Math.random() * variation * 2 - variation));
+            action.amount = Math.max(10000, Math.min(200000, action.amount));
+          } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+            action.count = Math.max(1, Math.min(5, action.count + (Math.random() < 0.5 ? 1 : -1)));
+          } else if (action.type === 'ORDER_MATERIALS' && 'quantity' in action) {
+            const variation = action.quantity * 0.3;
+            action.quantity = Math.floor(action.quantity + (Math.random() * variation * 2 - variation));
+            action.quantity = Math.max(100, Math.min(1000, action.quantity));
+          } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+            const variation = action.newPrice * 0.3;
+            action.newPrice = Math.floor(action.newPrice + (Math.random() * variation * 2 - variation));
+            action.newPrice = Math.max(500, Math.min(1200, action.newPrice));
+          } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+            action.newAllocation += (Math.random() - 0.5) * 0.2; // ±10% variation
+            action.newAllocation = Math.max(0.3, Math.min(1.0, action.newAllocation));
+          } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+            action.newSize += Math.floor(Math.random() * 11) - 5; // ±5 units
+            action.newSize = Math.max(5, Math.min(50, action.newSize));
+          }
         }
 
         mutated.timedActions.sort((a, b) => a.day - b.day);
       } else {
-        // Remove this action
+        // Remove this NON-CRITICAL action (never remove critical early loans)
         mutated.timedActions.splice(actionIndex, 1);
       }
     }
@@ -433,6 +459,46 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
     standardDemandIntercept: fixedParams.standardDemandIntercept ?? strategy.standardDemandIntercept,
     standardDemandSlope: fixedParams.standardDemandSlope ?? strategy.standardDemandSlope,
   };
+}
+
+/**
+ * Quick validation to catch obviously broken strategies BEFORE simulation
+ * Saves computation time by rejecting strategies that will definitely fail
+ * Returns true if strategy passes basic sanity checks
+ */
+function quickValidation(strategy: Strategy): boolean {
+  // Check 1: Must have at least one early loan (cash flow safety)
+  // Without early cash injection, strategy will likely hit cash starvation
+  const earlyLoans = strategy.timedActions.filter(
+    a => a.type === 'TAKE_LOAN' && a.day < 100
+  );
+  if (earlyLoans.length === 0) {
+    return false; // No early cash injection = likely cash starvation
+  }
+
+  // Check 2: MCE allocation must be reasonable (not starving standard line)
+  // Allocating >70% to custom starves standard line of capacity
+  if (strategy.mceAllocationCustom > 0.7) {
+    return false; // Too much custom allocation = standard line starved
+  }
+
+  // Check 3: Must have at least one early material order (inventory safety)
+  // Without early material orders, strategy will likely hit stockouts
+  const earlyMaterialOrders = strategy.timedActions.filter(
+    a => a.type === 'ORDER_MATERIALS' && a.day < 70
+  );
+  if (earlyMaterialOrders.length === 0) {
+    return false; // No early material orders = likely stockouts
+  }
+
+  // Check 4: Should have some hiring actions (workforce growth)
+  // Without hiring, strategy cannot scale production to meet demand
+  const hiringActions = strategy.timedActions.filter(a => a.type === 'HIRE_ROOKIE');
+  if (hiringActions.length === 0) {
+    return false; // No hiring = likely production capacity issues
+  }
+
+  return true; // Passes all quick checks
 }
 
 /**
@@ -509,7 +575,7 @@ export async function optimize(
     console.log(`⏱️  Early stopping enabled: ${config.earlyStopGenerations} generations, ${(config.minImprovementThreshold ?? 0.005) * 100}% threshold`);
   }
   if (config.seedWithAnalytical) {
-    console.log('🔬 Analytical seeding enabled: 20% of population from EOQ/ROP/EPQ formulas');
+    console.log('🔬 Analytical seeding enabled: 80% of population from EOQ/ROP/EPQ formulas (intelligent baseline)');
   }
 
   // Initialize population with enhanced seeding strategy
@@ -521,12 +587,14 @@ export async function optimize(
   if (config.seedWithAnalytical) {
     const analyticalOptimizer = new AnalyticalOptimizer();
     const analyticalStrategy = analyticalOptimizer.generateAnalyticalStrategy();
-    const analyticalCount = Math.floor(config.populationSize * 0.2); // 20% from analytical
+    const analyticalCount = Math.floor(config.populationSize * 0.8); // 80% from analytical (intelligent baseline)
 
     console.log(`  Adding ${analyticalCount} analytical solutions to population...`);
     for (let i = 0; i < analyticalCount; i++) {
       // Apply small mutations to create diversity around analytical optimum
-      const mutated = mutate(analyticalStrategy, 0.05);
+      // Use varying mutation rates to create diverse but viable strategies
+      const mutationRate = 0.03 + (Math.random() * 0.07); // 3-10% mutation
+      const mutated = mutate(analyticalStrategy, mutationRate);
       population.push(applyFixedConstraints(mutated, fixedParams));
     }
   }
@@ -586,10 +654,27 @@ export async function optimize(
         while (attempts < maxAttempts && !isValid) {
           attempts++;
 
-          // Run simulation
+          // Quick validation BEFORE simulation (saves computation time)
+          if (!quickValidation(currentStrategy)) {
+            console.warn(`    Strategy ${idx} attempt ${attempts}/${maxAttempts} FAILED QUICK VALIDATION (no early loans, bad MCE allocation, or missing hiring/materials)`);
+            if (attempts < maxAttempts) {
+              // Regenerate with cash-flow-aware strategy (much higher success rate)
+              currentStrategy = generateCashFlowAwareStrategy();
+              console.log(`    Regenerating strategy ${idx} with cash-flow-aware generator...`);
+              continue; // Skip simulation, try again
+            } else {
+              // Max attempts reached, assign very negative fitness
+              console.error(`    Strategy ${idx} REJECTED after ${maxAttempts} quick validation failures`);
+              simulationResult = await runSimulation(currentStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
+              simulationResult.fitnessScore = -999999999; // Will be discarded by natural selection
+              break;
+            }
+          }
+
+          // Run simulation (expensive operation)
           simulationResult = await runSimulation(currentStrategy, CONSTANTS.SIMULATION_END_DAY, startingState, demandForecast);
 
-          // Validate business rules
+          // Validate business rules (comprehensive validation)
           const validation = validateBusinessRules(simulationResult.state);
 
           if (validation.valid) {
@@ -600,9 +685,9 @@ export async function optimize(
           } else {
             console.warn(`    Strategy ${idx} attempt ${attempts}/${maxAttempts} INVALID: ${validation.criticalCount} critical, ${validation.majorCount} major violations`);
             if (attempts < maxAttempts) {
-              // Generate a new random strategy and try again
-              currentStrategy = generateRandomStrategy();
-              console.log(`    Regenerating strategy ${idx}...`);
+              // Regenerate with cash-flow-aware strategy (guarantees cash safety)
+              currentStrategy = generateCashFlowAwareStrategy();
+              console.log(`    Regenerating strategy ${idx} with cash-flow-aware generator...`);
             } else {
               // Max attempts reached, assign very negative fitness
               console.error(`    Strategy ${idx} REJECTED after ${maxAttempts} attempts`);
