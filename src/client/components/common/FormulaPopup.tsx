@@ -1,23 +1,26 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { getFormulaForAction } from '../../utils/formulaCalculations';
+import type { SimulationState } from '../../../simulation/types';
 
 interface FormulaPopupProps {
   actionType: string;
   day: number;
+  simulationState?: SimulationState | null; // Optional: Real-time simulation data
 }
 
-export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
+export default function FormulaPopup({ actionType, day, simulationState }: FormulaPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { strategy } = useStrategyStore();
 
-  const formulaData = getFormulaForAction(actionType, strategy, day);
+  const formulaData = getFormulaForAction(actionType, strategy, day, simulationState);
 
   if (!formulaData) {
     return null; // No formula available for this action type
   }
 
   const { title, formula, result } = formulaData;
+  const usingEstimates = result?.usingEstimates ?? true;
 
   return (
     <div className="relative inline-block">
@@ -49,6 +52,15 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
             <div className="mb-4">
               <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
             </div>
+
+            {/* Warning: Using Estimates */}
+            {usingEstimates && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  ⚠️ <strong>Using Historical Estimates</strong> - Run a simulation to see values based on real-time data (current workers, machines, demand phase, etc.)
+                </p>
+              </div>
+            )}
 
             {/* Formula */}
             <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">

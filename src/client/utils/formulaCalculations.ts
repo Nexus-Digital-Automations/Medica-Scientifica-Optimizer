@@ -1,14 +1,124 @@
-import type { Strategy } from '../../simulation/types';
+import type { Strategy, SimulationState } from '../../simulation/types';
 
 /**
  * Context-aware formula calculations for policy decisions
  * Calculates optimal values based on strategy state at a specific day
+ *
+ * DYNAMIC MODE: When simulationState is provided, formulas use real-time data from simulation
+ * FALLBACK MODE: When simulationState is null, formulas use historical baseline estimates
  */
 
 export interface FormulaResult {
   value: number;
   variables: { symbol: string; description: string; value: number }[];
   explanation: string;
+  usingEstimates?: boolean; // True if using fallback data instead of real simulation state
+}
+
+/**
+ * Helper: Calculate recent average daily parts usage from simulation history
+ */
+function calculateRecentPartsUsage(state: SimulationState, lookbackDays: number = 30): number {
+  const history = state.history;
+  const startDay = Math.max(0, state.currentDay - lookbackDays);
+
+  // Sum up production from both lines over lookback period
+  let totalParts = 0;
+  let daysWithData = 0;
+
+  // Standard line uses 2 parts per unit
+  for (const metric of history.dailyStandardProduction) {
+    if (metric.day >= startDay && metric.day <= state.currentDay) {
+      totalParts += metric.value * 2;
+      daysWithData++;
+    }
+  }
+
+  // Custom line uses 1 part per unit
+  for (const metric of history.dailyCustomProduction) {
+    if (metric.day >= startDay && metric.day <= state.currentDay) {
+      totalParts += metric.value * 1;
+    }
+  }
+
+  return daysWithData > 0 ? totalParts / daysWithData : 35.5; // Fallback to historical avg
+}
+
+/**
+ * Helper: Calculate recent demand std deviation from simulation history
+ */
+function calculateRecentPartsStdDev(state: SimulationState, lookbackDays: number = 30): number {
+  const history = state.history;
+  const startDay = Math.max(0, state.currentDay - lookbackDays);
+
+  const dailyUsage: number[] = [];
+
+  // Calculate daily usage for each day in lookback period
+  for (let day = startDay; day <= state.currentDay; day++) {
+    let dayParts = 0;
+
+    // Standard production * 2 parts
+    const stdMetric = history.dailyStandardProduction.find(m => m.day === day);
+    if (stdMetric) dayParts += stdMetric.value * 2;
+
+    // Custom production * 1 part
+    const custMetric = history.dailyCustomProduction.find(m => m.day === day);
+    if (custMetric) dayParts += custMetric.value * 1;
+
+    dailyUsage.push(dayParts);
+  }
+
+  if (dailyUsage.length === 0) return 3.4; // Fallback
+
+  const mean = dailyUsage.reduce((a, b) => a + b, 0) / dailyUsage.length;
+  const variance = dailyUsage.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / dailyUsage.length;
+  return Math.sqrt(variance);
+}
+
+/**
+ * Helper: Get current effective worker count (experts + trained rookies)
+ */
+function getCurrentWorkerCount(state: SimulationState): number {
+  return state.workforce.experts + state.workforce.rookies;
+}
+
+/**
+ * Helper: Get phase-aware custom demand parameters based on current day
+ */
+function getPhaseAwareDemand(strategy: Strategy, day: number): { mean: number; stdDev: number } {
+  // Phase 1: Days 51-172
+  // Phase 2: Days 173+ (30% growth)
+  if (day < 173) {
+    return {
+      mean: strategy.customDemandMean1,
+      stdDev: strategy.customDemandStdDev1
+    };
+  } else {
+    return {
+      mean: strategy.customDemandMean2,
+      stdDev: strategy.customDemandStdDev2
+    };
+  }
+}
+
+/**
+ * Helper: Calculate recent average production rate from simulation history
+ */
+function calculateRecentStandardProduction(state: SimulationState, lookbackDays: number = 30): number {
+  const history = state.history;
+  const startDay = Math.max(0, state.currentDay - lookbackDays);
+
+  let totalProduction = 0;
+  let daysWithData = 0;
+
+  for (const metric of history.dailyStandardProduction) {
+    if (metric.day >= startDay && metric.day <= state.currentDay) {
+      totalProduction += metric.value;
+      daysWithData++;
+    }
+  }
+
+  return daysWithData > 0 ? totalProduction / daysWithData : 3.12; // Fallback to historical
 }
 
 /**
@@ -235,21 +345,26 @@ export function calculatePriceElasticity(params: {
 
 /**
  * Get formula calculations based on strategy state at a specific day
- * Uses data-driven inputs from historical analysis (Days 0-49):
- * - Daily parts usage: 35.5 parts/day (23.5 for Standard × 2 parts, 12 for Custom × 1 part)
+ *
+ * DYNAMIC MODE (simulationState provided):
+ * - Uses real-time data from simulation history
+ * - Adapts to worker hires, machine purchases, demand phase changes
+ * - Reflects actual bottlenecks and production rates
+ *
+ * FALLBACK MODE (simulationState null):
+ * - Uses historical baseline from Days 0-49 analysis
+ * - Daily parts usage: 35.5 parts/day
  * - Annual parts demand: 12,965 parts/year
  * - Parts demand std dev: 3.4 parts/day
- * - Historical order pattern: 200 parts every 5 days
- * - Lead time: 4 days
- * - Stockout rate: 26% in historical period (13/50 days)
  */
 export function getFormulaForAction(
   actionType: string,
   strategy: Strategy,
-  day: number
+  day: number,
+  simulationState?: SimulationState | null
 ): { formula: string; result: FormulaResult | null; title: string } | null {
 
-  // Constants from business case
+  // Constants from business case (never change)
   const MATERIAL_COST = 50;
   const ORDER_FEE = 1000;
   const LEAD_TIME = 4;
@@ -257,59 +372,78 @@ export function getFormulaForAction(
   const ANNUAL_INTEREST = 0.365;
   const DAILY_INTEREST = ANNUAL_INTEREST / 365;
 
-  // Data-driven estimates from historical analysis (Days 0-49)
-  const HISTORICAL_DAILY_PARTS_USAGE = 35.5; // Actual observed usage
-  const HISTORICAL_ANNUAL_PARTS_DEMAND = 12965; // 35.5 × 365
-  const HISTORICAL_PARTS_STD_DEV = 3.4; // Low variability observed
+  // Calculate DYNAMIC or FALLBACK metrics
+  const usingEstimates = !simulationState;
+
+  const dailyPartsUsage = simulationState
+    ? calculateRecentPartsUsage(simulationState)
+    : 35.5; // Historical baseline
+
+  const annualPartsDemand = dailyPartsUsage * 365;
+
+  const partsStdDev = simulationState
+    ? calculateRecentPartsStdDev(simulationState)
+    : 3.4; // Historical baseline
+
+  const currentWorkers = simulationState
+    ? getCurrentWorkerCount(simulationState)
+    : 2; // Historical starting workforce
+
+  const standardProductionRate = simulationState
+    ? calculateRecentStandardProduction(simulationState)
+    : 3.12; // Historical delivery rate (severe bottleneck)
+
+  const customDemandParams = getPhaseAwareDemand(strategy, day);
+
   const DAYS_REMAINING = 500 - day;
 
-  // Standard line production estimates
-  const STANDARD_DAILY_ORDERS = 12; // units/day from historical data
-  const STANDARD_ANNUAL_DEMAND = STANDARD_DAILY_ORDERS * 365; // 4,380 units/year
-
-  // Current production capacity (depends on workers and bottlenecks)
-  const CURRENT_STANDARD_DELIVERY_RATE = 3.12; // Historical avg from data (severe bottleneck!)
-  const POTENTIAL_STANDARD_PRODUCTION = 12; // If bottlenecks resolved
-
   switch (actionType) {
-    case 'SET_ORDER_QUANTITY':
+    case 'SET_ORDER_QUANTITY': {
+      const result = calculateEOQ({
+        annualDemand: annualPartsDemand, // DYNAMIC: Recent usage × 365
+        orderingCost: ORDER_FEE, // $1,000 per order
+        holdingCostPerUnit: MATERIAL_COST * 0.2 // 20% holding cost = $10/part/year
+      });
+
       return {
         title: 'Economic Order Quantity (EOQ)',
         formula: 'Q* = √(2DS/H)',
-        result: calculateEOQ({
-          annualDemand: HISTORICAL_ANNUAL_PARTS_DEMAND, // Data-driven: 12,965 parts/year
-          orderingCost: ORDER_FEE, // $1,000 per order
-          holdingCostPerUnit: MATERIAL_COST * 0.2 // 20% holding cost = $10/part/year
-        })
+        result: { ...result, usingEstimates }
       };
+    }
 
-    case 'SET_REORDER_POINT':
+    case 'SET_REORDER_POINT': {
+      const result = calculateROP({
+        averageDailyDemand: dailyPartsUsage, // DYNAMIC: Recent actual usage
+        leadTimeDays: LEAD_TIME, // 4 days from business case
+        demandStdDev: partsStdDev, // DYNAMIC: Recent variability
+        serviceLevel: 0.95 // Target 95% service level
+      });
+
       return {
         title: 'Reorder Point with Safety Stock',
         formula: 'ROP = (d × L) + Z × σd × √L',
-        result: calculateROP({
-          averageDailyDemand: HISTORICAL_DAILY_PARTS_USAGE, // Data-driven: 35.5 parts/day
-          leadTimeDays: LEAD_TIME, // 4 days from business case
-          demandStdDev: HISTORICAL_PARTS_STD_DEV, // Data-driven: 3.4 parts/day
-          serviceLevel: 0.95 // Target 95% service level (avoid 26% stockout rate)
-        })
+        result: { ...result, usingEstimates }
       };
+    }
 
     case 'ADJUST_BATCH_SIZE': {
-      // Calculate based on days remaining - optimize differently for short vs long horizon
-      const dailyDemandRate = CURRENT_STANDARD_DELIVERY_RATE; // Current constrained rate
-      const productionRate = POTENTIAL_STANDARD_PRODUCTION; // Potential if unconstrained
+      // DYNAMIC: Use actual production rate, or estimate 12 units/day potential
+      const productionRate = 12; // Potential if bottlenecks resolved
+      const annualStandardDemand = standardProductionRate * 365;
+
+      const result = calculateEPQ({
+        annualDemand: annualStandardDemand, // DYNAMIC: Recent production × 365
+        setupCost: STANDARD_ORDER_FEE, // $100 per batch setup
+        holdingCostPerUnit: strategy.standardPrice * 0.2, // 20% of product value
+        dailyDemandRate: standardProductionRate, // DYNAMIC: Recent delivery rate
+        dailyProductionRate: productionRate // Potential production: 12 units/day
+      });
 
       return {
         title: 'Economic Production Quantity (EPQ)',
         formula: 'Qp* = √(2DS/H(1-d/p))',
-        result: calculateEPQ({
-          annualDemand: STANDARD_ANNUAL_DEMAND, // Data-driven: 4,380 units/year
-          setupCost: STANDARD_ORDER_FEE, // $100 per batch setup
-          holdingCostPerUnit: strategy.standardPrice * 0.2, // 20% of product value
-          dailyDemandRate: dailyDemandRate, // Current delivery rate: 3.12 units/day
-          dailyProductionRate: productionRate // Potential production: 12 units/day
-        })
+        result: { ...result, usingEstimates }
       };
     }
 
@@ -320,32 +454,33 @@ export function getFormulaForAction(
       const overheadCost = 50; // Machine time, batching, etc.
       const totalUnitCost = rawMaterialCost + laborCost + overheadCost;
 
+      const result = calculateOptimalPrice({
+        demandIntercept: strategy.standardDemandIntercept, // From strategy
+        priceSlope: strategy.standardDemandSlope, // From strategy (negative)
+        unitCost: totalUnitCost // $200 total unit cost
+      });
+
       return {
         title: 'Optimal Price (Profit Maximization)',
         formula: 'P* = (bc - a) / (2b)',
-        result: calculateOptimalPrice({
-          demandIntercept: strategy.standardDemandIntercept, // From strategy
-          priceSlope: strategy.standardDemandSlope, // From strategy (negative)
-          unitCost: totalUnitCost // $200 total unit cost
-        })
+        result: { ...result, usingEstimates }
       };
     }
 
     case 'HIRE_ROOKIE': {
-      // Calculate based on actual ARCP queue size from custom line
-      // Historical data shows 12 custom units/day, each needs ARCP processing
-      const customUnitsPerDay = 12; // From historical data
-      const expertProductivity = 3; // units/day per expert
-      const estimatedCurrentExperts = 2; // Starting workforce
+      // DYNAMIC: Use phase-aware custom demand
+      const expertProductivity = 3; // units/day per expert (from business case)
+
+      const result = calculateQueueMetrics({
+        arrivalRate: customDemandParams.mean, // DYNAMIC: Phase-aware demand (12 or 15.6)
+        serviceRate: expertProductivity, // 3 units/day per expert
+        numServers: currentWorkers // DYNAMIC: Current expert + rookie count
+      });
 
       return {
         title: 'Queuing Theory (M/M/s) - Wait Time',
         formula: 'Wq = ρ / (sμ(1-ρ))',
-        result: calculateQueueMetrics({
-          arrivalRate: customUnitsPerDay, // 12 custom units/day need ARCP
-          serviceRate: expertProductivity, // 3 units/day per expert
-          numServers: estimatedCurrentExperts // Current expert count
-        })
+        result: { ...result, usingEstimates }
       };
     }
 
@@ -357,15 +492,17 @@ export function getFormulaForAction(
       const unitMargin = strategy.standardPrice - 200; // Revenue - cost per unit
       const estimatedDailyCashFlow = unitMargin * 3; // Conservative: 3 extra units/day
 
+      const result = calculateNPV({
+        initialInvestment: 20000, // MCE machine cost (default)
+        dailyCashFlow: estimatedDailyCashFlow, // Based on unit margin
+        daysRemaining: DAYS_REMAINING, // DYNAMIC: 500 - current day
+        dailyDiscountRate: DAILY_INTEREST // 0.1% daily (36.5% annual)
+      });
+
       return {
         title: 'Net Present Value (NPV)',
         formula: 'NPV = Σ[CFt / (1+r)^t] - C₀',
-        result: calculateNPV({
-          initialInvestment: 20000, // MCE machine cost (default)
-          dailyCashFlow: estimatedDailyCashFlow, // Based on unit margin
-          daysRemaining: DAYS_REMAINING,
-          dailyDiscountRate: DAILY_INTEREST // 0.1% daily (36.5% annual)
-        })
+        result: { ...result, usingEstimates }
       };
     }
 
