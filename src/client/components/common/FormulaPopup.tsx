@@ -37,17 +37,23 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/20 z-[60]"
-            onClick={() => setIsOpen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+            }}
           />
 
           {/* Popup Content */}
-          <div className="absolute left-0 top-8 z-[70] w-96 bg-white rounded-lg shadow-xl border border-gray-300 p-5">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-96 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-300 p-5">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -111,7 +117,10 @@ export default function FormulaPopup({ actionType, day }: FormulaPopupProps) {
             {/* Close Button */}
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+              }}
               className="mt-3 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Close
