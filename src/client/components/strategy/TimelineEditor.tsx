@@ -65,17 +65,17 @@ export default function TimelineEditor() {
   return (
     <div className="space-y-6">
       {/* Timeline Section */}
-      <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-xl rounded-3xl border border-indigo-400/30 overflow-hidden shadow-2xl">
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-8 py-6 flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-xl border-4 border-indigo-500 overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-5 flex items-center justify-between">
           <div>
-            <h3 className="text-2xl font-black text-white flex items-center gap-3">
-              <span className="text-3xl">📅</span> Action Timeline
+            <h3 className="text-3xl font-black text-white flex items-center gap-3">
+              <span className="text-4xl">📅</span> Action Timeline
             </h3>
-            <p className="text-indigo-100 text-sm mt-1">Schedule strategic actions throughout the simulation</p>
+            <p className="text-indigo-100 text-base mt-1 font-medium">Schedule strategic actions throughout the simulation</p>
           </div>
           <button
             onClick={handleAddAction}
-            className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-black text-base hover:bg-indigo-50 hover:scale-105 transition-all shadow-xl"
+            className="px-8 py-4 bg-white text-indigo-700 rounded-2xl font-black text-xl hover:bg-indigo-50 hover:scale-105 transition-all shadow-2xl"
           >
             + Add Action
           </button>
@@ -83,45 +83,45 @@ export default function TimelineEditor() {
 
         <div className="p-8">
           {/* Timeline Indicator */}
-          <div className="flex items-center gap-4 text-sm text-white/60 font-bold mb-8">
-            <span className="bg-indigo-500/20 px-4 py-2 rounded-lg">Day 51</span>
-            <div className="flex-1 h-1 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 rounded-full"></div>
-            <span className="bg-pink-500/20 px-4 py-2 rounded-lg">Day 500</span>
+          <div className="flex items-center gap-4 text-base text-gray-700 font-bold mb-8">
+            <span className="bg-indigo-100 px-6 py-3 rounded-xl border-2 border-indigo-500">Day 51</span>
+            <div className="flex-1 h-2 bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 rounded-full"></div>
+            <span className="bg-pink-100 px-6 py-3 rounded-xl border-2 border-pink-500">Day 500</span>
           </div>
 
           {/* Actions List */}
           {strategy.timedActions.length === 0 ? (
-            <div className="text-center py-16 bg-white/5 rounded-2xl border-2 border-dashed border-indigo-400/30">
-              <div className="text-7xl mb-4">🗓️</div>
-              <p className="text-white text-lg font-bold">No actions scheduled yet</p>
-              <p className="text-indigo-300 text-base mt-2">Click "Add Action" to plan your first timed action</p>
+            <div className="text-center py-20 bg-gray-50 rounded-2xl border-4 border-dashed border-indigo-300">
+              <div className="text-8xl mb-5">🗓️</div>
+              <p className="text-gray-900 text-2xl font-black">No actions scheduled yet</p>
+              <p className="text-gray-600 text-lg mt-3 font-semibold">Click "Add Action" to plan your first timed action</p>
             </div>
           ) : (
             <div className="space-y-4">
               {strategy.timedActions.map((action, index) => (
                 <div
                   key={index}
-                  className="bg-white/5 backdrop-blur rounded-2xl p-6 flex items-center justify-between border-2 border-white/10 hover:border-indigo-400/50 hover:bg-white/10 transition-all group"
+                  className="bg-gray-50 rounded-2xl p-6 flex items-center justify-between border-4 border-gray-300 hover:border-indigo-500 hover:bg-white transition-all"
                 >
                   <div className="flex items-center gap-6 flex-1">
-                    <div className="text-4xl group-hover:scale-110 transition-transform">{getActionIcon(action)}</div>
+                    <div className="text-5xl">{getActionIcon(action)}</div>
                     <div className="flex items-center gap-4">
-                      <span className="font-mono text-indigo-300 font-black bg-indigo-500/20 px-5 py-2.5 rounded-xl text-base border border-indigo-400/30">
+                      <span className="font-mono text-indigo-700 font-black bg-indigo-100 px-6 py-3 rounded-xl text-xl border-2 border-indigo-500">
                         Day {action.day}
                       </span>
-                      <span className="text-white font-bold text-lg">{getActionLabel(action)}</span>
+                      <span className="text-gray-900 font-black text-xl">{getActionLabel(action)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleEditAction(index)}
-                      className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm transition-all hover:scale-105 shadow-lg"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-base transition-all hover:scale-105 shadow-lg"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteAction(index)}
-                      className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all hover:scale-105 shadow-lg"
+                      className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-base transition-all hover:scale-105 shadow-lg"
                     >
                       Delete
                     </button>
@@ -134,27 +134,27 @@ export default function TimelineEditor() {
 
         {/* Summary Stats */}
         {strategy.timedActions.length > 0 && (
-          <div className="border-t border-indigo-400/20 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 px-8 py-6">
+          <div className="border-t-4 border-indigo-300 bg-gray-50 px-8 py-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 text-center">
-                <p className="text-xs text-indigo-300 mb-2 font-bold uppercase tracking-wider">Total Actions</p>
-                <p className="text-white font-black text-3xl">{strategy.timedActions.length}</p>
+              <div className="bg-white rounded-xl p-5 border-4 border-indigo-400 text-center shadow-lg">
+                <p className="text-xs text-indigo-700 mb-2 font-black uppercase tracking-widest">Total Actions</p>
+                <p className="text-gray-900 font-black text-4xl">{strategy.timedActions.length}</p>
               </div>
-              <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 text-center">
-                <p className="text-xs text-emerald-300 mb-2 font-bold uppercase tracking-wider">Loans</p>
-                <p className="text-white font-black text-3xl">
+              <div className="bg-white rounded-xl p-5 border-4 border-emerald-400 text-center shadow-lg">
+                <p className="text-xs text-emerald-700 mb-2 font-black uppercase tracking-widest">Loans</p>
+                <p className="text-gray-900 font-black text-4xl">
                   {strategy.timedActions.filter((a) => a.type === 'TAKE_LOAN').length}
                 </p>
               </div>
-              <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 text-center">
-                <p className="text-xs text-amber-300 mb-2 font-bold uppercase tracking-wider">Hiring Events</p>
-                <p className="text-white font-black text-3xl">
+              <div className="bg-white rounded-xl p-5 border-4 border-amber-400 text-center shadow-lg">
+                <p className="text-xs text-amber-700 mb-2 font-black uppercase tracking-widest">Hiring Events</p>
+                <p className="text-gray-900 font-black text-4xl">
                   {strategy.timedActions.filter((a) => a.type === 'HIRE_ROOKIE').length}
                 </p>
               </div>
-              <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 text-center">
-                <p className="text-xs text-cyan-300 mb-2 font-bold uppercase tracking-wider">Material Orders</p>
-                <p className="text-white font-black text-3xl">
+              <div className="bg-white rounded-xl p-5 border-4 border-cyan-400 text-center shadow-lg">
+                <p className="text-xs text-cyan-700 mb-2 font-black uppercase tracking-widest">Material Orders</p>
+                <p className="text-gray-900 font-black text-4xl">
                   {strategy.timedActions.filter((a) => a.type === 'ORDER_MATERIALS').length}
                 </p>
               </div>

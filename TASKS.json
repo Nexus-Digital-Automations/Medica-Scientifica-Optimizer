@@ -1,15 +1,7 @@
 {
   "project": "Medica Scientifica Optimizer",
   "features": [],
-  "agents": {
-    "claude-code-agent-1759540891": {
-      "lastHeartbeat": "2025-10-04T01:21:32.120Z",
-      "status": "active",
-      "reinitialized": "2025-10-04T01:21:32.120Z",
-      "sessionId": "52fa3472f47dd1dd",
-      "previousSessions": []
-    }
-  },
+  "agents": {},
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
