@@ -192,18 +192,12 @@ export interface Strategy {
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];
 
-  // State-Dependent Rules - Conditional actions based on simulation state (optional)
-  rules?: import('../optimizer/rulesEngine.js').Rule[];
-
   // Policy Control Metadata - Tracks which policies are formula-controlled vs GA-controlled
   policyControlMetadata?: {
     reorderPoint: PolicyMetadata;
     orderQuantity: PolicyMetadata;
     standardBatchSize: PolicyMetadata;
   };
-
-  // Policy Change History - Complete audit trail of policy changes
-  policyChangeHistory?: import('../optimizer/dynamicPolicyCalculator.js').PolicyChangeLog[];
 }
 
 // Policy metadata for tracking calculation history

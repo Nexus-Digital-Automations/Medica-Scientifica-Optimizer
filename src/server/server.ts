@@ -32,7 +32,8 @@ const clientPath = join(__dirname, '../../dist/client');
 app.use(express.static(clientPath));
 
 // Serve index.html for all other routes (SPA fallback)
-app.get('*', (_req: Request, res: Response) => {
+// Use a middleware instead of route to avoid path-to-regexp issues
+app.use((_req: Request, res: Response) => {
   res.sendFile(join(clientPath, 'index.html'));
 });
 

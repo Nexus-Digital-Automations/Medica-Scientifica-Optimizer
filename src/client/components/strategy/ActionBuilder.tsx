@@ -17,7 +17,13 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
   const existingAction = editingIndex !== null ? strategy.timedActions[editingIndex] : null;
 
   const [day, setDay] = useState(existingAction?.day || 100);
-  const [actionType, setActionType] = useState<ActionType>(existingAction?.type || 'TAKE_LOAN');
+  const [actionType, setActionType] = useState<ActionType>(() => {
+    const type = existingAction?.type;
+    if (type && ['TAKE_LOAN', 'ORDER_MATERIALS', 'HIRE_ROOKIE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE'].includes(type)) {
+      return type as ActionType;
+    }
+    return 'TAKE_LOAN';
+  });
 
   // Action-specific fields
   const [loanAmount, setLoanAmount] = useState(() =>
@@ -44,7 +50,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
   // Update action type when editing different action
   useEffect(() => {
-    if (existingAction) {
+    if (existingAction && ['TAKE_LOAN', 'ORDER_MATERIALS', 'HIRE_ROOKIE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE'].includes(existingAction.type)) {
       setActionType(existingAction.type as ActionType);
     }
   }, [existingAction]);
@@ -52,7 +58,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    let action: StrategyAction = { day, type: actionType };
+    let action: StrategyAction;
 
     switch (actionType) {
       case 'TAKE_LOAN':
@@ -72,6 +78,10 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
         break;
       case 'ADJUST_PRICE':
         action = { day, type: 'ADJUST_PRICE', productType, newPrice };
+        break;
+      default:
+        // TypeScript exhaustiveness check - should never reach here
+        action = { day, type: 'TAKE_LOAN', amount: loanAmount };
         break;
     }
 
