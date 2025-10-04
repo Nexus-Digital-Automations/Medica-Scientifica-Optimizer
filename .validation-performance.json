@@ -1517,19 +1517,63 @@
       },
       "success": true,
       "error": null
+    },
+    {
+      "criterion": "focused-codebase",
+      "startTime": "2025-10-04T06:02:42.907Z",
+      "endTime": "2025-10-04T06:02:42.918Z",
+      "durationMs": 11,
+      "memoryUsageBefore": {
+        "rss": 132415488,
+        "heapTotal": 21233664,
+        "heapUsed": 16263704,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 136380416,
+        "heapTotal": 22806528,
+        "heapUsed": 15182392,
+        "external": 2268183,
+        "arrayBuffers": 8432035
+      },
+      "success": true,
+      "error": null
+    },
+    {
+      "criterion": "security-validation",
+      "startTime": "2025-10-04T06:02:51.309Z",
+      "endTime": "2025-10-04T06:02:56.361Z",
+      "durationMs": 5052,
+      "memoryUsageBefore": {
+        "rss": 130564096,
+        "heapTotal": 22544384,
+        "heapUsed": 15093480,
+        "external": 2241667,
+        "arrayBuffers": 8405559
+      },
+      "memoryUsageAfter": {
+        "rss": 136839168,
+        "heapTotal": 22806528,
+        "heapUsed": 15909296,
+        "external": 2272397,
+        "arrayBuffers": 8436249
+      },
+      "success": true,
+      "error": null
     }
   ],
   "statistics": {
-    "lastUpdated": "2025-10-04T04:49:06.200Z",
-    "totalMeasurements": 69,
-    "averageDurationMs": 2109.768115942029,
-    "successRate": 57.971014492753625,
+    "lastUpdated": "2025-10-04T06:02:56.361Z",
+    "totalMeasurements": 71,
+    "averageDurationMs": 2121.6478873239435,
+    "successRate": 59.154929577464785,
     "bycriterion": {
       "focused-codebase": {
-        "count": 20,
-        "totalDuration": 432,
-        "successCount": 20,
-        "avgDuration": 21.6,
+        "count": 21,
+        "totalDuration": 443,
+        "successCount": 21,
+        "avgDuration": 21.095238095238095,
         "successRate": 100
       },
       "linter-validation": {
@@ -1540,10 +1584,10 @@
         "successRate": 0
       },
       "security-validation": {
-        "count": 20,
-        "totalDuration": 145017,
-        "successCount": 20,
-        "avgDuration": 7250.85,
+        "count": 21,
+        "totalDuration": 150069,
+        "successCount": 21,
+        "avgDuration": 7146.142857142857,
         "successRate": 100
       },
       "type-validation": {

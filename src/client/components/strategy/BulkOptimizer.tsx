@@ -215,7 +215,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={config.populationSize}
-              onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, populationSize: val }));
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -228,7 +231,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={config.generations}
-              onChange={(e) => setConfig(prev => ({ ...prev, generations: Number(e.target.value) }))}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, generations: val }));
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -241,7 +247,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={config.mutationRate * 100}
-              onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: Number(e.target.value) / 100 }))}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, mutationRate: val / 100 }));
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -255,7 +264,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={config.elitePercentage * 100}
-              onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: Number(e.target.value) / 100 }))}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) setConfig(prev => ({ ...prev, elitePercentage: val / 100 }));
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -269,7 +281,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={formulaPercentage * 100}
-              onChange={(e) => setFormulaPercentage(Number(e.target.value) / 100)}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) setFormulaPercentage(val / 100);
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -283,7 +298,10 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={topResultsCount}
-              onChange={(e) => setTopResultsCount(Number(e.target.value))}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) setTopResultsCount(val);
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -302,7 +320,10 @@ export default function BulkOptimizer() {
           <input
             type="number"
             value={testDay}
-            onChange={(e) => setTestDay(Number(e.target.value))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              if (!isNaN(val)) setTestDay(val);
+            }}
             disabled={isRunning}
             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             min="51"
