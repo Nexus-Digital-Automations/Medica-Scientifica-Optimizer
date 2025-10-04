@@ -156,6 +156,16 @@ export default function AdvancedOptimizer() {
     try {
       const { populationSize, generations, mutationRate, eliteCount } = gaParams;
 
+      // Check if any policies can vary
+      const variablePolicies = Object.values(constraints.fixedPolicies).filter(v => !v).length;
+      if (variablePolicies === 0) {
+        alert('⚠️ All policies are fixed! Mark at least one policy as Variable (🔓) to optimize.');
+        setIsOptimizing(false);
+        return;
+      }
+
+      console.log(`🎯 Optimizing ${variablePolicies} variable policies on Day ${constraints.testDay}`);
+
       // Generate initial population with constrained strategy parameters
       let population: OptimizationCandidate[] = [];
       for (let i = 0; i < populationSize; i++) {
@@ -196,6 +206,15 @@ export default function AdvancedOptimizer() {
               ...candidate.actions, // These are actions for test day only
             ].sort((a, b) => a.day - b.day),
           };
+
+          // Debug: Log what we're sending to backend for first 3 candidates
+          if (gen === 0 && population.indexOf(candidate) < 3) {
+            console.log(`📤 Sending to backend - Candidate ${candidate.id}:`, {
+              totalActions: testStrategy.timedActions.length,
+              testDayActions: candidate.actions,
+              strategyParams: candidate.strategyParams
+            });
+          }
 
           try {
             const response = await fetch('http://localhost:3000/api/simulate', {
@@ -541,7 +560,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={constraints.testDay}
-                onChange={(e) => setConstraints(prev => ({ ...prev, testDay: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setConstraints(prev => ({ ...prev, testDay: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="51"
                 max="450"
@@ -555,7 +579,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={constraints.endDay}
-                onChange={(e) => setConstraints(prev => ({ ...prev, endDay: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setConstraints(prev => ({ ...prev, endDay: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="51"
                 max="500"
@@ -575,7 +604,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={gaParams.populationSize}
-                onChange={(e) => setGaParams(prev => ({ ...prev, populationSize: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setGaParams(prev => ({ ...prev, populationSize: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                 min="10"
                 max="100"
@@ -591,7 +625,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={gaParams.generations}
-                onChange={(e) => setGaParams(prev => ({ ...prev, generations: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setGaParams(prev => ({ ...prev, generations: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                 min="5"
                 max="50"
@@ -607,7 +646,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={gaParams.mutationRate}
-                onChange={(e) => setGaParams(prev => ({ ...prev, mutationRate: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setGaParams(prev => ({ ...prev, mutationRate: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                 min="0.1"
                 max="0.9"
@@ -623,7 +667,12 @@ export default function AdvancedOptimizer() {
               <input
                 type="number"
                 value={gaParams.eliteCount}
-                onChange={(e) => setGaParams(prev => ({ ...prev, eliteCount: e.target.valueAsNumber }))}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) {
+                    setGaParams(prev => ({ ...prev, eliteCount: val }));
+                  }
+                }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                 min="1"
                 max="10"
