@@ -22,7 +22,6 @@ export default function BulkOptimizer() {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, generation: 0 });
   const [results, setResults] = useState<OptimizerResults | null>(null);
-  const [showConfig, setShowConfig] = useState(false);
 
   const [config, setConfig] = useState<OptimizationConfig>({
     populationSize: 20,
