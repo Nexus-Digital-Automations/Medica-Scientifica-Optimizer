@@ -207,6 +207,16 @@ function executeTimedActions(
         }
         executedActions.push(action);
         break;
+
+      case 'SET_REORDER_POINT':
+        strategy.reorderPoint = action.newReorderPoint;
+        executedActions.push(action);
+        break;
+
+      case 'SET_ORDER_QUANTITY':
+        strategy.orderQuantity = action.newOrderQuantity;
+        executedActions.push(action);
+        break;
     }
   }
 
