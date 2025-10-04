@@ -52,7 +52,20 @@ export default function BulkOptimizer() {
         throw new Error(`Simulation failed: ${response.status} ${errorText}`);
       }
 
-      const result: SimulationResult = await response.json();
+      const data = await response.json();
+      console.log('[Genetic Optimizer] API response:', {
+        success: data.success,
+        hasResult: !!data.result,
+        error: data.error,
+      });
+
+      // Check if simulation succeeded
+      if (!data.success || !data.result) {
+        console.error('[Genetic Optimizer] Simulation failed:', data.error);
+        throw new Error(`Simulation failed: ${data.error}`);
+      }
+
+      const result: SimulationResult = data.result;
       console.log('[Genetic Optimizer] Simulation completed:', {
         finalNetWorth: result.finalNetWorth,
         dailyNetWorthCount: result.state.history.dailyNetWorth.length,
