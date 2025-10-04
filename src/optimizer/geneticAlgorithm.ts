@@ -467,13 +467,17 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
  * Returns true if strategy passes basic sanity checks
  */
 function quickValidation(strategy: Strategy): boolean {
-  // Check 1: Must have at least one early loan (cash flow safety)
-  // Without early cash injection, strategy will likely hit cash starvation
+  // Check 1: Must have at least one LARGE early loan (cash flow safety)
+  // EOQ at realistic prices requires $270K-$383K per material order
+  // Factory needs at least $300K in early capital to afford first material order
   const earlyLoans = strategy.timedActions.filter(
-    a => a.type === 'TAKE_LOAN' && a.day < 100
+    a => a.type === 'TAKE_LOAN' && a.day < 70
   );
-  if (earlyLoans.length === 0) {
-    return false; // No early cash injection = likely cash starvation
+  const totalEarlyCapital = earlyLoans.reduce((sum, loan) =>
+    sum + ('amount' in loan ? loan.amount : 0), 0
+  );
+  if (totalEarlyCapital < 300000) {
+    return false; // Insufficient capital for material orders = cash starvation
   }
 
   // Check 2: MCE allocation must be reasonable (not starving standard line)

@@ -119,15 +119,19 @@ export class AnalyticalOptimizer {
    */
   generateAnalyticalStrategy(): Strategy {
     // Medica Scientifica parameters (from business case):
-    // - Standard production: ~4000 units/month = ~50 units/day
-    // - Custom production: ~35 orders/day (Phase 2)
-    // - Raw material: $0.003/unit
+    // - Standard demand curve: D = 500 - 0.25*P
+    // - At typical prices ($600-$930): demand is 200-350 units/day
+    // - Raw material: 2 parts per unit @ $50/part
     // - Lead time: 4 days
     // - Service level target: 95%
 
     // Calculate optimal order quantity (EOQ)
-    const avgDailyStandardDemand = 50; // units
-    const rawMaterialPerStandardUnit = CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT; // 0.003 kg
+    // Use mid-range price ($800) to estimate realistic demand
+    const typicalPrice = 800;
+    const standardDemandIntercept = 500;
+    const standardDemandSlope = -0.25;
+    const avgDailyStandardDemand = standardDemandIntercept + (standardDemandSlope * typicalPrice); // ~300 units/day
+    const rawMaterialPerStandardUnit = CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT; // 2 parts per unit
     const avgDailyRawMaterialDemand = avgDailyStandardDemand * rawMaterialPerStandardUnit;
 
     const eoq = this.calculateEOQ({
