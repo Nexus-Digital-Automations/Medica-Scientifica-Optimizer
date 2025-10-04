@@ -190,7 +190,7 @@ export default function AdvancedOptimizer() {
           };
 
           try {
-            const response = await fetch('http://localhost:3001/api/simulate', {
+            const response = await fetch('http://localhost:3000/api/simulate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ strategy: testStrategy }),
@@ -228,13 +228,34 @@ export default function AdvancedOptimizer() {
             candidate.netWorth = peakNetWorth;
             candidate.fitness = peakNetWorth;
           } catch (error) {
-            console.error(`Simulation error for candidate ${candidate.id}:`, error);
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Simulation error for candidate ${candidate.id}:`, errorMsg);
+
+            // Provide helpful error context
+            if (errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch')) {
+              console.error('💡 Hint: Backend server may not be running. Start with: npm run dev');
+            }
+
             candidate.fitness = -Infinity;
             candidate.netWorth = -Infinity;
+            candidate.error = errorMsg; // Store error for debugging
           }
         });
 
         await Promise.all(testPromises);
+
+        // Check if ALL candidates failed
+        const allFailed = population.every(c => c.fitness === -Infinity);
+        if (allFailed) {
+          const firstError = population[0].error || 'Unknown error';
+          throw new Error(
+            `All simulations failed! Common causes:\n` +
+            `1. Backend server not running (run: npm run dev)\n` +
+            `2. Backend server on wrong port (check http://localhost:3000)\n` +
+            `3. API endpoint error\n\n` +
+            `First error: ${firstError}`
+          );
+        }
 
         // Sort by fitness
         population.sort((a, b) => b.fitness - a.fitness);

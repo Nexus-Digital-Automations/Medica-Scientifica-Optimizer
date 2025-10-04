@@ -6,6 +6,7 @@ export interface OptimizationCandidate {
   actions: StrategyAction[];
   fitness: number;
   netWorth: number;
+  error?: string; // Error message if simulation failed
   // Strategy parameter overrides
   strategyParams?: {
     reorderPoint?: number;
