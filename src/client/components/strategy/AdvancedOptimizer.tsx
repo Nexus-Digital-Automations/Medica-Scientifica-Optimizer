@@ -3,7 +3,7 @@ import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams } from '../../utils/geneticOptimizer';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -277,20 +277,19 @@ export default function AdvancedOptimizer() {
           );
         }
 
-        // Debug: Check if all candidates have identical fitness (suspicious!)
-        const uniqueFitnesses = new Set(population.map(c => c.fitness));
-        if (uniqueFitnesses.size === 1) {
-          console.warn('⚠️ WARNING: All candidates have IDENTICAL fitness!', {
-            fitness: population[0].fitness,
-            netWorth: population[0].netWorth,
+        // Debug: Check if all candidates have identical peak net worth (suspicious!)
+        const uniqueNetWorths = new Set(population.map(c => c.netWorth));
+        if (uniqueNetWorths.size === 1) {
+          console.warn('⚠️ WARNING: All candidates have IDENTICAL peak net worth!', {
+            peakNetWorth: population[0].netWorth,
             candidateCount: population.length
           });
         } else {
-          console.log(`✅ Generation ${gen + 1}: ${uniqueFitnesses.size} unique fitness values found`);
+          console.log(`✅ Generation ${gen + 1}: ${uniqueNetWorths.size} unique peak net worth values found`);
         }
 
-        // Sort by fitness
-        population.sort((a, b) => b.fitness - a.fitness);
+        // Sort by peak net worth (highest to lowest)
+        population.sort((a, b) => b.netWorth - a.netWorth);
 
         // If last generation, break
         if (gen === generations - 1) break;
