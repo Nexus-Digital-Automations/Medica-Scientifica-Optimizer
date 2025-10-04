@@ -35,28 +35,43 @@ export default function BulkOptimizer() {
 
   const runSimulation = async (testStrategy: Strategy, testDay: number): Promise<number> => {
     try {
+      console.log('[Genetic Optimizer] Running simulation with strategy:', {
+        timedActionsCount: testStrategy.timedActions.length,
+        testDay,
+      });
+
       const response = await fetch('http://localhost:3000/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ strategy: testStrategy }),
       });
 
-      if (!response.ok) throw new Error('Simulation failed');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Genetic Optimizer] API error:', response.status, errorText);
+        throw new Error(`Simulation failed: ${response.status} ${errorText}`);
+      }
 
       const result: SimulationResult = await response.json();
+      console.log('[Genetic Optimizer] Simulation completed:', {
+        finalNetWorth: result.finalNetWorth,
+        dailyNetWorthCount: result.state.history.dailyNetWorth.length,
+      });
 
       // Calculate peak net worth after test day
       const dailyNetWorth = result.state.history.dailyNetWorth;
       const netWorthAfterTestDay = dailyNetWorth.filter(d => d.day >= testDay);
 
       if (netWorthAfterTestDay.length === 0) {
+        console.warn('[Genetic Optimizer] No net worth data after test day, using final net worth');
         return result.finalNetWorth || 0;
       }
 
       const peakNetWorth = Math.max(...netWorthAfterTestDay.map(d => d.value));
+      console.log('[Genetic Optimizer] Peak net worth after day', testDay, ':', peakNetWorth);
       return peakNetWorth;
     } catch (error) {
-      console.error('Simulation error:', error);
+      console.error('[Genetic Optimizer] Simulation error:', error);
       return -Infinity; // Failed simulations get worst fitness
     }
   };
@@ -180,20 +195,75 @@ export default function BulkOptimizer() {
     }
   };
 
-  const formatActions = (actions: StrategyAction[]) => {
+  const formatActions = (actions: StrategyAction[]): JSX.Element => {
     if (actions.length === 0) {
-      return 'No actions (baseline - do nothing)';
+      return <div className="text-gray-400 italic">No actions (baseline - do nothing on day {testDay})</div>;
     }
-    return actions.map(a => {
-      let details = `${a.type}`;
-      if ('count' in a) details += ` (${a.count})`;
-      if ('newPrice' in a) details += ` ($${a.newPrice})`;
-      if ('newOrderQuantity' in a) details += ` (${a.newOrderQuantity} units)`;
-      if ('newReorderPoint' in a) details += ` (${a.newReorderPoint} units)`;
-      if ('newSize' in a) details += ` (${a.newSize} units)`;
-      if ('machineType' in a) details += ` (${a.machineType})`;
-      return details;
-    }).join(', ');
+    return (
+      <div className="space-y-2">
+        {actions.map((a, idx) => {
+          let actionLabel = '';
+          let actionDetails = '';
+
+          switch (a.type) {
+            case 'HIRE_ROOKIE':
+              actionLabel = '👷 Hire Rookie Workers';
+              actionDetails = `Hire ${(a as any).count} rookie worker${(a as any).count > 1 ? 's' : ''}`;
+              break;
+            case 'HIRE_EXPERT':
+              actionLabel = '🎓 Hire Expert Workers';
+              actionDetails = `Hire ${(a as any).count} expert worker${(a as any).count > 1 ? 's' : ''}`;
+              break;
+            case 'BUY_MACHINE':
+              actionLabel = '🏭 Buy Machine';
+              actionDetails = `Purchase ${(a as any).count} ${(a as any).machineType} machine${(a as any).count > 1 ? 's' : ''}`;
+              break;
+            case 'SET_ORDER_QUANTITY':
+              actionLabel = '📦 Set Order Quantity';
+              actionDetails = `Change material order quantity to ${(a as any).newOrderQuantity} units`;
+              break;
+            case 'SET_REORDER_POINT':
+              actionLabel = '🔔 Set Reorder Point';
+              actionDetails = `Change reorder trigger point to ${(a as any).newReorderPoint} units`;
+              break;
+            case 'ADJUST_BATCH_SIZE':
+              actionLabel = '⚙️ Adjust Batch Size';
+              actionDetails = `Change production batch size to ${(a as any).newSize} units`;
+              break;
+            case 'ADJUST_PRICE':
+              actionLabel = '💰 Adjust Product Price';
+              actionDetails = `Set ${(a as any).productType} product price to $${(a as any).newPrice}`;
+              break;
+            case 'ALLOCATE_MCE':
+              actionLabel = '🔧 Allocate MCE Machines';
+              actionDetails = `Allocate ${(a as any).standard} MCE to standard, ${(a as any).luxury} MCE to luxury`;
+              break;
+            case 'ALLOCATE_WMA':
+              actionLabel = '⚡ Allocate WMA Machines';
+              actionDetails = `Allocate ${(a as any).standard} WMA to standard, ${(a as any).luxury} WMA to luxury`;
+              break;
+            case 'ALLOCATE_PUC':
+              actionLabel = '📊 Allocate PUC Machines';
+              actionDetails = `Allocate ${(a as any).standard} PUC to standard, ${(a as any).luxury} PUC to luxury`;
+              break;
+            case 'ALLOCATE_WORKERS':
+              actionLabel = '👥 Allocate Workers';
+              actionDetails = `Allocate ${(a as any).standard} workers to standard, ${(a as any).luxury} workers to luxury`;
+              break;
+            default:
+              actionLabel = a.type;
+              actionDetails = JSON.stringify(a);
+          }
+
+          return (
+            <div key={idx} className="flex items-start gap-2 text-sm">
+              <span className="text-blue-400 font-medium min-w-[200px]">{actionLabel}:</span>
+              <span className="text-gray-300">{actionDetails}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -215,7 +285,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(config.populationSize) ? '' : config.populationSize}
-              onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Math.floor(e.target.valueAsNumber) || 10 }))}
+              onChange={(e) => setConfig(prev => ({ ...prev, populationSize: e.target.valueAsNumber }))}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setConfig(prev => ({ ...prev, populationSize: 10 }));
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -228,7 +303,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(config.generations) ? '' : config.generations}
-              onChange={(e) => setConfig(prev => ({ ...prev, generations: Math.floor(e.target.valueAsNumber) || 5 }))}
+              onChange={(e) => setConfig(prev => ({ ...prev, generations: e.target.valueAsNumber }))}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setConfig(prev => ({ ...prev, generations: 5 }));
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -241,7 +321,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(config.mutationRate * 100) ? '' : config.mutationRate * 100}
-              onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: (e.target.valueAsNumber || 10) / 100 }))}
+              onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: e.target.valueAsNumber / 100 }))}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setConfig(prev => ({ ...prev, mutationRate: 0.1 }));
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -255,7 +340,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(config.elitePercentage * 100) ? '' : config.elitePercentage * 100}
-              onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: (e.target.valueAsNumber || 20) / 100 }))}
+              onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: e.target.valueAsNumber / 100 }))}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setConfig(prev => ({ ...prev, elitePercentage: 0.2 }));
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -269,7 +359,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(formulaPercentage * 100) ? '' : formulaPercentage * 100}
-              onChange={(e) => setFormulaPercentage((e.target.valueAsNumber || 20) / 100)}
+              onChange={(e) => setFormulaPercentage(e.target.valueAsNumber / 100)}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setFormulaPercentage(0.2);
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -283,7 +378,12 @@ export default function BulkOptimizer() {
             <input
               type="number"
               value={isNaN(topResultsCount) ? '' : topResultsCount}
-              onChange={(e) => setTopResultsCount(Math.floor(e.target.valueAsNumber) || 5)}
+              onChange={(e) => setTopResultsCount(e.target.valueAsNumber)}
+              onBlur={(e) => {
+                if (isNaN(e.target.valueAsNumber)) {
+                  setTopResultsCount(5);
+                }
+              }}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -302,7 +402,12 @@ export default function BulkOptimizer() {
           <input
             type="number"
             value={isNaN(testDay) ? '' : testDay}
-            onChange={(e) => setTestDay(Math.floor(e.target.valueAsNumber) || 51)}
+            onChange={(e) => setTestDay(e.target.valueAsNumber)}
+            onBlur={(e) => {
+              if (isNaN(e.target.valueAsNumber)) {
+                setTestDay(51);
+              }
+            }}
             disabled={isRunning}
             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             min="51"
@@ -354,8 +459,8 @@ export default function BulkOptimizer() {
                 <div className="text-sm text-gray-400">Peak Net Worth After Day {testDay}</div>
               </div>
               <div className="text-sm">
-                <span className="font-semibold text-white">Recommended Actions:</span>
-                <div className="mt-2 text-gray-300 bg-gray-900/30 rounded p-3">
+                <span className="font-semibold text-white mb-2 block">Recommended Actions for Day {testDay}:</span>
+                <div className="mt-2 bg-gray-900/30 rounded p-3">
                   {formatActions(results.topCandidates[0].actions)}
                 </div>
               </div>
@@ -386,8 +491,9 @@ export default function BulkOptimizer() {
                           <div className="text-xs text-gray-500">Peak Net Worth After Day {testDay}</div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-400">
-                        <span className="font-semibold">Actions on Day {testDay}:</span> {formatActions(candidate.actions)}
+                      <div className="text-xs">
+                        <span className="font-semibold text-gray-400 block mb-1">Actions on Day {testDay}:</span>
+                        <div className="ml-2">{formatActions(candidate.actions)}</div>
                       </div>
                     </div>
                   ))}
