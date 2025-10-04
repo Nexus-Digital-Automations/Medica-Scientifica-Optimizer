@@ -5,6 +5,8 @@ import TimelineEditor from './components/strategy/TimelineEditor';
 import StrategyVisualization from './components/strategy/StrategyVisualization';
 import SimulationRunner from './components/simulation/SimulationRunner';
 import ResultsDashboard from './components/simulation/ResultsDashboard';
+import SaveStrategyButton from './components/strategy/SaveStrategyButton';
+import StrategyLibrary from './components/strategy/StrategyLibrary';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library'>('builder');
@@ -14,13 +16,16 @@ function App() {
       <div className="p-6 max-w-7xl mx-auto">
         {activeTab === 'builder' && (
           <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Strategy Builder
-              </h2>
-              <p className="text-sm text-gray-400">
-                Configure your factory's operating policies and plan timed actions
-              </p>
+            <div className="mb-6 flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Strategy Builder
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Configure your factory's operating policies and plan timed actions
+                </p>
+              </div>
+              <SaveStrategyButton />
             </div>
 
             <div className="space-y-6">
@@ -46,10 +51,15 @@ function App() {
         )}
         {activeTab === 'library' && (
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Strategy Library
-            </h2>
-            <p className="text-sm text-gray-400">Saved strategies will go here in Phase 7...</p>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Strategy Library
+              </h2>
+              <p className="text-sm text-gray-400">
+                Manage your saved strategies - load, rename, or delete them
+              </p>
+            </div>
+            <StrategyLibrary onLoadStrategy={() => setActiveTab('builder')} />
           </div>
         )}
       </div>

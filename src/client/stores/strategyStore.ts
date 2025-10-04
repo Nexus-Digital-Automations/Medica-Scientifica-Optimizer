@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import type { Strategy, StrategyAction, SimulationResult } from '../types/ui.types';
 
+export interface SavedStrategy {
+  id: string;
+  name: string;
+  strategy: Strategy;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface StrategyStore {
   // Current strategy being edited
   strategy: Strategy;
@@ -10,6 +18,9 @@ interface StrategyStore {
   isSimulating: boolean;
   simulationError: string | null;
 
+  // Saved strategies
+  savedStrategies: SavedStrategy[];
+
   // Actions
   updateStrategy: (updates: Partial<Strategy>) => void;
   addTimedAction: (action: StrategyAction) => void;
@@ -17,6 +28,12 @@ interface StrategyStore {
   removeTimedAction: (index: number) => void;
   resetStrategy: () => void;
   loadStrategy: (strategy: Strategy) => void;
+
+  // Saved strategy actions
+  saveStrategy: (name: string) => void;
+  loadSavedStrategy: (id: string) => void;
+  deleteSavedStrategy: (id: string) => void;
+  updateSavedStrategy: (id: string, name: string) => void;
 
   // Simulation actions
   setSimulationResult: (result: SimulationResult | null) => void;
@@ -58,11 +75,33 @@ const DEFAULT_STRATEGY: Strategy = {
   timedActions: [],
 };
 
-export const useStrategyStore = create<StrategyStore>((set) => ({
+// LocalStorage helpers
+const STORAGE_KEY = 'medica-saved-strategies';
+
+const loadSavedStrategiesFromStorage = (): SavedStrategy[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load saved strategies from localStorage:', error);
+    return [];
+  }
+};
+
+const saveSavedStrategiesToStorage = (strategies: SavedStrategy[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(strategies));
+  } catch (error) {
+    console.error('Failed to save strategies to localStorage:', error);
+  }
+};
+
+export const useStrategyStore = create<StrategyStore>((set, get) => ({
   strategy: DEFAULT_STRATEGY,
   simulationResult: null,
   isSimulating: false,
   simulationError: null,
+  savedStrategies: loadSavedStrategiesFromStorage(),
 
   updateStrategy: (updates) =>
     set((state) => ({
@@ -106,6 +145,49 @@ export const useStrategyStore = create<StrategyStore>((set) => ({
       simulationResult: null,
       simulationError: null,
     }),
+
+  saveStrategy: (name) => {
+    const { strategy, savedStrategies } = get();
+    const now = new Date().toISOString();
+    const newSavedStrategy: SavedStrategy = {
+      id: `strategy-${Date.now()}`,
+      name,
+      strategy: { ...strategy },
+      createdAt: now,
+      updatedAt: now,
+    };
+    const updated = [...savedStrategies, newSavedStrategy];
+    saveSavedStrategiesToStorage(updated);
+    set({ savedStrategies: updated });
+  },
+
+  loadSavedStrategy: (id) => {
+    const { savedStrategies } = get();
+    const saved = savedStrategies.find((s) => s.id === id);
+    if (saved) {
+      set({
+        strategy: { ...saved.strategy },
+        simulationResult: null,
+        simulationError: null,
+      });
+    }
+  },
+
+  deleteSavedStrategy: (id) => {
+    const { savedStrategies } = get();
+    const updated = savedStrategies.filter((s) => s.id !== id);
+    saveSavedStrategiesToStorage(updated);
+    set({ savedStrategies: updated });
+  },
+
+  updateSavedStrategy: (id, name) => {
+    const { savedStrategies } = get();
+    const updated = savedStrategies.map((s) =>
+      s.id === id ? { ...s, name, updatedAt: new Date().toISOString() } : s
+    );
+    saveSavedStrategiesToStorage(updated);
+    set({ savedStrategies: updated });
+  },
 
   setSimulationResult: (result) => set({ simulationResult: result }),
   setSimulating: (isSimulating) => set({ isSimulating }),
