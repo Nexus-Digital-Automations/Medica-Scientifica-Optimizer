@@ -4,6 +4,7 @@ import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { debugLogger } from '../../utils/debugLogger';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -151,7 +152,11 @@ export default function AdvancedOptimizer() {
 
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
-    setOptimizationResults([])
+    setOptimizationResults([]);
+
+    // Start debug logging (overwrites previous logs)
+    debugLogger.start();
+    console.log('🚀 Starting constrained optimization');
 
     try {
       const { populationSize, generations, mutationRate, eliteCount } = gaParams;
@@ -409,6 +414,11 @@ export default function AdvancedOptimizer() {
     } finally {
       setIsOptimizing(false);
       setOptimizationProgress({ current: 0, total: 0 });
+
+      // Stop debug logging and download log file
+      debugLogger.stop();
+      debugLogger.download('optimizer-debug.log');
+      console.log('📥 Debug log file downloaded');
     }
   };
 
