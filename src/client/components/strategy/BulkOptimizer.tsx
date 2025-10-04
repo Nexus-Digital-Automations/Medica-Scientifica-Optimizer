@@ -18,7 +18,7 @@ interface OptimizerResults {
 
 export default function BulkOptimizer() {
   const { strategy } = useStrategyStore();
-  const [testDay, setTestDay] = useState<number>(200);
+  const [testDay, setTestDay] = useState<number>(75);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, generation: 0 });
   const [results, setResults] = useState<OptimizerResults | null>(null);
@@ -88,7 +88,17 @@ export default function BulkOptimizer() {
       }
 
       const peakNetWorth = Math.max(...netWorthAfterTestDay.map(d => d.value));
-      console.log('[Genetic Optimizer] Peak net worth after day', testDay, ':', peakNetWorth);
+      const netWorthOnTestDay = dailyNetWorth.find(d => d.day === testDay)?.value || 0;
+      const improvement = peakNetWorth - netWorthOnTestDay;
+
+      console.log('[Genetic Optimizer] Net worth analysis:', {
+        netWorthOnTestDay: netWorthOnTestDay.toLocaleString(),
+        peakNetWorth: peakNetWorth.toLocaleString(),
+        finalNetWorth: result.finalNetWorth.toLocaleString(),
+        improvement: improvement.toLocaleString(),
+        testDay,
+      });
+
       return peakNetWorth;
     } catch (error) {
       console.error('[Genetic Optimizer] Simulation error:', error);
@@ -457,11 +467,25 @@ export default function BulkOptimizer() {
             Algorithm will find optimal actions to execute on this day forward (using current strategy state as context)
           </p>
           {testDay > 150 && (
-            <div className="mt-2 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
-              <p className="text-xs text-yellow-300">
-                ⚠️ <strong>Warning:</strong> Testing actions late in the simulation (day {testDay}) may produce identical results if your base strategy has already failed by then.
-                Actions requiring cash (buying machines, ordering materials) won't execute if the company is bankrupt.
-                Consider testing earlier (day 51-100) for more meaningful optimization.
+            <div className="mt-2 p-3 bg-red-900/40 border-2 border-red-500/70 rounded-lg">
+              <p className="text-sm font-semibold text-red-200 mb-2">
+                🚨 CRITICAL: Late-stage testing detected (day {testDay})
+              </p>
+              <p className="text-xs text-red-300 mb-2">
+                <strong>Why all results are identical:</strong> If your company is already bankrupt by day {testDay},
+                actions on that day cannot change the outcome. The "peak net worth after day {testDay}" will be the
+                same for all strategies because they all start from the same failing position.
+              </p>
+              <p className="text-xs text-red-300 font-semibold">
+                ✅ <strong>Solution:</strong> Change "Test Starting Day" to 51-100 for meaningful optimization.
+                Early actions have time to prevent bankruptcy and produce varied results.
+              </p>
+            </div>
+          )}
+          {testDay <= 150 && testDay >= 51 && (
+            <div className="mt-2 p-2 bg-green-900/20 border border-green-600/40 rounded">
+              <p className="text-xs text-green-300">
+                ✅ Good test day range - early enough to make meaningful changes
               </p>
             </div>
           )}
