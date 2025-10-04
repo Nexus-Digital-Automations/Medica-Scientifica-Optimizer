@@ -38,6 +38,14 @@ export default function AdvancedOptimizer() {
     endDay: 500,
   });
 
+  // Genetic algorithm parameters
+  const [gaParams, setGaParams] = useState({
+    populationSize: 30,
+    generations: 10,
+    mutationRate: 0.3,
+    eliteCount: 3,
+  });
+
   // Get current values from most recent timed actions
   const getCurrentPolicyValues = () => {
     const values = {
@@ -88,9 +96,7 @@ export default function AdvancedOptimizer() {
     setOptimizationResults([]);
 
     try {
-      const populationSize = 30;
-      const generations = 10;
-      const mutationRate = 0.3;
+      const { populationSize, generations, mutationRate, eliteCount } = gaParams;
 
       // Generate initial population with constrained strategy parameters
       let population: OptimizationCandidate[] = [];
@@ -163,8 +169,7 @@ export default function AdvancedOptimizer() {
         // If last generation, break
         if (gen === generations - 1) break;
 
-        // Select elite (top 20%)
-        const eliteCount = Math.floor(populationSize * 0.2);
+        // Select elite (use user-configured elite count)
         const elite = population.slice(0, eliteCount);
 
         // Generate new population
@@ -399,33 +404,107 @@ export default function AdvancedOptimizer() {
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
         <h4 className="text-lg font-semibold text-white mb-4">⚙️ Optimization Settings</h4>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Test Starting Day
-            </label>
-            <input
-              type="number"
-              value={constraints.testDay}
-              onChange={(e) => setConstraints(prev => ({ ...prev, testDay: e.target.valueAsNumber }))}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-              min="51"
-              max="450"
-            />
-          </div>
+        {/* Simulation Range */}
+        <div className="mb-6">
+          <h5 className="text-sm font-semibold text-gray-300 mb-3">📅 Simulation Range</h5>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Test Starting Day
+              </label>
+              <input
+                type="number"
+                value={constraints.testDay}
+                onChange={(e) => setConstraints(prev => ({ ...prev, testDay: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                min="51"
+                max="450"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Simulation End Day
-            </label>
-            <input
-              type="number"
-              value={constraints.endDay}
-              onChange={(e) => setConstraints(prev => ({ ...prev, endDay: e.target.valueAsNumber }))}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-              min="51"
-              max="500"
-            />
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Simulation End Day
+              </label>
+              <input
+                type="number"
+                value={constraints.endDay}
+                onChange={(e) => setConstraints(prev => ({ ...prev, endDay: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                min="51"
+                max="500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Genetic Algorithm Parameters */}
+        <div className="mb-6">
+          <h5 className="text-sm font-semibold text-gray-300 mb-3">🧬 Genetic Algorithm Parameters</h5>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Population Size
+              </label>
+              <input
+                type="number"
+                value={gaParams.populationSize}
+                onChange={(e) => setGaParams(prev => ({ ...prev, populationSize: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                min="10"
+                max="100"
+                step="5"
+              />
+              <p className="text-xs text-gray-400 mt-1">Number of strategies per generation</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Generations
+              </label>
+              <input
+                type="number"
+                value={gaParams.generations}
+                onChange={(e) => setGaParams(prev => ({ ...prev, generations: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                min="5"
+                max="50"
+                step="1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Number of evolution cycles</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Mutation Rate
+              </label>
+              <input
+                type="number"
+                value={gaParams.mutationRate}
+                onChange={(e) => setGaParams(prev => ({ ...prev, mutationRate: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                min="0.1"
+                max="0.9"
+                step="0.1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Probability of random changes (0-1)</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Elite Count
+              </label>
+              <input
+                type="number"
+                value={gaParams.eliteCount}
+                onChange={(e) => setGaParams(prev => ({ ...prev, eliteCount: e.target.valueAsNumber }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                min="1"
+                max="10"
+                step="1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Top strategies preserved each generation</p>
+            </div>
           </div>
         </div>
 
@@ -436,6 +515,8 @@ export default function AdvancedOptimizer() {
             <div>🔓 Variable Policies: {Object.values(constraints.fixedPolicies).filter(v => !v).length} / 6</div>
             <div>🔒 Fixed Actions: {constraints.fixedActions.size}</div>
             <div>⏱️ Test Range: Days {constraints.testDay} - {constraints.endDay}</div>
+            <div>🧬 GA Settings: Pop={gaParams.populationSize}, Gen={gaParams.generations}, Mut={gaParams.mutationRate}, Elite={gaParams.eliteCount}</div>
+            <div>📊 Total Simulations: {gaParams.populationSize * gaParams.generations}</div>
           </div>
         </div>
       </div>

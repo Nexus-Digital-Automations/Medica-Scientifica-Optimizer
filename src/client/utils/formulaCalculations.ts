@@ -235,6 +235,13 @@ export function calculatePriceElasticity(params: {
 
 /**
  * Get formula calculations based on strategy state at a specific day
+ * Uses data-driven inputs from historical analysis (Days 0-49):
+ * - Daily parts usage: 35.5 parts/day (23.5 for Standard × 2 parts, 12 for Custom × 1 part)
+ * - Annual parts demand: 12,965 parts/year
+ * - Parts demand std dev: 3.4 parts/day
+ * - Historical order pattern: 200 parts every 5 days
+ * - Lead time: 4 days
+ * - Stockout rate: 26% in historical period (13/50 days)
  */
 export function getFormulaForAction(
   actionType: string,
@@ -250,15 +257,29 @@ export function getFormulaForAction(
   const ANNUAL_INTEREST = 0.365;
   const DAILY_INTEREST = ANNUAL_INTEREST / 365;
 
+  // Data-driven estimates from historical analysis (Days 0-49)
+  const HISTORICAL_DAILY_PARTS_USAGE = 35.5; // Actual observed usage
+  const HISTORICAL_ANNUAL_PARTS_DEMAND = 12965; // 35.5 × 365
+  const HISTORICAL_PARTS_STD_DEV = 3.4; // Low variability observed
+  const DAYS_REMAINING = 500 - day;
+
+  // Standard line production estimates
+  const STANDARD_DAILY_ORDERS = 12; // units/day from historical data
+  const STANDARD_ANNUAL_DEMAND = STANDARD_DAILY_ORDERS * 365; // 4,380 units/year
+
+  // Current production capacity (depends on workers and bottlenecks)
+  const CURRENT_STANDARD_DELIVERY_RATE = 3.12; // Historical avg from data (severe bottleneck!)
+  const POTENTIAL_STANDARD_PRODUCTION = 12; // If bottlenecks resolved
+
   switch (actionType) {
     case 'SET_ORDER_QUANTITY':
       return {
         title: 'Economic Order Quantity (EOQ)',
         formula: 'Q* = √(2DS/H)',
         result: calculateEOQ({
-          annualDemand: 100000, // Estimated annual demand
-          orderingCost: ORDER_FEE,
-          holdingCostPerUnit: MATERIAL_COST * 0.2 // 20% holding cost assumption
+          annualDemand: HISTORICAL_ANNUAL_PARTS_DEMAND, // Data-driven: 12,965 parts/year
+          orderingCost: ORDER_FEE, // $1,000 per order
+          holdingCostPerUnit: MATERIAL_COST * 0.2 // 20% holding cost = $10/part/year
         })
       };
 
@@ -267,58 +288,80 @@ export function getFormulaForAction(
         title: 'Reorder Point with Safety Stock',
         formula: 'ROP = (d × L) + Z × σd × √L',
         result: calculateROP({
-          averageDailyDemand: 300, // Estimated from demand patterns
-          leadTimeDays: LEAD_TIME,
-          demandStdDev: 50, // Estimated variability
-          serviceLevel: 0.95
+          averageDailyDemand: HISTORICAL_DAILY_PARTS_USAGE, // Data-driven: 35.5 parts/day
+          leadTimeDays: LEAD_TIME, // 4 days from business case
+          demandStdDev: HISTORICAL_PARTS_STD_DEV, // Data-driven: 3.4 parts/day
+          serviceLevel: 0.95 // Target 95% service level (avoid 26% stockout rate)
         })
       };
 
     case 'ADJUST_BATCH_SIZE':
+      // Calculate based on days remaining - optimize differently for short vs long horizon
+      const dailyDemandRate = CURRENT_STANDARD_DELIVERY_RATE; // Current constrained rate
+      const productionRate = POTENTIAL_STANDARD_PRODUCTION; // Potential if unconstrained
+
       return {
         title: 'Economic Production Quantity (EPQ)',
         formula: 'Qp* = √(2DS/H(1-d/p))',
         result: calculateEPQ({
-          annualDemand: 50000, // Estimated standard line demand
-          setupCost: STANDARD_ORDER_FEE,
-          holdingCostPerUnit: 100 * 0.2, // 20% of product value
-          dailyDemandRate: 140,
-          dailyProductionRate: 200 // Estimated from capacity
+          annualDemand: STANDARD_ANNUAL_DEMAND, // Data-driven: 4,380 units/year
+          setupCost: STANDARD_ORDER_FEE, // $100 per batch setup
+          holdingCostPerUnit: strategy.standardPrice * 0.2, // 20% of product value
+          dailyDemandRate: dailyDemandRate, // Current delivery rate: 3.12 units/day
+          dailyProductionRate: productionRate // Potential production: 12 units/day
         })
       };
 
     case 'ADJUST_PRICE':
+      // Calculate true unit cost from business case
+      const rawMaterialCost = 100; // 2 parts × $50/part
+      const laborCost = 50; // Estimated from workforce costs
+      const overheadCost = 50; // Machine time, batching, etc.
+      const totalUnitCost = rawMaterialCost + laborCost + overheadCost;
+
       return {
         title: 'Optimal Price (Profit Maximization)',
         formula: 'P* = (bc - a) / (2b)',
         result: calculateOptimalPrice({
-          demandIntercept: strategy.standardDemandIntercept,
-          priceSlope: strategy.standardDemandSlope,
-          unitCost: 200 // Estimated unit cost
+          demandIntercept: strategy.standardDemandIntercept, // From strategy
+          priceSlope: strategy.standardDemandSlope, // From strategy (negative)
+          unitCost: totalUnitCost // $200 total unit cost
         })
       };
 
     case 'HIRE_ROOKIE':
+      // Calculate based on actual ARCP queue size from custom line
+      // Historical data shows 12 custom units/day, each needs ARCP processing
+      const customUnitsPerDay = 12; // From historical data
+      const expertProductivity = 3; // units/day per expert
+      const estimatedCurrentExperts = 2; // Starting workforce
+
       return {
         title: 'Queuing Theory (M/M/s) - Wait Time',
         formula: 'Wq = ρ / (sμ(1-ρ))',
         result: calculateQueueMetrics({
-          arrivalRate: 150, // Units arriving at ARCP per day
-          serviceRate: 3, // Expert productivity
-          numServers: 2 // Current workers
+          arrivalRate: customUnitsPerDay, // 12 custom units/day need ARCP
+          serviceRate: expertProductivity, // 3 units/day per expert
+          numServers: estimatedCurrentExperts // Current expert count
         })
       };
 
     case 'BUY_MACHINE': {
-      const daysLeft = 500 - day;
+      // Calculate NPV based on days remaining and realistic cash flow impact
+      // Machine costs: MCE=$20k, WMA=$25k, PUC=$15k (all increase capacity by 12 units/day)
+
+      // Estimate daily cash flow from increased capacity
+      const unitMargin = strategy.standardPrice - 200; // Revenue - cost per unit
+      const estimatedDailyCashFlow = unitMargin * 3; // Conservative: 3 extra units/day
+
       return {
         title: 'Net Present Value (NPV)',
         formula: 'NPV = Σ[CFt / (1+r)^t] - C₀',
         result: calculateNPV({
-          initialInvestment: 20000, // MCE machine cost
-          dailyCashFlow: 100, // Estimated daily profit increase
-          daysRemaining: daysLeft,
-          dailyDiscountRate: DAILY_INTEREST
+          initialInvestment: 20000, // MCE machine cost (default)
+          dailyCashFlow: estimatedDailyCashFlow, // Based on unit margin
+          daysRemaining: DAYS_REMAINING,
+          dailyDiscountRate: DAILY_INTEREST // 0.1% daily (36.5% annual)
         })
       };
     }
