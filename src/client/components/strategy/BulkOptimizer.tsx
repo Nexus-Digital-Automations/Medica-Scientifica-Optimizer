@@ -34,7 +34,7 @@ export default function BulkOptimizer() {
   const [formulaPercentage, setFormulaPercentage] = useState(0.4); // 40% formula-based
   const [topResultsCount, setTopResultsCount] = useState(10);
 
-  const runSimulation = async (testStrategy: Strategy): Promise<number> => {
+  const runSimulation = async (testStrategy: Strategy, testDay: number): Promise<number> => {
     try {
       const response = await fetch('http://localhost:3000/api/simulate', {
         method: 'POST',
@@ -45,7 +45,17 @@ export default function BulkOptimizer() {
       if (!response.ok) throw new Error('Simulation failed');
 
       const result: SimulationResult = await response.json();
-      return result.finalNetWorth || 0;
+
+      // Calculate peak net worth after test day
+      const dailyNetWorth = result.state.history.dailyNetWorth;
+      const netWorthAfterTestDay = dailyNetWorth.filter(d => d.day >= testDay);
+
+      if (netWorthAfterTestDay.length === 0) {
+        return result.finalNetWorth || 0;
+      }
+
+      const peakNetWorth = Math.max(...netWorthAfterTestDay.map(d => d.value));
+      return peakNetWorth;
     } catch (error) {
       console.error('Simulation error:', error);
       return -Infinity; // Failed simulations get worst fitness
@@ -59,11 +69,16 @@ export default function BulkOptimizer() {
 
     try {
       // Generate initial population with user-specified formula percentage
-      const formulaCount = Math.floor(config.populationSize * formulaPercentage);
-      const variationCount = Math.floor(config.populationSize * 0.3);
-      const randomCount = config.populationSize - formulaCount - variationCount;
+      // Reserve 1 slot for "do nothing" baseline
+      const populationWithoutBaseline = config.populationSize - 1;
+      const formulaCount = Math.floor(populationWithoutBaseline * formulaPercentage);
+      const variationCount = Math.floor(populationWithoutBaseline * 0.3);
+      const randomCount = populationWithoutBaseline - formulaCount - variationCount;
 
       const initialPop: StrategyAction[][] = [];
+
+      // ALWAYS include "do nothing" baseline as first candidate
+      initialPop.push([]);
 
       // Formula-based
       for (let i = 0; i < formulaCount; i++) {
@@ -106,10 +121,10 @@ export default function BulkOptimizer() {
             ].sort((a, b) => a.day - b.day),
           };
 
-          // Run simulation
-          const netWorth = await runSimulation(testStrategy);
-          population[i].fitness = netWorth;
-          population[i].netWorth = netWorth;
+          // Run simulation and get peak net worth after test day
+          const peakNetWorth = await runSimulation(testStrategy, testDay);
+          population[i].fitness = peakNetWorth;
+          population[i].netWorth = peakNetWorth;
 
           setProgress(prev => ({
             ...prev,
@@ -167,6 +182,9 @@ export default function BulkOptimizer() {
   };
 
   const formatActions = (actions: StrategyAction[]) => {
+    if (actions.length === 0) {
+      return 'No actions (baseline - do nothing)';
+    }
     return actions.map(a => {
       let details = `${a.type}`;
       if ('count' in a) details += ` (${a.count})`;
@@ -320,40 +338,63 @@ export default function BulkOptimizer() {
         </button>
 
         {results && (
-          <div className="mt-6">
-            <h4 className="text-md font-semibold text-white mb-3">
-              🏆 Top Performing Strategies (Generation {results.generation})
-            </h4>
-            <div className="space-y-2">
-              {results.topCandidates.map((candidate, idx) => (
-                <div
-                  key={candidate.id}
-                  className={`p-4 rounded-lg border ${
-                    idx === 0
-                      ? 'bg-yellow-900/20 border-yellow-600'
-                      : 'bg-gray-750 border-gray-600'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {idx === 0 && <span className="text-2xl">👑</span>}
-                      <span className="text-sm font-semibold text-white">
-                        #{idx + 1}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-green-400">
-                        ${candidate.netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-gray-500">Final Net Worth</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    <span className="font-semibold">Actions on Day {testDay}:</span> {formatActions(candidate.actions)}
-                  </div>
+          <div className="mt-6 space-y-4">
+            {/* Top Recommendation */}
+            <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/20 rounded-lg border-2 border-yellow-600 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">👑</span>
+                <div>
+                  <h4 className="text-xl font-bold text-yellow-400">Recommended Strategy</h4>
+                  <p className="text-sm text-gray-300">Best performing actions for day {testDay}</p>
                 </div>
-              ))}
+              </div>
+              <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
+                <div className="text-3xl font-bold text-green-400 mb-1">
+                  ${results.topCandidates[0].netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div className="text-sm text-gray-400">Peak Net Worth After Day {testDay}</div>
+              </div>
+              <div className="text-sm">
+                <span className="font-semibold text-white">Recommended Actions:</span>
+                <div className="mt-2 text-gray-300 bg-gray-900/30 rounded p-3">
+                  {formatActions(results.topCandidates[0].actions)}
+                </div>
+              </div>
             </div>
+
+            {/* Other Top Performers */}
+            {results.topCandidates.length > 1 && (
+              <div>
+                <h4 className="text-md font-semibold text-white mb-3">
+                  📊 Other Top Performers (Generation {results.generation})
+                </h4>
+                <div className="space-y-2">
+                  {results.topCandidates.slice(1).map((candidate, idx) => (
+                    <div
+                      key={candidate.id}
+                      className="p-4 rounded-lg border bg-gray-750 border-gray-600"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-white">
+                            #{idx + 2}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-400">
+                            ${candidate.netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-gray-500">Peak Net Worth After Day {testDay}</div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        <span className="font-semibold">Actions on Day {testDay}:</span> {formatActions(candidate.actions)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
