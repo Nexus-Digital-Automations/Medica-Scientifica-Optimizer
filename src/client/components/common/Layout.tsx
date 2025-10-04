@@ -10,10 +10,10 @@ interface LayoutProps {
 
 export default function Layout({ activeTab, onTabChange, children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       <Tabs activeTab={activeTab} onTabChange={onTabChange} />
-      <main className="container mx-auto px-8 py-8">
+      <main className="container mx-auto px-6 py-6">
         {children}
       </main>
     </div>

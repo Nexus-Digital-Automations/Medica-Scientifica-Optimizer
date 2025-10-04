@@ -11,17 +11,17 @@ export default function Tabs({ activeTab, onTabChange }: TabsProps) {
   ];
 
   return (
-    <div className="bg-gray-800 border-b border-gray-700">
+    <div className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-6">
-        <nav className="flex space-x-1">
+        <nav className="flex space-x-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-6 py-3 font-medium text-sm transition-all ${
+              className={`px-4 py-2 font-medium text-sm transition-all rounded-t-lg ${
                 activeTab === tab.id
-                  ? 'bg-gray-900 text-white border-t-2 border-blue-500'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  ? 'bg-gray-50 text-gray-900 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               {tab.label}
