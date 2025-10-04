@@ -1,11 +1,12 @@
 interface TabsProps {
-  activeTab: 'builder' | 'results' | 'library';
-  onTabChange: (tab: 'builder' | 'results' | 'library') => void;
+  activeTab: 'builder' | 'results' | 'library' | 'optimizer';
+  onTabChange: (tab: 'builder' | 'results' | 'library' | 'optimizer') => void;
 }
 
 export default function Tabs({ activeTab, onTabChange }: TabsProps) {
   const tabs = [
     { id: 'builder' as const, label: '📝 Strategy Builder', icon: '📝' },
+    { id: 'optimizer' as const, label: '🎯 Advanced Optimizer', icon: '🎯' },
     { id: 'results' as const, label: '📊 Simulation Results', icon: '📊' },
     { id: 'library' as const, label: '📚 Strategy Library', icon: '📚' },
   ];

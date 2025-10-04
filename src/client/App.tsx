@@ -8,9 +8,10 @@ import ResultsDashboard from './components/simulation/ResultsDashboard';
 import SaveStrategyButton from './components/strategy/SaveStrategyButton';
 import StrategyLibrary from './components/strategy/StrategyLibrary';
 import BulkOptimizer from './components/strategy/BulkOptimizer';
+import AdvancedOptimizer from './components/strategy/AdvancedOptimizer';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library'>('builder');
+  const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library' | 'optimizer'>('builder');
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
@@ -49,6 +50,19 @@ function App() {
               </p>
             </div>
             <ResultsDashboard onEditStrategy={() => setActiveTab('builder')} />
+          </div>
+        )}
+        {activeTab === 'optimizer' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                🎯 Advanced Optimizer
+              </h2>
+              <p className="text-sm text-gray-400">
+                Configure optimization constraints and save recommended strategies
+              </p>
+            </div>
+            <AdvancedOptimizer />
           </div>
         )}
         {activeTab === 'library' && (
