@@ -173,12 +173,12 @@ export function generateCashFlowAwareStrategy(): Strategy {
 
   // GUARANTEED CASH FLOW SAFETY: Always include early loans
   // These loans ensure the factory has operating capital throughout the simulation
-  // EOQ at realistic prices ($400-$1200) requires $270K-$383K per material order
-  // Factory needs MASSIVE capital injection to afford even one proper material order
+  // EOQ based on MCE capacity (45 parts/day): ~1,812 parts = $91,600 per order
+  // Starting cash: $8,206 - need ~$84K to afford first material order + working capital buffer
   const guaranteedLoans = [
-    { day: 51, type: 'TAKE_LOAN' as const, amount: 400000 + Math.floor(Math.random() * 100000) }, // $400K-$500K (covers first material order)
-    { day: 70, type: 'TAKE_LOAN' as const, amount: 300000 + Math.floor(Math.random() * 100000) }, // $300K-$400K (covers subsequent orders)
-    { day: 100, type: 'TAKE_LOAN' as const, amount: 200000 + Math.floor(Math.random() * 100000) }, // $200K-$300K (supplemental capital)
+    { day: 51, type: 'TAKE_LOAN' as const, amount: 100000 + Math.floor(Math.random() * 20000) }, // $100K-$120K (covers first material order)
+    { day: 70, type: 'TAKE_LOAN' as const, amount: 80000 + Math.floor(Math.random() * 20000) }, // $80K-$100K (covers subsequent orders)
+    { day: 100, type: 'TAKE_LOAN' as const, amount: 60000 + Math.floor(Math.random() * 20000) }, // $60K-$80K (supplemental capital)
   ];
 
   // GUARANTEED INVENTORY SAFETY: Always include early material order

@@ -119,42 +119,51 @@ export class AnalyticalOptimizer {
    */
   generateAnalyticalStrategy(): Strategy {
     // Medica Scientifica parameters (from business case):
-    // - Standard demand curve: D = 500 - 0.25*P
-    // - At typical prices ($600-$930): demand is 200-350 units/day
-    // - Raw material: 2 parts per unit @ $50/part
+    // - MCE capacity: 30 units/day per machine
+    // - Typical allocation: ~50% Standard, ~50% Custom
+    // - Standard: 2 parts/unit, Custom: 1 part/order
     // - Lead time: 4 days
     // - Service level target: 95%
 
     // Calculate optimal order quantity (EOQ)
-    // Use mid-range price ($800) to estimate realistic demand
-    const typicalPrice = 800;
-    const standardDemandIntercept = 500;
-    const standardDemandSlope = -0.25;
-    const avgDailyStandardDemand = standardDemandIntercept + (standardDemandSlope * typicalPrice); // ~300 units/day
-    const rawMaterialPerStandardUnit = CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT; // 2 parts per unit
-    const avgDailyRawMaterialDemand = avgDailyStandardDemand * rawMaterialPerStandardUnit;
+    // Base on MCE consumption capacity (actual material usage), NOT customer demand
+    // Customer demand (300 units/day) vastly exceeds production capacity (3 units/day ARCP)
+    // EOQ should reflect ACTUAL material consumption at MCE stage
+    const mceCapacityPerMachine = CONSTANTS.MCE_UNITS_PER_MACHINE_PER_DAY; // 30 units/day
+    const typicalAllocationStandard = 0.50; // Assume 50/50 split for baseline
+    const standardMCEUnits = mceCapacityPerMachine * typicalAllocationStandard; // 15 units/day
+    const customMCEUnits = mceCapacityPerMachine * (1 - typicalAllocationStandard); // 15 units/day
+    const avgDailyRawMaterialDemand =
+      (standardMCEUnits * CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT) +
+      (customMCEUnits * CONSTANTS.CUSTOM_RAW_MATERIAL_PER_UNIT); // 30 + 15 = 45 parts/day
 
+    // EOQ based on MCE consumption rate (~45 parts/day)
+    // At this rate: EOQ ≈ 1,812 parts = $91,600 per order
     const eoq = this.calculateEOQ({
-      annualDemand: avgDailyRawMaterialDemand * 365,
-      orderingCost: CONSTANTS.RAW_MATERIAL_ORDER_FEE, // Actual order fee from constants
-      holdingCostPerUnit: CONSTANTS.RAW_MATERIAL_UNIT_COST * 0.20, // 20% annual holding cost
+      annualDemand: avgDailyRawMaterialDemand * 365, // 45 * 365 = 16,425 parts/year
+      orderingCost: CONSTANTS.RAW_MATERIAL_ORDER_FEE, // $1,000 per order
+      holdingCostPerUnit: CONSTANTS.RAW_MATERIAL_UNIT_COST * 0.20, // $10 per part per year (20% holding cost)
     });
 
     // Calculate optimal reorder point (ROP)
+    // Based on MCE consumption (45 parts/day) with 4-day lead time
+    // ROP ≈ 217 parts (180 parts for lead time + 37 parts safety stock)
     const rop = this.calculateReorderPoint({
-      avgDailyDemand: avgDailyRawMaterialDemand,
+      avgDailyDemand: avgDailyRawMaterialDemand, // 45 parts/day
       leadTimeDays: 4, // Raw materials arrive in 4 days
       serviceLevel: 0.95, // 95% service level
-      demandStdDev: avgDailyRawMaterialDemand * 0.25, // Assume 25% variation
+      demandStdDev: avgDailyRawMaterialDemand * 0.25, // 11.25 parts/day std dev (25% variation)
     });
 
     // Calculate optimal batch size for standard line (EPQ)
+    // Use MCE production rate (15 units/day Standard at 50% allocation)
+    // Not customer demand (300 units/day) - factory is capacity-constrained
     const epq = this.calculateEPQ({
-      annualDemand: avgDailyStandardDemand * 365,
-      setupCost: 50, // Estimated setup cost for batch change
-      holdingCost: CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT * CONSTANTS.RAW_MATERIAL_UNIT_COST * 0.20,
-      productionRate: 100, // MCE capacity
-      demandRate: avgDailyStandardDemand,
+      annualDemand: standardMCEUnits * 365, // 15 units/day × 365 = 5,475 units/year
+      setupCost: CONSTANTS.STANDARD_PRODUCTION_ORDER_FEE, // $100 per batch
+      holdingCost: CONSTANTS.STANDARD_RAW_MATERIAL_PER_UNIT * CONSTANTS.RAW_MATERIAL_UNIT_COST * 0.20, // $10 per unit per year
+      productionRate: mceCapacityPerMachine, // 30 units/day MCE capacity
+      demandRate: standardMCEUnits, // 15 units/day actual Standard production
     });
 
     // Return strategy with analytically-derived parameters

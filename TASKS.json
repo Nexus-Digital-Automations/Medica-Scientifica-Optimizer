@@ -1,15 +1,7 @@
 {
   "project": "Medica Scientifica Optimizer",
   "features": [],
-  "agents": {
-    "claude-agent-medica-scientifica": {
-      "lastHeartbeat": "2025-10-03T23:33:21.573Z",
-      "status": "active",
-      "reinitialized": "2025-10-03T23:33:21.573Z",
-      "sessionId": "32f36a1e19b30fc2",
-      "previousSessions": []
-    }
-  },
+  "agents": {},
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",

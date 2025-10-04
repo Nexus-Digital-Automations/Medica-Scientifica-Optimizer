@@ -468,15 +468,15 @@ function applyFixedConstraints(strategy: Strategy, fixedParams?: StrategyOverrid
  */
 function quickValidation(strategy: Strategy): boolean {
   // Check 1: Must have at least one LARGE early loan (cash flow safety)
-  // EOQ at realistic prices requires $270K-$383K per material order
-  // Factory needs at least $300K in early capital to afford first material order
+  // EOQ based on MCE capacity (45 parts/day): ~1,812 parts = $91,600 per order
+  // Starting cash: $8,206 - factory needs at least $80K in early capital to afford first material order
   const earlyLoans = strategy.timedActions.filter(
     a => a.type === 'TAKE_LOAN' && a.day < 70
   );
   const totalEarlyCapital = earlyLoans.reduce((sum, loan) =>
     sum + ('amount' in loan ? loan.amount : 0), 0
   );
-  if (totalEarlyCapital < 300000) {
+  if (totalEarlyCapital < 80000) {
     return false; // Insufficient capital for material orders = cash starvation
   }
 
