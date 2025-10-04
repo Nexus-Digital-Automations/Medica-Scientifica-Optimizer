@@ -200,6 +200,72 @@ export function validateSimulationResults(result: SimulationResult): ValidationR
     });
   }
 
+  // End-of-Simulation Optimizations (from Developer Guide.md optimal strategy)
+
+  // 1. End-of-Simulation Raw Material Inventory
+  const finalRawMaterial = state.history.dailyRawMaterial[state.history.dailyRawMaterial.length - 1]?.value || 0;
+  const RAW_MATERIAL_COST = 50; // $50 per unit from Reference Guide.md
+
+  if (finalRawMaterial > 0) {
+    const opportunityCost = finalRawMaterial * RAW_MATERIAL_COST;
+    warnings.push({
+      severity: 'warning',
+      category: 'objective',
+      title: 'Leftover Raw Materials at Simulation End',
+      description: `${finalRawMaterial} units of raw materials remain at end ($${opportunityCost.toLocaleString()} tied-up capital). Optimal strategy stops material orders ~20-30 days before end.`,
+      metric: 'dailyRawMaterial',
+      recommendation: `Stop ordering raw materials earlier (around day ${state.currentDay - 30}) to minimize leftover inventory and maximize final cash.`,
+    });
+  }
+
+  // 2. End-of-Simulation Machine Holdings
+  const finalMachineValue = (state.machines.MCE * 10000) + (state.machines.WMA * 7500) + (state.machines.PUC * 4000);
+  const INITIAL_MACHINE_VALUE = (1 * 10000) + (1 * 7500) + (1 * 4000); // Starting with 1 of each
+
+  if (finalMachineValue > INITIAL_MACHINE_VALUE) {
+    const extraMachineValue = finalMachineValue - INITIAL_MACHINE_VALUE;
+    warnings.push({
+      severity: 'warning',
+      category: 'objective',
+      title: 'Unsold Machines at Simulation End',
+      description: `$${extraMachineValue.toLocaleString()} in machine resale value not converted to cash. Optimal strategy sells excess machines ~5-10 days before end.`,
+      recommendation: `Sell excess machines near end of simulation (around day ${state.currentDay - 10}) to maximize final cash. Machines sell at 50% of purchase price.`,
+    });
+  }
+
+  // 3. End-of-Simulation WIP
+  const finalStandardWIP = state.history.dailyStandardWIP[state.history.dailyStandardWIP.length - 1]?.value || 0;
+  const finalCustomWIP = state.history.dailyCustomWIP[state.history.dailyCustomWIP.length - 1]?.value || 0;
+
+  if (finalStandardWIP > 50 || finalCustomWIP > 10) {
+    const tiedUpMaterials = (finalStandardWIP * 2) + (finalCustomWIP * 1); // 2 parts per standard, 1 per custom
+    const tiedUpValue = tiedUpMaterials * RAW_MATERIAL_COST;
+
+    warnings.push({
+      severity: 'warning',
+      category: 'objective',
+      title: 'High Work-in-Progress at Simulation End',
+      description: `${finalStandardWIP} standard units and ${finalCustomWIP} custom orders remain in pipeline ($${tiedUpValue.toLocaleString()} in materials). These won't convert to revenue.`,
+      recommendation: 'Reduce or stop production earlier to allow WIP to complete and convert to revenue before simulation ends.',
+    });
+  }
+
+  // 4. Final Cash Optimization Summary
+  const totalTiedUpCapital =
+    (finalRawMaterial * RAW_MATERIAL_COST) +
+    (finalMachineValue > INITIAL_MACHINE_VALUE ? finalMachineValue - INITIAL_MACHINE_VALUE : 0) +
+    ((finalStandardWIP * 2 + finalCustomWIP) * RAW_MATERIAL_COST);
+
+  if (totalTiedUpCapital > 1000) {
+    info.push({
+      severity: 'info',
+      category: 'objective',
+      title: 'Final Cash Optimization Opportunities',
+      description: `$${totalTiedUpCapital.toLocaleString()} in capital tied up in inventory, WIP, and machines at simulation end. Optimal strategies minimize these to maximize final cash.`,
+      recommendation: 'Review Developer Guide.md optimal strategy example: stop material orders ~20-30 days early, sell excess machines ~5-10 days before end.',
+    });
+  }
+
   return {
     errors,
     warnings,
