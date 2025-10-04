@@ -561,7 +561,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={constraints.testDay}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setConstraints(prev => ({ ...prev, testDay: val }));
                   }
@@ -580,7 +580,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={constraints.endDay}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setConstraints(prev => ({ ...prev, endDay: val }));
                   }
@@ -605,7 +605,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={gaParams.populationSize}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setGaParams(prev => ({ ...prev, populationSize: val }));
                   }
@@ -626,7 +626,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={gaParams.generations}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setGaParams(prev => ({ ...prev, generations: val }));
                   }
@@ -647,7 +647,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={gaParams.mutationRate}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setGaParams(prev => ({ ...prev, mutationRate: val }));
                   }
@@ -668,7 +668,7 @@ export default function AdvancedOptimizer() {
                 type="number"
                 value={gaParams.eliteCount}
                 onChange={(e) => {
-                  const val = e.target.valueAsNumber;
+                  const val = Number(e.target.value);
                   if (!isNaN(val)) {
                     setGaParams(prev => ({ ...prev, eliteCount: val }));
                   }
