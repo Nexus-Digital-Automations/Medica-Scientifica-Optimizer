@@ -295,7 +295,7 @@ export function getFormulaForAction(
         })
       };
 
-    case 'ADJUST_BATCH_SIZE':
+    case 'ADJUST_BATCH_SIZE': {
       // Calculate based on days remaining - optimize differently for short vs long horizon
       const dailyDemandRate = CURRENT_STANDARD_DELIVERY_RATE; // Current constrained rate
       const productionRate = POTENTIAL_STANDARD_PRODUCTION; // Potential if unconstrained
@@ -311,8 +311,9 @@ export function getFormulaForAction(
           dailyProductionRate: productionRate // Potential production: 12 units/day
         })
       };
+    }
 
-    case 'ADJUST_PRICE':
+    case 'ADJUST_PRICE': {
       // Calculate true unit cost from business case
       const rawMaterialCost = 100; // 2 parts × $50/part
       const laborCost = 50; // Estimated from workforce costs
@@ -328,8 +329,9 @@ export function getFormulaForAction(
           unitCost: totalUnitCost // $200 total unit cost
         })
       };
+    }
 
-    case 'HIRE_ROOKIE':
+    case 'HIRE_ROOKIE': {
       // Calculate based on actual ARCP queue size from custom line
       // Historical data shows 12 custom units/day, each needs ARCP processing
       const customUnitsPerDay = 12; // From historical data
@@ -345,6 +347,7 @@ export function getFormulaForAction(
           numServers: estimatedCurrentExperts // Current expert count
         })
       };
+    }
 
     case 'BUY_MACHINE': {
       // Calculate NPV based on days remaining and realistic cash flow impact
