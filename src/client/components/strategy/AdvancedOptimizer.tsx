@@ -232,7 +232,11 @@ export default function AdvancedOptimizer() {
           try {
             const response = await fetch('http://localhost:3000/api/simulate', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              },
+              cache: 'no-store',
               body: JSON.stringify({ strategy: testStrategy }),
             });
 
