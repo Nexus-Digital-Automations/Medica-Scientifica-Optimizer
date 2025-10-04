@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy, StrategyAction, SimulationResult } from '../../types/ui.types';
 import {
@@ -208,7 +208,7 @@ export default function BulkOptimizer() {
     }
   };
 
-  const formatActions = (actions: StrategyAction[]): JSX.Element => {
+  const formatActions = (actions: StrategyAction[]): React.JSX.Element => {
     if (actions.length === 0) {
       return <div className="text-gray-400 italic">No actions (baseline - do nothing on day {testDay})</div>;
     }
@@ -219,50 +219,56 @@ export default function BulkOptimizer() {
           let actionDetails = '';
 
           switch (a.type) {
-            case 'HIRE_ROOKIE':
+            case 'HIRE_ROOKIE': {
               actionLabel = '👷 Hire Rookie Workers';
-              actionDetails = `Hire ${(a as any).count} rookie worker${(a as any).count > 1 ? 's' : ''}`;
+              const count = 'count' in a ? a.count : 0;
+              actionDetails = `Hire ${count} rookie worker${count > 1 ? 's' : ''}`;
               break;
-            case 'HIRE_EXPERT':
+            }
+            case 'HIRE_EXPERT': {
               actionLabel = '🎓 Hire Expert Workers';
-              actionDetails = `Hire ${(a as any).count} expert worker${(a as any).count > 1 ? 's' : ''}`;
+              const count = 'count' in a ? a.count : 0;
+              actionDetails = `Hire ${count} expert worker${count > 1 ? 's' : ''}`;
               break;
-            case 'BUY_MACHINE':
+            }
+            case 'BUY_MACHINE': {
               actionLabel = '🏭 Buy Machine';
-              actionDetails = `Purchase ${(a as any).count} ${(a as any).machineType} machine${(a as any).count > 1 ? 's' : ''}`;
+              const count = 'count' in a ? a.count : 0;
+              const machineType = 'machineType' in a ? a.machineType : 'Unknown';
+              actionDetails = `Purchase ${count} ${machineType} machine${count > 1 ? 's' : ''}`;
               break;
-            case 'SET_ORDER_QUANTITY':
+            }
+            case 'SET_ORDER_QUANTITY': {
               actionLabel = '📦 Set Order Quantity';
-              actionDetails = `Change material order quantity to ${(a as any).newOrderQuantity} units`;
+              const qty = 'newOrderQuantity' in a ? a.newOrderQuantity : 0;
+              actionDetails = `Change material order quantity to ${qty} units`;
               break;
-            case 'SET_REORDER_POINT':
+            }
+            case 'SET_REORDER_POINT': {
               actionLabel = '🔔 Set Reorder Point';
-              actionDetails = `Change reorder trigger point to ${(a as any).newReorderPoint} units`;
+              const point = 'newReorderPoint' in a ? a.newReorderPoint : 0;
+              actionDetails = `Change reorder trigger point to ${point} units`;
               break;
-            case 'ADJUST_BATCH_SIZE':
+            }
+            case 'ADJUST_BATCH_SIZE': {
               actionLabel = '⚙️ Adjust Batch Size';
-              actionDetails = `Change production batch size to ${(a as any).newSize} units`;
+              const size = 'newSize' in a ? a.newSize : 0;
+              actionDetails = `Change production batch size to ${size} units`;
               break;
-            case 'ADJUST_PRICE':
+            }
+            case 'ADJUST_PRICE': {
               actionLabel = '💰 Adjust Product Price';
-              actionDetails = `Set ${(a as any).productType} product price to $${(a as any).newPrice}`;
+              const productType = 'productType' in a ? a.productType : 'unknown';
+              const price = 'newPrice' in a ? a.newPrice : 0;
+              actionDetails = `Set ${productType} product price to $${price}`;
               break;
-            case 'ALLOCATE_MCE':
-              actionLabel = '🔧 Allocate MCE Machines';
-              actionDetails = `Allocate ${(a as any).standard} MCE to standard, ${(a as any).luxury} MCE to luxury`;
+            }
+            case 'ADJUST_MCE_ALLOCATION': {
+              actionLabel = '🔧 Adjust MCE Allocation';
+              const allocation = 'newAllocation' in a ? a.newAllocation : 0;
+              actionDetails = `Set MCE allocation to custom line: ${(allocation * 100).toFixed(0)}%`;
               break;
-            case 'ALLOCATE_WMA':
-              actionLabel = '⚡ Allocate WMA Machines';
-              actionDetails = `Allocate ${(a as any).standard} WMA to standard, ${(a as any).luxury} WMA to luxury`;
-              break;
-            case 'ALLOCATE_PUC':
-              actionLabel = '📊 Allocate PUC Machines';
-              actionDetails = `Allocate ${(a as any).standard} PUC to standard, ${(a as any).luxury} PUC to luxury`;
-              break;
-            case 'ALLOCATE_WORKERS':
-              actionLabel = '👥 Allocate Workers';
-              actionDetails = `Allocate ${(a as any).standard} workers to standard, ${(a as any).luxury} workers to luxury`;
-              break;
+            }
             default:
               actionLabel = a.type;
               actionDetails = JSON.stringify(a);
