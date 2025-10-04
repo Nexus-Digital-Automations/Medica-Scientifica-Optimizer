@@ -151,7 +151,7 @@ export default function AdvancedOptimizer() {
 
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
-    setOptimizationResults([]);
+    setOptimizationResults([])
 
     try {
       const { populationSize, generations, mutationRate, eliteCount } = gaParams;

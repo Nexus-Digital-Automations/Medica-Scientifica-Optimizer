@@ -239,10 +239,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {/* Conditional Fields Based on Action Type */}
             {actionType === 'TAKE_LOAN' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="loan-amount" className="block text-sm font-medium text-gray-700 mb-2">
                   Loan Amount ($)
                 </label>
                 <input
+                  id="loan-amount"
                   type="number"
                   value={loanAmount}
                   onChange={(e) => setLoanAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -258,10 +259,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'ORDER_MATERIALS' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="material-quantity" className="block text-sm font-medium text-gray-700 mb-2">
                   Quantity (units)
                 </label>
                 <input
+                  id="material-quantity"
                   type="number"
                   value={materialQuantity}
                   onChange={(e) => setMaterialQuantity(e.target.value === '' ? '' : Number(e.target.value))}
@@ -277,11 +279,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'HIRE_ROOKIE' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <label htmlFor="rookie-count" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   Number of Rookies
                   <FormulaPopup actionType="HIRE_ROOKIE" day={Number(day) || 51} />
                 </label>
                 <input
+                  id="rookie-count"
                   type="number"
                   value={rookieCount}
                   onChange={(e) => setRookieCount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -297,10 +300,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {(actionType === 'BUY_MACHINE' || actionType === 'SELL_MACHINE') && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="machine-type" className="block text-sm font-medium text-gray-700 mb-2">
                     Machine Type
                   </label>
                   <select
+                    id="machine-type"
                     value={machineType}
                     onChange={(e) => setMachineType(e.target.value as MachineType)}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -311,11 +315,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <label htmlFor="machine-count" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                     Count
                     {actionType === 'BUY_MACHINE' && <FormulaPopup actionType="BUY_MACHINE" day={Number(day) || 51} />}
                   </label>
                   <input
+                    id="machine-count"
                     type="number"
                     value={machineCount}
                     onChange={(e) => setMachineCount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -334,10 +339,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {actionType === 'ADJUST_PRICE' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="product-type" className="block text-sm font-medium text-gray-700 mb-2">
                     Product Type
                   </label>
                   <select
+                    id="product-type"
                     value={productType}
                     onChange={(e) => setProductType(e.target.value as ProductType)}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -347,11 +353,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <label htmlFor="new-price" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                     New Price ($)
                     <FormulaPopup actionType="ADJUST_PRICE" day={Number(day) || 51} />
                   </label>
                   <input
+                    id="new-price"
                     type="number"
                     value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
@@ -368,10 +375,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'PAY_DEBT' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="debt-payment-amount" className="block text-sm font-medium text-gray-700 mb-2">
                   Payment Amount ($)
                 </label>
                 <input
+                  id="debt-payment-amount"
                   type="number"
                   value={debtPaymentAmount}
                   onChange={(e) => setDebtPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -387,11 +395,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'ADJUST_BATCH_SIZE' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <label htmlFor="new-batch-size" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Standard Batch Size
                   <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
                 </label>
                 <input
+                  id="new-batch-size"
                   type="number"
                   value={newBatchSize}
                   onChange={(e) => setNewBatchSize(e.target.value === '' ? '' : Number(e.target.value))}
@@ -407,10 +416,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'ADJUST_MCE_ALLOCATION' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="new-mce-allocation" className="block text-sm font-medium text-gray-700 mb-2">
                   Custom MCE Allocation (%)
                 </label>
                 <input
+                  id="new-mce-allocation"
                   type="number"
                   value={newMCEAllocation}
                   onChange={(e) => setNewMCEAllocation(e.target.value === '' ? '' : Number(e.target.value))}
@@ -428,10 +438,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
             {actionType === 'FIRE_EMPLOYEE' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="fire-employee-type" className="block text-sm font-medium text-gray-700 mb-2">
                     Employee Type
                   </label>
                   <select
+                    id="fire-employee-type"
                     value={fireEmployeeType}
                     onChange={(e) => setFireEmployeeType(e.target.value as EmployeeType)}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -441,10 +452,11 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="fire-employee-count" className="block text-sm font-medium text-gray-700 mb-2">
                     Number to Fire
                   </label>
                   <input
+                    id="fire-employee-count"
                     type="number"
                     value={fireEmployeeCount}
                     onChange={(e) => setFireEmployeeCount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -460,11 +472,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'SET_REORDER_POINT' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <label htmlFor="reorder-point" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Reorder Point (units)
                   <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
                 </label>
                 <input
+                  id="reorder-point"
                   type="number"
                   value={reorderPoint}
                   onChange={(e) => setReorderPoint(e.target.value === '' ? '' : Number(e.target.value))}
@@ -480,11 +493,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
 
             {actionType === 'SET_ORDER_QUANTITY' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <label htmlFor="order-quantity" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   New Order Quantity (units)
                   <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
                 </label>
                 <input
+                  id="order-quantity"
                   type="number"
                   value={orderQuantity}
                   onChange={(e) => setOrderQuantity(e.target.value === '' ? '' : Number(e.target.value))}
