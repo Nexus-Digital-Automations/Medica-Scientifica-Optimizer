@@ -16,45 +16,8 @@ export default function PolicyForm() {
           <div>
             <p className="text-gray-900 font-semibold mb-2">Environmental Parameters & Initial Settings</p>
             <p className="text-gray-700 text-sm leading-relaxed">
-              These are the baseline parameters and starting values for your simulation. Values like pricing and production allocation can be changed during the simulation using <strong className="text-blue-700">User Actions</strong> (policy decisions) from the Action Timeline.
+              These are the baseline parameters and starting values for your simulation. Values like pricing and MCE allocation should be changed during the simulation using <strong className="text-blue-700">User Actions</strong> (policy decisions) from the Action Timeline.
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Production Allocation */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200 px-8 py-6">
-          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <span>🏭</span> Initial Production Allocation
-          </h3>
-          <p className="text-gray-600 text-sm mt-1">Starting machine capacity distribution (adjustable via user actions)</p>
-        </div>
-        <div className="p-8">
-          <label className="block text-base font-medium text-gray-900 mb-6">
-            MCE Allocation to Custom Line
-            <span className="text-gray-500 text-sm ml-2 font-normal">(% of machine capacity)</span>
-          </label>
-          <div className="flex items-center gap-6 mb-6">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={strategy.mceAllocationCustom * 100}
-              onChange={(e) => handleInputChange('mceAllocationCustom', Number(e.target.value) / 100)}
-              className="flex-1 h-3 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="bg-blue-600 text-white font-bold text-xl px-6 py-3 rounded-lg min-w-[120px] text-center shadow-sm">
-              {(strategy.mceAllocationCustom * 100).toFixed(0)}%
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-sm font-medium gap-4">
-            <div className="bg-green-50 text-green-700 px-5 py-3 rounded-lg border border-green-200">
-              Standard: {((1 - strategy.mceAllocationCustom) * 100).toFixed(0)}%
-            </div>
-            <div className="bg-purple-50 text-purple-700 px-5 py-3 rounded-lg border border-purple-200">
-              Custom: {(strategy.mceAllocationCustom * 100).toFixed(0)}%
-            </div>
           </div>
         </div>
       </div>
