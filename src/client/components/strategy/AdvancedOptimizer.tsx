@@ -209,23 +209,26 @@ export default function AdvancedOptimizer() {
             const result = data.result;
 
             // Find peak net worth after test day
-            const dailyNetWorth = result.state.history.dailyNetWorth;
-            const netWorthAfterTestDay = dailyNetWorth.filter(
-              (d: { day: number; value: number }) =>
-                d.day >= constraints.testDay && d.day <= constraints.endDay
-            );
+            let peakNetWorth = result.finalNetWorth; // Default to final net worth
 
-            let peakNetWorth = -Infinity;
-            if (netWorthAfterTestDay.length === 0) {
-              peakNetWorth = result.finalNetWorth || 0;
-            } else {
-              peakNetWorth = Math.max(...netWorthAfterTestDay.map((d: { value: number }) => d.value));
+            if (result.state?.history?.dailyNetWorth) {
+              const dailyNetWorth = result.state.history.dailyNetWorth;
+              const netWorthAfterTestDay = dailyNetWorth.filter(
+                (d: { day: number; value: number }) =>
+                  d.day >= constraints.testDay && d.day <= constraints.endDay
+              );
+
+              if (netWorthAfterTestDay.length > 0) {
+                peakNetWorth = Math.max(...netWorthAfterTestDay.map((d: { value: number }) => d.value));
+              }
             }
+
+            console.log(`Candidate ${candidate.id}: Peak Net Worth = $${peakNetWorth.toLocaleString()}`);
 
             candidate.netWorth = peakNetWorth;
             candidate.fitness = peakNetWorth;
           } catch (error) {
-            console.error('Simulation error:', error);
+            console.error(`Simulation error for candidate ${candidate.id}:`, error);
             candidate.fitness = -Infinity;
             candidate.netWorth = -Infinity;
           }
