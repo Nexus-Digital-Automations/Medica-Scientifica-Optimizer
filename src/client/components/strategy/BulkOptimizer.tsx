@@ -214,11 +214,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Population Size</label>
             <input
               type="number"
-              value={config.populationSize}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, populationSize: Math.floor(val) }));
-              }}
+              value={isNaN(config.populationSize) ? '' : config.populationSize}
+              onChange={(e) => setConfig(prev => ({ ...prev, populationSize: Math.floor(e.target.valueAsNumber) || 10 }))}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -230,11 +227,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Generations</label>
             <input
               type="number"
-              value={config.generations}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, generations: Math.floor(val) }));
-              }}
+              value={isNaN(config.generations) ? '' : config.generations}
+              onChange={(e) => setConfig(prev => ({ ...prev, generations: Math.floor(e.target.valueAsNumber) || 5 }))}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -246,11 +240,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Mutation Rate (%)</label>
             <input
               type="number"
-              value={config.mutationRate * 100}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, mutationRate: val / 100 }));
-              }}
+              value={isNaN(config.mutationRate * 100) ? '' : config.mutationRate * 100}
+              onChange={(e) => setConfig(prev => ({ ...prev, mutationRate: (e.target.valueAsNumber || 10) / 100 }))}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="10"
@@ -263,11 +254,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Elite Survival (%)</label>
             <input
               type="number"
-              value={config.elitePercentage * 100}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setConfig(prev => ({ ...prev, elitePercentage: val / 100 }));
-              }}
+              value={isNaN(config.elitePercentage * 100) ? '' : config.elitePercentage * 100}
+              onChange={(e) => setConfig(prev => ({ ...prev, elitePercentage: (e.target.valueAsNumber || 20) / 100 }))}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -280,11 +268,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Formula-Based (%)</label>
             <input
               type="number"
-              value={formulaPercentage * 100}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setFormulaPercentage(val / 100);
-              }}
+              value={isNaN(formulaPercentage * 100) ? '' : formulaPercentage * 100}
+              onChange={(e) => setFormulaPercentage((e.target.valueAsNumber || 20) / 100)}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="20"
@@ -297,11 +282,8 @@ export default function BulkOptimizer() {
             <label className="block text-xs text-gray-400 mb-1">Top Results to Show</label>
             <input
               type="number"
-              value={topResultsCount}
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                if (!isNaN(val)) setTopResultsCount(Math.floor(val));
-              }}
+              value={isNaN(topResultsCount) ? '' : topResultsCount}
+              onChange={(e) => setTopResultsCount(Math.floor(e.target.valueAsNumber) || 5)}
               disabled={isRunning}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50"
               min="5"
@@ -319,11 +301,8 @@ export default function BulkOptimizer() {
           </label>
           <input
             type="number"
-            value={testDay}
-            onChange={(e) => {
-              const val = e.target.valueAsNumber;
-              if (!isNaN(val)) setTestDay(Math.floor(val));
-            }}
+            value={isNaN(testDay) ? '' : testDay}
+            onChange={(e) => setTestDay(Math.floor(e.target.valueAsNumber) || 51)}
             disabled={isRunning}
             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             min="51"
