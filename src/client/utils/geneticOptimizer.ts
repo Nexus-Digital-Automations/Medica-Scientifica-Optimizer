@@ -48,6 +48,7 @@ export interface OptimizationConstraints {
  * Generate formula-based action suggestions for a specific day
  */
 export function generateFormulaBasedActions(day: number, baseStrategy: Strategy): StrategyAction[] {
+  console.log('[GeneticOptimizer] generateFormulaBasedActions called - ENHANCED VERSION with hiring/machines');
   const actions: StrategyAction[] = [];
   const MATERIAL_COST = 50;
   const ORDER_FEE = 1000;
@@ -120,6 +121,7 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       ? Math.floor(2 + Math.random() * 3) // 2-4 workers if high queue
       : Math.floor(1 + Math.random() * 2); // 1-2 workers otherwise
 
+    console.log('[GeneticOptimizer] Adding HIRE_ROOKIE action:', { day, count: hireCount });
     actions.push({
       day,
       type: 'HIRE_ROOKIE',
@@ -143,10 +145,12 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
       ? Math.floor(1 + Math.random() * 2) // 1-2 machines if good NPV
       : 1; // 1 machine for aggressive testing
 
+    const machineType = machineTypes[Math.floor(Math.random() * machineTypes.length)];
+    console.log('[GeneticOptimizer] Adding BUY_MACHINE action:', { day, machineType, count: machineCount });
     actions.push({
       day,
       type: 'BUY_MACHINE',
-      machineType: machineTypes[Math.floor(Math.random() * machineTypes.length)],
+      machineType,
       count: machineCount,
     });
   }
@@ -169,6 +173,7 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
     });
   }
 
+  console.log('[GeneticOptimizer] generateFormulaBasedActions complete - generated', actions.length, 'actions:', actions.map(a => a.type));
   return actions;
 }
 
@@ -177,6 +182,7 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
  * Enhanced to test more diverse strategies including hiring, machines, and one-time actions
  */
 export function generateRandomActions(day: number): StrategyAction[] {
+  console.log('[GeneticOptimizer] generateRandomActions called - ENHANCED VERSION with 45% hiring, 40% machines');
   const actions: StrategyAction[] = [];
   const actionCount = Math.floor(2 + Math.random() * 4); // 2-5 actions for more diversity
 
