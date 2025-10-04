@@ -9,13 +9,26 @@ export default function PolicyForm() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto px-4">
+      {/* Info Box */}
+      <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-5">
+        <div className="flex items-start gap-4">
+          <span className="text-3xl">ℹ️</span>
+          <div>
+            <p className="text-gray-900 font-semibold mb-2">Environmental Parameters & Initial Settings</p>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              These are the baseline parameters and starting values for your simulation. Values like pricing and production allocation can be changed during the simulation using <strong className="text-blue-700">User Actions</strong> (policy decisions) from the Action Timeline.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Production Allocation */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 px-8 py-6">
           <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <span>🏭</span> Production Allocation
+            <span>🏭</span> Initial Production Allocation
           </h3>
-          <p className="text-gray-600 text-sm mt-1">Configure machine capacity distribution</p>
+          <p className="text-gray-600 text-sm mt-1">Starting machine capacity distribution (adjustable via user actions)</p>
         </div>
         <div className="p-8">
           <label className="block text-base font-medium text-gray-900 mb-6">
@@ -50,9 +63,9 @@ export default function PolicyForm() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 px-8 py-6">
           <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <span>💵</span> Pricing Policy
+            <span>💵</span> Initial Pricing & Delivery Terms
           </h3>
-          <p className="text-gray-600 text-sm mt-1">Set product pricing and delivery terms</p>
+          <p className="text-gray-600 text-sm mt-1">Starting product prices and delivery policies (prices adjustable via user actions)</p>
         </div>
         <div className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -328,15 +341,6 @@ export default function PolicyForm() {
         </div>
       </details>
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-5">
-        <div className="flex items-start gap-4">
-          <span className="text-3xl">💡</span>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            <strong className="text-blue-700 font-semibold">Note:</strong> Inventory policies (Reorder Point, Order Quantity, Batch Size) are management decisions that directly impact production efficiency and cash flow. These policies are user-controlled and can be adjusted through timed actions.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

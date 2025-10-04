@@ -37,8 +37,8 @@ export default function TimelineEditor() {
         return '🛑';
       case 'HIRE_ROOKIE':
         return '👷';
-      case 'HIRE_EXPERT':
-        return '👨‍🔬';
+      case 'FIRE_EMPLOYEE':
+        return '🚪';
       case 'BUY_MACHINE':
         return '🏭';
       case 'SELL_MACHINE':
@@ -49,6 +49,10 @@ export default function TimelineEditor() {
         return '📊';
       case 'ADJUST_MCE_ALLOCATION':
         return '⚙️';
+      case 'SET_REORDER_POINT':
+        return '📍';
+      case 'SET_ORDER_QUANTITY':
+        return '📏';
       default:
         return '📌';
     }
@@ -66,8 +70,8 @@ export default function TimelineEditor() {
         return 'Stop Material Orders';
       case 'HIRE_ROOKIE':
         return `Hire ${action.count} Rookie${action.count > 1 ? 's' : ''}`;
-      case 'HIRE_EXPERT':
-        return `Hire ${action.count} Expert${action.count > 1 ? 's' : ''}`;
+      case 'FIRE_EMPLOYEE':
+        return `Fire ${action.count} ${action.employeeType}${action.count > 1 ? 's' : ''}`;
       case 'BUY_MACHINE':
         return `Buy ${action.count} ${action.machineType} Machine${action.count > 1 ? 's' : ''}`;
       case 'SELL_MACHINE':
@@ -77,7 +81,11 @@ export default function TimelineEditor() {
       case 'ADJUST_BATCH_SIZE':
         return `Adjust standard batch size to ${action.newSize}`;
       case 'ADJUST_MCE_ALLOCATION':
-        return `Adjust MCE custom allocation: ${action.newAllocation}%`;
+        return `Adjust MCE custom allocation: ${(action.newAllocation * 100).toFixed(0)}%`;
+      case 'SET_REORDER_POINT':
+        return `Set reorder point to ${action.newReorderPoint} units`;
+      case 'SET_ORDER_QUANTITY':
+        return `Set order quantity to ${action.newOrderQuantity} units`;
       default:
         return 'Unknown Action';
     }
@@ -98,7 +106,7 @@ export default function TimelineEditor() {
             onClick={handleAddAction}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
-            + Add Action
+            + Add User Actions
           </button>
         </div>
 

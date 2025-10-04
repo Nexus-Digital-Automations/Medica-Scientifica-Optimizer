@@ -276,12 +276,6 @@ export default function BulkOptimizer() {
               actionDetails = `Hire ${count} rookie worker${count > 1 ? 's' : ''}`;
               break;
             }
-            case 'HIRE_EXPERT': {
-              actionLabel = '🎓 Hire Expert Workers';
-              const count = 'count' in a ? a.count : 0;
-              actionDetails = `Hire ${count} expert worker${count > 1 ? 's' : ''}`;
-              break;
-            }
             case 'BUY_MACHINE': {
               actionLabel = '🏭 Buy Machine';
               const count = 'count' in a ? a.count : 0;

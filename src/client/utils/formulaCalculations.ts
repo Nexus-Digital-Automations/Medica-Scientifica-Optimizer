@@ -296,7 +296,6 @@ export function getFormulaForAction(
       };
 
     case 'HIRE_ROOKIE':
-    case 'HIRE_EXPERT':
       return {
         title: 'Queuing Theory (M/M/s) - Wait Time',
         formula: 'Wq = ρ / (sμ(1-ρ))',

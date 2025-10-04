@@ -22,7 +22,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const [enableOrderMaterials, setEnableOrderMaterials] = useState(false);
   const [enableStopMaterials, setEnableStopMaterials] = useState(false);
   const [enableHireRookie, setEnableHireRookie] = useState(false);
-  const [enableHireExpert, setEnableHireExpert] = useState(false);
   const [enableBuyMachine, setEnableBuyMachine] = useState(false);
   const [enableSellMachine, setEnableSellMachine] = useState(false);
   const [enableAdjustPrice, setEnableAdjustPrice] = useState(false);
@@ -37,7 +36,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
   const [debtPaymentAmount, setDebtPaymentAmount] = useState<number | ''>('');
   const [materialQuantity, setMaterialQuantity] = useState<number | ''>('');
   const [rookieCount, setRookieCount] = useState<number | ''>('');
-  const [expertCount, setExpertCount] = useState<number | ''>('');
   const [buyMachineType, setBuyMachineType] = useState<MachineType>('MCE');
   const [buyMachineCount, setBuyMachineCount] = useState<number | ''>('');
   const [sellMachineType, setSellMachineType] = useState<MachineType>('MCE');
@@ -71,9 +69,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
     }
     if (enableHireRookie) {
       actions.push({ day: dayNum, type: 'HIRE_ROOKIE', count: Number(rookieCount) });
-    }
-    if (enableHireExpert) {
-      actions.push({ day: dayNum, type: 'HIRE_EXPERT', count: Number(expertCount) });
     }
     if (enableBuyMachine) {
       actions.push({ day: dayNum, type: 'BUY_MACHINE', machineType: buyMachineType, count: Number(buyMachineCount) });
@@ -263,34 +258,6 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                       placeholder="Number of rookies"
                     />
                     <p className="text-xs text-gray-500 mt-1">💡 $85/day | Training: 15 days → Expert | 40% productivity</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* HIRE_EXPERT */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={enableHireExpert}
-                    onChange={(e) => setEnableHireExpert(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">👨‍🔬</span> Hire Experts
-                      <FormulaPopup actionType="HIRE_EXPERT" day={Number(day) || 51} />
-                    </label>
-                    <input
-                      type="number"
-                      value={expertCount}
-                      onChange={(e) => setExpertCount(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={!enableHireExpert}
-                      className="mt-2 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
-                      min="1"
-                      placeholder="Number of experts"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">💡 $150/day | ⚠️ May not match business case (only rookies mentioned)</p>
                   </div>
                 </div>
               </div>

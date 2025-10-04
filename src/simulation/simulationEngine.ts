@@ -18,7 +18,6 @@ import {
   processRookieTraining,
   calculateDailySalaryCost,
   hireRookie,
-  hireExpert,
   trackOvertime,
   processEmployeeQuitRisk,
 } from './hrModule.js';
@@ -116,16 +115,6 @@ function executeTimedActions(
     actionsToday.push({ day: state.currentDay, type: 'HIRE_ROOKIE', count: totalRookiesToHire });
   }
 
-  // Merge HIRE_EXPERT actions on the same day
-  const totalExpertsToHire = actionsToday
-    .filter((a): a is import('./types.js').HireExpertAction => a.type === 'HIRE_EXPERT')
-    .reduce((sum, a) => sum + a.count, 0);
-
-  if (totalExpertsToHire > 0) {
-    actionsToday = actionsToday.filter((a) => a.type !== 'HIRE_EXPERT');
-    actionsToday.push({ day: state.currentDay, type: 'HIRE_EXPERT', count: totalExpertsToHire });
-  }
-
   // Merge ORDER_MATERIALS actions on the same day
   const totalMaterialsToOrder = actionsToday
     .filter((a): a is import('./types.js').OrderMaterialsAction => a.type === 'ORDER_MATERIALS')
@@ -151,13 +140,6 @@ function executeTimedActions(
       case 'HIRE_ROOKIE':
         for (let i = 0; i < action.count; i++) {
           hireRookie(state);
-        }
-        executedActions.push(action);
-        break;
-
-      case 'HIRE_EXPERT':
-        for (let i = 0; i < action.count; i++) {
-          hireExpert(state);
         }
         executedActions.push(action);
         break;

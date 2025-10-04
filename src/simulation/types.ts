@@ -212,7 +212,6 @@ export type StrategyAction =
   | TakeLoanAction
   | PayDebtAction
   | HireRookieAction
-  | HireExpertAction
   | FireEmployeeAction
   | BuyMachineAction
   | SellMachineAction
@@ -239,12 +238,6 @@ export interface PayDebtAction {
 export interface HireRookieAction {
   day: number;
   type: 'HIRE_ROOKIE';
-  count: number;
-}
-
-export interface HireExpertAction {
-  day: number;
-  type: 'HIRE_EXPERT';
   count: number;
 }
 

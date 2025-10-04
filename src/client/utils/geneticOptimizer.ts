@@ -115,7 +115,7 @@ export function generateFormulaBasedActions(day: number, baseStrategy: Strategy)
     if (queue.value > 5) { // High wait time, hire workers
       actions.push({
         day,
-        type: Math.random() < 0.7 ? 'HIRE_ROOKIE' : 'HIRE_EXPERT',
+        type: 'HIRE_ROOKIE',
         count: Math.floor(1 + Math.random() * 3), // 1-3 workers
       });
     }
@@ -173,17 +173,11 @@ export function generateRandomActions(day: number): StrategyAction[] {
   for (let i = 0; i < actionCount; i++) {
     const actionType = Math.random();
 
-    if (actionType < 0.15) {
+    if (actionType < 0.2) {
       actions.push({
         day,
         type: 'HIRE_ROOKIE',
         count: Math.floor(1 + Math.random() * 4),
-      });
-    } else if (actionType < 0.25) {
-      actions.push({
-        day,
-        type: 'HIRE_EXPERT',
-        count: Math.floor(1 + Math.random() * 3),
       });
     } else if (actionType < 0.35) {
       const machines: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
