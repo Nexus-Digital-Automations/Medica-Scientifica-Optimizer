@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Layout from './components/common/Layout';
 import PolicyForm from './components/strategy/PolicyForm';
+import TimelineEditor from './components/strategy/TimelineEditor';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library'>('builder');
@@ -17,16 +18,9 @@ function App() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <PolicyForm />
-              </div>
-              <div className="lg:col-span-1">
-                <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-                  <h3 className="text-xl font-semibold text-white mb-4">Timeline</h3>
-                  <p className="text-gray-400 text-sm">Timeline editor coming next...</p>
-                </div>
-              </div>
+            <div className="space-y-6">
+              <PolicyForm />
+              <TimelineEditor />
             </div>
           </div>
         )}

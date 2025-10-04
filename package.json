@@ -8,8 +8,8 @@
     "build": "tsc && vite build",
     "build:server": "tsc",
     "build:client": "vite build",
-    "start": "node dist/server.js",
-    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server/server.js",
+    "dev": "tsx watch src/server/server.ts",
     "dev:client": "vite",
     "test": "node --test dist/test/**/*.test.js",
     "typecheck": "tsc --noEmit",
@@ -24,7 +24,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
+    "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.63.0",
@@ -34,6 +36,8 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
