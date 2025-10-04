@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import ActionBuilder from './ActionBuilder';
+import DayActionSelector from './DayActionSelector';
 import type { StrategyAction } from '../../types/ui.types';
 
 export default function TimelineEditor() {
   const { strategy, removeTimedAction } = useStrategyStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const handleAddAction = () => {
-    setEditingIndex(null);
-    setIsModalOpen(true);
+    setIsAddModalOpen(true);
   };
 
   const handleEditAction = (index: number) => {
     setEditingIndex(index);
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteAction = (index: number) => {
@@ -28,16 +29,26 @@ export default function TimelineEditor() {
     switch (action.type) {
       case 'TAKE_LOAN':
         return '💰';
+      case 'PAY_DEBT':
+        return '💳';
       case 'ORDER_MATERIALS':
         return '📦';
+      case 'STOP_MATERIAL_ORDERS':
+        return '🛑';
       case 'HIRE_ROOKIE':
         return '👷';
+      case 'HIRE_EXPERT':
+        return '👨‍🔬';
       case 'BUY_MACHINE':
         return '🏭';
       case 'SELL_MACHINE':
         return '💸';
       case 'ADJUST_PRICE':
         return '💵';
+      case 'ADJUST_BATCH_SIZE':
+        return '📊';
+      case 'ADJUST_MCE_ALLOCATION':
+        return '⚙️';
       default:
         return '📌';
     }
@@ -47,16 +58,26 @@ export default function TimelineEditor() {
     switch (action.type) {
       case 'TAKE_LOAN':
         return `Take Loan: $${action.amount.toLocaleString()}`;
+      case 'PAY_DEBT':
+        return `Pay Debt: $${action.amount.toLocaleString()}`;
       case 'ORDER_MATERIALS':
         return `Order Materials: ${action.quantity.toLocaleString()} units`;
+      case 'STOP_MATERIAL_ORDERS':
+        return 'Stop Material Orders';
       case 'HIRE_ROOKIE':
         return `Hire ${action.count} Rookie${action.count > 1 ? 's' : ''}`;
+      case 'HIRE_EXPERT':
+        return `Hire ${action.count} Expert${action.count > 1 ? 's' : ''}`;
       case 'BUY_MACHINE':
         return `Buy ${action.count} ${action.machineType} Machine${action.count > 1 ? 's' : ''}`;
       case 'SELL_MACHINE':
         return `Sell ${action.count} ${action.machineType} Machine${action.count > 1 ? 's' : ''}`;
       case 'ADJUST_PRICE':
         return `Adjust ${action.productType} price to $${action.newPrice}`;
+      case 'ADJUST_BATCH_SIZE':
+        return `Adjust ${action.arcpType} batch size to ${action.batchSize}`;
+      case 'ADJUST_MCE_ALLOCATION':
+        return `Adjust MCE allocation: ${action.standardAllocation}% standard`;
       default:
         return 'Unknown Action';
     }
@@ -163,11 +184,18 @@ export default function TimelineEditor() {
         )}
       </div>
 
-      {/* Action Builder Modal */}
-      {isModalOpen && (
+      {/* Day Action Selector Modal - for adding new actions */}
+      {isAddModalOpen && (
+        <DayActionSelector
+          onClose={() => setIsAddModalOpen(false)}
+        />
+      )}
+
+      {/* Action Builder Modal - for editing existing actions */}
+      {isEditModalOpen && (
         <ActionBuilder
           editingIndex={editingIndex}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsEditModalOpen(false)}
         />
       )}
     </div>

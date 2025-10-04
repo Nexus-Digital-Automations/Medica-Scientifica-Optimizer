@@ -7,9 +7,10 @@ interface ActionBuilderProps {
   onClose: () => void;
 }
 
-type ActionType = 'TAKE_LOAN' | 'ORDER_MATERIALS' | 'HIRE_ROOKIE' | 'BUY_MACHINE' | 'SELL_MACHINE' | 'ADJUST_PRICE';
+type ActionType = 'TAKE_LOAN' | 'PAY_DEBT' | 'ORDER_MATERIALS' | 'STOP_MATERIAL_ORDERS' | 'HIRE_ROOKIE' | 'HIRE_EXPERT' | 'BUY_MACHINE' | 'SELL_MACHINE' | 'ADJUST_PRICE' | 'ADJUST_BATCH_SIZE' | 'ADJUST_MCE_ALLOCATION';
 type MachineType = 'MCE' | 'WMA' | 'PUC';
 type ProductType = 'standard' | 'custom';
+type ARCPType = 'standard' | 'custom';
 
 export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderProps) {
   const { strategy, addTimedAction, updateTimedAction } = useStrategyStore();
@@ -19,7 +20,7 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
   const [day, setDay] = useState(existingAction?.day || 100);
   const [actionType, setActionType] = useState<ActionType>(() => {
     const type = existingAction?.type;
-    if (type && ['TAKE_LOAN', 'ORDER_MATERIALS', 'HIRE_ROOKIE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE'].includes(type)) {
+    if (type && ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION'].includes(type)) {
       return type as ActionType;
     }
     return 'TAKE_LOAN';
@@ -47,10 +48,25 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
   const [newPrice, setNewPrice] = useState(() =>
     existingAction && 'newPrice' in existingAction ? existingAction.newPrice : 800
   );
+  const [debtPaymentAmount, setDebtPaymentAmount] = useState(() =>
+    existingAction && 'amount' in existingAction ? existingAction.amount : 10000
+  );
+  const [expertCount, setExpertCount] = useState(() =>
+    existingAction && 'count' in existingAction ? existingAction.count : 1
+  );
+  const [newBatchSize, setNewBatchSize] = useState(() =>
+    existingAction && 'batchSize' in existingAction ? existingAction.batchSize : 50
+  );
+  const [newMCEAllocation, setNewMCEAllocation] = useState(() =>
+    existingAction && 'standardAllocation' in existingAction ? existingAction.standardAllocation : 50
+  );
+  const [arcpType, setArcpType] = useState<ARCPType>(() =>
+    existingAction && 'arcpType' in existingAction ? (existingAction.arcpType as ARCPType) : 'standard'
+  );
 
   // Update action type when editing different action
   useEffect(() => {
-    if (existingAction && ['TAKE_LOAN', 'ORDER_MATERIALS', 'HIRE_ROOKIE', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE'].includes(existingAction.type)) {
+    if (existingAction && ['TAKE_LOAN', 'PAY_DEBT', 'ORDER_MATERIALS', 'STOP_MATERIAL_ORDERS', 'HIRE_ROOKIE', 'HIRE_EXPERT', 'BUY_MACHINE', 'SELL_MACHINE', 'ADJUST_PRICE', 'ADJUST_BATCH_SIZE', 'ADJUST_MCE_ALLOCATION'].includes(existingAction.type)) {
       setActionType(existingAction.type as ActionType);
     }
   }, [existingAction]);
@@ -64,11 +80,20 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
       case 'TAKE_LOAN':
         action = { day, type: 'TAKE_LOAN', amount: loanAmount };
         break;
+      case 'PAY_DEBT':
+        action = { day, type: 'PAY_DEBT', amount: debtPaymentAmount };
+        break;
       case 'ORDER_MATERIALS':
         action = { day, type: 'ORDER_MATERIALS', quantity: materialQuantity };
         break;
+      case 'STOP_MATERIAL_ORDERS':
+        action = { day, type: 'STOP_MATERIAL_ORDERS' };
+        break;
       case 'HIRE_ROOKIE':
         action = { day, type: 'HIRE_ROOKIE', count: rookieCount };
+        break;
+      case 'HIRE_EXPERT':
+        action = { day, type: 'HIRE_EXPERT', count: expertCount };
         break;
       case 'BUY_MACHINE':
         action = { day, type: 'BUY_MACHINE', machineType, count: machineCount };
@@ -78,6 +103,12 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
         break;
       case 'ADJUST_PRICE':
         action = { day, type: 'ADJUST_PRICE', productType, newPrice };
+        break;
+      case 'ADJUST_BATCH_SIZE':
+        action = { day, type: 'ADJUST_BATCH_SIZE', arcpType, batchSize: newBatchSize };
+        break;
+      case 'ADJUST_MCE_ALLOCATION':
+        action = { day, type: 'ADJUST_MCE_ALLOCATION', standardAllocation: newMCEAllocation };
         break;
       default:
         // TypeScript exhaustiveness check - should never reach here
@@ -130,11 +161,16 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="TAKE_LOAN">💰 Take Loan</option>
+                <option value="PAY_DEBT">💳 Pay Debt</option>
                 <option value="ORDER_MATERIALS">📦 Order Materials</option>
+                <option value="STOP_MATERIAL_ORDERS">🛑 Stop Material Orders</option>
                 <option value="HIRE_ROOKIE">👷 Hire Rookies</option>
+                <option value="HIRE_EXPERT">👨‍🔬 Hire Experts</option>
                 <option value="BUY_MACHINE">🏭 Buy Machine</option>
                 <option value="SELL_MACHINE">💸 Sell Machine</option>
                 <option value="ADJUST_PRICE">💵 Adjust Price</option>
+                <option value="ADJUST_BATCH_SIZE">📊 Adjust Batch Size</option>
+                <option value="ADJUST_MCE_ALLOCATION">⚙️ Adjust MCE Allocation</option>
               </select>
             </div>
 
@@ -256,6 +292,92 @@ export default function ActionBuilder({ editingIndex, onClose }: ActionBuilderPr
                   />
                 </div>
               </>
+            )}
+
+            {actionType === 'PAY_DEBT' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Amount ($)
+                </label>
+                <input
+                  type="number"
+                  value={debtPaymentAmount}
+                  onChange={(e) => setDebtPaymentAmount(Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="1000"
+                  max="100000"
+                  step="1000"
+                  required
+                />
+              </div>
+            )}
+
+            {actionType === 'HIRE_EXPERT' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Experts
+                </label>
+                <input
+                  type="number"
+                  value={expertCount}
+                  onChange={(e) => setExpertCount(Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="1"
+                  max="5"
+                  required
+                />
+              </div>
+            )}
+
+            {actionType === 'ADJUST_BATCH_SIZE' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ARCP Type
+                  </label>
+                  <select
+                    value={arcpType}
+                    onChange={(e) => setArcpType(e.target.value as ARCPType)}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="standard">Standard ARCP</option>
+                    <option value="custom">Custom ARCP</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Batch Size
+                  </label>
+                  <input
+                    type="number"
+                    value={newBatchSize}
+                    onChange={(e) => setNewBatchSize(Number(e.target.value))}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="10"
+                    max="200"
+                    step="5"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {actionType === 'ADJUST_MCE_ALLOCATION' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Standard Allocation (%) - Custom will be 100 - this value
+                </label>
+                <input
+                  type="number"
+                  value={newMCEAllocation}
+                  onChange={(e) => setNewMCEAllocation(Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="0"
+                  max="100"
+                  step="5"
+                  required
+                />
+              </div>
             )}
 
             {/* Buttons */}
