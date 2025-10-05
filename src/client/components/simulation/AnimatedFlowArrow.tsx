@@ -133,16 +133,18 @@ export default function AnimatedFlowArrow({
           ))}
         </div>
 
-        {/* Shortage/Bottleneck label */}
-        <div className={`absolute ${vertical ? 'left-full ml-3' : 'top-full mt-3'} flex items-center justify-center`}>
+        {/* Shortage/Bottleneck label - larger and more descriptive */}
+        <div className={`absolute ${vertical ? 'left-full ml-4' : 'top-full mt-4'} flex items-center justify-center`}>
           {isShortage && (
-            <div className="px-2 py-1 rounded bg-red-600 border border-red-400 shadow-md">
-              <span className="text-white text-xs font-bold">SHORTAGE</span>
+            <div className="px-3 py-2 rounded-lg bg-red-600 border-2 border-red-300 shadow-xl">
+              <div className="text-white text-sm font-bold whitespace-nowrap">⚠️ Supply Short</div>
+              <div className="text-red-100 text-xs mt-0.5">{(bottleneckRatio * 100).toFixed(0)}% of demand</div>
             </div>
           )}
           {isBottleneck && (
-            <div className="px-2 py-1 rounded bg-orange-600 border border-orange-400 shadow-md">
-              <span className="text-white text-xs font-bold">BOTTLENECK</span>
+            <div className="px-3 py-2 rounded-lg bg-orange-600 border-2 border-orange-300 shadow-xl">
+              <div className="text-white text-sm font-bold whitespace-nowrap">🚧 Bottleneck</div>
+              <div className="text-orange-100 text-xs mt-0.5">{(bottleneckRatio * 100).toFixed(0)}% capacity</div>
             </div>
           )}
         </div>
