@@ -781,7 +781,15 @@ export default function AdvancedOptimizer() {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-white">
-                  {policy.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  {
+                    policy === 'reorderPoint' ? 'Reorder Point - Raw Materials (Both Lines)' :
+                    policy === 'orderQuantity' ? 'Order Quantity - Raw Materials (Both Lines)' :
+                    policy === 'standardPrice' ? 'Standard Line - Price' :
+                    policy === 'standardBatchSize' ? 'Standard Line - Batch Size' :
+                    policy === 'mceAllocationCustom' ? 'MCE Allocation - % to Custom Line' :
+                    policy === 'dailyOvertimeHours' ? 'Daily Overtime - Both Lines' :
+                    policy.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+                  }
                 </span>
                 <span className="text-2xl">{isFixed ? '🔒' : '🔓'}</span>
               </div>

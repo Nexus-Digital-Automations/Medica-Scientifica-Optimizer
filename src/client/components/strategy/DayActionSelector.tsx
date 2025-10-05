@@ -150,7 +150,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📍</span> Set Reorder Point
+                      <span className="text-lg">📍</span> Set Reorder Point - Raw Materials (Both Lines)
                       <FormulaPopup actionType="SET_REORDER_POINT" day={Number(day) || 51} />
                     </label>
                     <input
@@ -179,7 +179,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📏</span> Set Order Quantity
+                      <span className="text-lg">📏</span> Set Order Quantity - Raw Materials (Both Lines)
                       <FormulaPopup actionType="SET_ORDER_QUANTITY" day={Number(day) || 51} />
                     </label>
                     <input
@@ -208,7 +208,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📊</span> Adjust Standard Batch Size
+                      <span className="text-lg">📊</span> Adjust Batch Size - Standard Line Only
                       <FormulaPopup actionType="ADJUST_BATCH_SIZE" day={Number(day) || 51} />
                     </label>
                     <input
@@ -247,8 +247,8 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                         disabled={!enableAdjustPrice}
                         className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="standard">Standard Product</option>
-                        <option value="custom">Custom Product</option>
+                        <option value="standard">Standard Line</option>
+                        <option value="custom">Custom Line</option>
                       </select>
                       <input
                         type="number"
@@ -277,7 +277,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">⚙️</span> Adjust MCE Custom Allocation
+                      <span className="text-lg">⚙️</span> Adjust MCE Allocation - % to Custom Line
                     </label>
                     <input
                       type="number"
@@ -372,7 +372,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">📦</span> Order Materials
+                      <span className="text-lg">📦</span> Order Raw Materials - Both Lines
                     </label>
                     <input
                       type="number"
@@ -400,7 +400,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">🛑</span> Stop Material Orders
+                      <span className="text-lg">🛑</span> Stop Raw Material Orders - Both Lines
                     </label>
                     <p className="text-xs text-gray-600 mt-1">No additional parameters required</p>
                   </div>
@@ -418,7 +418,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">👷</span> Hire Rookies
+                      <span className="text-lg">👷</span> Hire Rookies - Both Lines
                       <FormulaPopup actionType="HIRE_ROOKIE" day={Number(day) || 51} />
                     </label>
                     <input
@@ -446,7 +446,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">🏭</span> Buy Machine
+                      <span className="text-lg">🏭</span> Buy Machine - Both Lines
                       <FormulaPopup actionType="BUY_MACHINE" day={Number(day) || 51} />
                     </label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
@@ -485,7 +485,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">💸</span> Sell Machine
+                      <span className="text-lg">💸</span> Sell Machine - Both Lines
                     </label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <select
@@ -524,7 +524,7 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                   />
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                      <span className="text-lg">🚪</span> Fire Employees
+                      <span className="text-lg">🚪</span> Fire Employees - Both Lines
                     </label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <select
