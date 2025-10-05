@@ -6,6 +6,7 @@ import { loadHistoricalData } from '../../utils/historicalDataLoader';
 import { generateComprehensiveRecommendations } from '../../utils/recommendationEngine';
 import InfoPopup from './InfoPopup';
 import RecommendationsPopup from './RecommendationsPopup';
+import RecommendationSelector from './RecommendationSelector';
 import AnimatedFlowArrow from './AnimatedFlowArrow';
 import {
   LineChart,
@@ -241,12 +242,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       )}
 
-      {/* Intelligent Recommendations Button */}
+      {/* Intelligent Recommendations Buttons */}
       {recommendations.length > 0 && (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <RecommendationsPopup
             recommendations={recommendations}
             overallHealth={bottleneckAnalysis.overallHealth}
+          />
+          <RecommendationSelector
+            recommendations={recommendations}
           />
         </div>
       )}

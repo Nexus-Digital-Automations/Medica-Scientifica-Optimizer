@@ -1,6 +1,14 @@
 import type { SimulationResult } from '../types/ui.types';
 import type { BottleneckAnalysis } from './bottleneckAnalysis';
 
+export interface RecommendationAction {
+  type: 'hire_expert' | 'hire_rookie' | 'purchase_machine' | 'adjust_inventory' | 'adjust_pricing' | 'adjust_allocation' | 'adjust_batch_size';
+  parameter: string;
+  currentValue: number;
+  targetValue: number;
+  day?: number;
+}
+
 export interface Recommendation {
   id: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
@@ -17,6 +25,7 @@ export interface Recommendation {
     targetValue: number;
     unit: string;
   };
+  actions: RecommendationAction[]; // Actionable changes that can be applied to strategy
 }
 
 export function generateComprehensiveRecommendations(
@@ -56,6 +65,9 @@ export function generateComprehensiveRecommendations(
     );
     const neededWorkers = Math.ceil((targetCapacity - arcpCapacity) / 3);
 
+    const rookiesToHire = Math.max(1, Math.ceil(neededWorkers * 0.6));
+    const expertsToHire = Math.max(1, Math.floor(neededWorkers * 0.4));
+
     recommendations.push({
       id: 'arcp_workforce',
       priority: arcpMetrics.severity === 'critical' ? 'urgent' : 'high',
@@ -68,8 +80,8 @@ export function generateComprehensiveRecommendations(
       solution: `Hire ${neededWorkers} additional worker${neededWorkers > 1 ? 's' : ''} to achieve ${targetCapacity.toFixed(1)} units/day capacity.`,
       expectedImpact: `Reduce Standard WIP from ${finalStandardWIP.toFixed(0)} to <100 units, reduce Custom WIP from ${finalCustomWIP.toFixed(0)} to <50 orders. Improve delivery times by 40-60%, increase daily throughput by ${((targetCapacity - arcpCapacity) / arcpCapacity * 100).toFixed(0)}%.`,
       implementation: [
-        `Hire ${Math.max(1, Math.ceil(neededWorkers * 0.6))} rookie${Math.ceil(neededWorkers * 0.6) > 1 ? 's' : ''} immediately (15-day training period)`,
-        `Consider hiring ${Math.max(1, Math.floor(neededWorkers * 0.4))} expert${Math.floor(neededWorkers * 0.4) > 1 ? 's' : ''} for immediate capacity`,
+        `Hire ${rookiesToHire} rookie${rookiesToHire > 1 ? 's' : ''} immediately (15-day training period)`,
+        `Consider hiring ${expertsToHire} expert${expertsToHire > 1 ? 's' : ''} for immediate capacity`,
         `Monitor WIP levels daily during ramp-up`,
         `Evaluate overtime options during training period`,
       ],
@@ -83,6 +95,22 @@ export function generateComprehensiveRecommendations(
         targetValue: targetCapacity,
         unit: 'units/day',
       },
+      actions: [
+        {
+          type: 'hire_rookie',
+          parameter: 'workforce',
+          currentValue: finalRookies,
+          targetValue: finalRookies + rookiesToHire,
+          day: 51, // Hire immediately
+        },
+        {
+          type: 'hire_expert',
+          parameter: 'workforce',
+          currentValue: finalExperts,
+          targetValue: finalExperts + expertsToHire,
+          day: 51,
+        },
+      ],
     });
   }
 
@@ -120,6 +148,22 @@ export function generateComprehensiveRecommendations(
         targetValue: targetInventory,
         unit: 'parts',
       },
+      actions: [
+        {
+          type: 'adjust_inventory',
+          parameter: 'reorderPoint',
+          currentValue: simulationResult.strategy.reorderPoint || 50,
+          targetValue: Math.round(targetReorderPoint),
+          day: 51,
+        },
+        {
+          type: 'adjust_inventory',
+          parameter: 'orderQuantity',
+          currentValue: simulationResult.strategy.orderQuantity || 200,
+          targetValue: Math.round(targetInventory * 0.8),
+          day: 51,
+        },
+      ],
     });
   }
 
@@ -153,6 +197,15 @@ export function generateComprehensiveRecommendations(
         targetValue: 80,
         unit: 'units',
       },
+      actions: [
+        {
+          type: 'adjust_batch_size',
+          parameter: 'standardBatchSize',
+          currentValue: simulationResult.strategy.standardBatchSize || 60,
+          targetValue: Math.max(40, Math.floor((simulationResult.strategy.standardBatchSize || 60) * 0.8)),
+          day: 51,
+        },
+      ],
     });
   }
 
@@ -188,6 +241,15 @@ export function generateComprehensiveRecommendations(
         targetValue: 50,
         unit: 'orders',
       },
+      actions: [
+        {
+          type: 'purchase_machine',
+          parameter: 'wmaMachines',
+          currentValue: simulationResult.state.machines.WMA || 1,
+          targetValue: (simulationResult.state.machines.WMA || 1) + 1,
+          day: 51,
+        },
+      ],
     });
   }
 
@@ -226,6 +288,15 @@ export function generateComprehensiveRecommendations(
         targetValue: customStarvation ? Math.min(70, (mceAllocation + 0.2) * 100) : Math.max(30, (mceAllocation - 0.2) * 100),
         unit: '%',
       },
+      actions: [
+        {
+          type: 'adjust_allocation',
+          parameter: 'mceAllocationCustom',
+          currentValue: mceAllocation,
+          targetValue: customStarvation ? Math.min(0.7, mceAllocation + 0.2) : Math.max(0.3, mceAllocation - 0.2),
+          day: 51,
+        },
+      ],
     });
   }
 
