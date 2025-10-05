@@ -26,7 +26,7 @@ interface OptimizationConstraints {
 }
 
 export default function AdvancedOptimizer() {
-  const { strategy, loadStrategy } = useStrategyStore();
+  const { strategy, loadStrategy, saveStrategy, savedStrategies } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
     fixedPolicies: {
@@ -85,15 +85,6 @@ export default function AdvancedOptimizer() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationResults, setOptimizationResults] = useState<OptimizationCandidate[]>([]);
   const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
-
-  // Saved strategies state
-  const [savedStrategies, setSavedStrategies] = useState<Array<{
-    id: string;
-    name: string;
-    strategy: Strategy;
-    netWorth: number;
-    timestamp: Date;
-  }>>([]);
 
   // Convert strategy parameters to policy decision actions for a specific day
   const createPolicyActionsForDay = (
@@ -502,16 +493,13 @@ export default function AdvancedOptimizer() {
       ].sort((a, b) => a.day - b.day),
     };
 
-    const newStrategy = {
-      id: `saved-${Date.now()}`,
-      name,
-      strategy: strategyToSave,
-      netWorth: candidate.netWorth,
-      timestamp: new Date(),
-    };
+    // Load the strategy into current state first
+    loadStrategy(strategyToSave);
 
-    setSavedStrategies(prev => [...prev, newStrategy]);
-    alert(`Strategy "${name}" saved successfully!`);
+    // Then save it to the global library (persists to localStorage)
+    saveStrategy(name);
+
+    alert(`Strategy "${name}" saved to library successfully!`);
   };
 
   const togglePolicyFixed = (policy: keyof OptimizationConstraints['fixedPolicies']) => {
@@ -1233,8 +1221,7 @@ export default function AdvancedOptimizer() {
                   <div>
                     <h5 className="text-white font-semibold">{saved.name}</h5>
                     <p className="text-xs text-gray-400">
-                      Net Worth: ${saved.netWorth.toLocaleString()} |
-                      Saved: {saved.timestamp.toLocaleString()}
+                      Saved: {new Date(saved.createdAt).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex gap-2">
