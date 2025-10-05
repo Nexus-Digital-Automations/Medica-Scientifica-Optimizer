@@ -26,7 +26,7 @@ interface OptimizationConstraints {
 }
 
 export default function AdvancedOptimizer() {
-  const { strategy, loadStrategy, saveStrategy, savedStrategies } = useStrategyStore();
+  const { strategy, loadStrategy, saveStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
     fixedPolicies: {
@@ -1143,7 +1143,9 @@ export default function AdvancedOptimizer() {
                         } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
                           actionText = `Adjust Standard Price → $${action.newPrice}`;
                         } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-                          actionText = `Adjust MCE Custom Allocation → ${(action.newAllocation * 100).toFixed(0)}%`;
+                          const customPct = (action.newAllocation * 100).toFixed(0);
+                          const standardPct = (100 - action.newAllocation * 100).toFixed(0);
+                          actionText = `Adjust MCE Allocation → ${standardPct}% standard / ${customPct}% custom`;
                         } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
                           actionText = `Hire Rookie Workers → ${action.count} workers`;
                         } else if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {

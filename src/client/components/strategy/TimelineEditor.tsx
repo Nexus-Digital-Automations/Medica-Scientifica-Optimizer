@@ -80,8 +80,11 @@ export default function TimelineEditor() {
         return `Adjust ${action.productType} price to $${action.newPrice}`;
       case 'ADJUST_BATCH_SIZE':
         return `Adjust standard batch size to ${action.newSize}`;
-      case 'ADJUST_MCE_ALLOCATION':
-        return `Adjust MCE custom allocation: ${(action.newAllocation * 100).toFixed(0)}%`;
+      case 'ADJUST_MCE_ALLOCATION': {
+        const customPct = (action.newAllocation * 100).toFixed(0);
+        const standardPct = (100 - action.newAllocation * 100).toFixed(0);
+        return `Adjust MCE allocation: ${standardPct}% standard / ${customPct}% custom`;
+      }
       case 'SET_REORDER_POINT':
         return `Set reorder point to ${action.newReorderPoint} units`;
       case 'SET_ORDER_QUANTITY':

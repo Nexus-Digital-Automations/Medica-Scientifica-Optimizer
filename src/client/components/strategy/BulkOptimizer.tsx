@@ -321,7 +321,9 @@ export default function BulkOptimizer() {
             case 'ADJUST_MCE_ALLOCATION': {
               actionLabel = '🔧 Adjust MCE Allocation';
               const allocation = 'newAllocation' in a ? a.newAllocation : 0;
-              actionDetails = `Set MCE allocation to custom line: ${(allocation * 100).toFixed(0)}%`;
+              const customPct = (allocation * 100).toFixed(0);
+              const standardPct = (100 - allocation * 100).toFixed(0);
+              actionDetails = `${standardPct}% standard / ${customPct}% custom`;
               break;
             }
             default:
