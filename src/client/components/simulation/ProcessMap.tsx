@@ -6,6 +6,7 @@ import { loadHistoricalData } from '../../utils/historicalDataLoader';
 import { generateComprehensiveRecommendations } from '../../utils/recommendationEngine';
 import InfoPopup from './InfoPopup';
 import RecommendationsPopup from './RecommendationsPopup';
+import AnimatedFlowArrow from './AnimatedFlowArrow';
 import {
   LineChart,
   Line,
@@ -79,6 +80,49 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   // Calculate ARCP capacity
   const arcpCapacity = (finalExperts * 3) + (finalRookies * 3 * 0.4);
+
+  // Calculate flow rates and demand rates for animated arrows
+  const mceAllocation = displayResult?.strategy?.mceAllocationCustom ?? 0.5;
+
+  // Raw Material → MCE
+  const rawMaterialFlowRate = (avgStandardProduction * 2) + (avgCustomProduction * 1);
+  const rawMaterialDemandRate = rawMaterialFlowRate + 5; // Target buffer for continuous operation
+
+  // MCE → Custom Line
+  const mceToCustomFlowRate = avgCustomProduction;
+  const mceToCustomDemandRate = 6; // WMA Pass 1 capacity (6 units/day total for both passes)
+
+  // MCE → Standard Line
+  const mceToStandardFlowRate = avgStandardProduction;
+  const mceToStandardDemandRate = avgStandardProduction + 3; // Target to reduce WIP
+
+  // Custom WMA Pass 1 → PUC
+  const wmapass1ToPUCFlowRate = avgCustomProduction;
+  const wmapass1ToPUCDemandRate = avgCustomProduction + 2; // PUC should keep up
+
+  // PUC → Custom WMA Pass 2
+  const pucToWMApass2FlowRate = avgCustomProduction;
+  const pucToWMApass2DemandRate = 6; // WMA capacity shared with Pass 1
+
+  // Custom WMA Pass 2 → ARCP
+  const customToARCPFlowRate = avgCustomProduction;
+  const customToARCPDemandRate = arcpCapacity * mceAllocation; // ARCP capacity allocated to custom
+
+  // Standard Batching → ARCP
+  const standardToARCPFlowRate = avgStandardProduction;
+  const standardToARCPDemandRate = arcpCapacity * (1 - mceAllocation); // ARCP capacity allocated to standard
+
+  // ARCP → Standard Batching 2
+  const arcpToStandardBatch2FlowRate = avgStandardProduction;
+  const arcpToStandardBatch2DemandRate = avgStandardProduction + 2;
+
+  // Standard Batching 2 → Finished Goods
+  const batch2ToFinishedFlowRate = avgStandardProduction;
+  const batch2ToFinishedDemandRate = 21; // Maximum daily demand
+
+  // Finished Goods → Customer
+  const finishedToCustomerFlowRate = avgStandardProduction;
+  const finishedToCustomerDemandRate = 21; // Maximum daily demand
 
   // Detect bottlenecks (WIP > 100 or capacity < 50% of demand)
   const isStandardBottleneck = finalStandardWIP > 100;
@@ -346,10 +390,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       </div>
 
-      {/* Arrow Down */}
-      <div className="flex justify-center my-8">
-        <div className="text-6xl text-blue-400">↓</div>
-      </div>
+      {/* Animated Arrow: Raw Material → MCE */}
+      <AnimatedFlowArrow
+        fromStation="Raw Material"
+        toStation="MCE Station"
+        flowRate={rawMaterialFlowRate}
+        demandRate={rawMaterialDemandRate}
+        color="amber"
+        vertical={true}
+      />
 
       {/* Unified MCE Station */}
       <div className="flex justify-center mb-12">
@@ -479,10 +528,24 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       </div>
 
-      {/* Arrow Down Split */}
+      {/* Animated Arrows: MCE → Custom Line & Standard Line */}
       <div className="flex justify-center my-8 gap-32">
-        <div className="text-6xl text-purple-400">↓</div>
-        <div className="text-6xl text-blue-400">↓</div>
+        <AnimatedFlowArrow
+          fromStation="MCE"
+          toStation="Custom Line"
+          flowRate={mceToCustomFlowRate}
+          demandRate={mceToCustomDemandRate}
+          color="purple"
+          vertical={true}
+        />
+        <AnimatedFlowArrow
+          fromStation="MCE"
+          toStation="Standard Line"
+          flowRate={mceToStandardFlowRate}
+          demandRate={mceToStandardDemandRate}
+          color="blue"
+          vertical={true}
+        />
       </div>
 
       {/* Two Production Lines */}
@@ -749,10 +812,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-teal-400">↓</div>
-            </div>
+            {/* Animated Arrow: WMA Pass 1 → PUC */}
+            <AnimatedFlowArrow
+              fromStation="WMA Pass 1"
+              toStation="PUC"
+              flowRate={wmapass1ToPUCFlowRate}
+              demandRate={wmapass1ToPUCDemandRate}
+              color="teal"
+              vertical={true}
+            />
 
             {/* Station 4 - PUC */}
             <div className="relative bg-pink-700 rounded-xl p-5 mb-2 text-center">
@@ -812,10 +880,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-pink-300">Processing: 1 day</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-pink-400">↓</div>
-            </div>
+            {/* Animated Arrow: PUC → WMA Pass 2 */}
+            <AnimatedFlowArrow
+              fromStation="PUC"
+              toStation="WMA Pass 2"
+              flowRate={pucToWMApass2FlowRate}
+              demandRate={pucToWMApass2DemandRate}
+              color="pink"
+              vertical={true}
+            />
 
             {/* Station 2 - WMA Pass 2 */}
             <div className="relative bg-teal-700 rounded-xl p-5 mb-2 text-center">
@@ -874,10 +947,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-green-400">↓</div>
-            </div>
+            {/* Animated Arrow: WMA Pass 2 → ARCP → Ship */}
+            <AnimatedFlowArrow
+              fromStation="WMA Pass 2"
+              toStation="ARCP → Ship"
+              flowRate={customToARCPFlowRate}
+              demandRate={customToARCPDemandRate}
+              color="green"
+              vertical={true}
+            />
 
             {/* Ship Direct */}
             <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
@@ -1177,10 +1255,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-amber-300">Wait: 4 days</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-amber-400">↓</div>
-            </div>
+            {/* Animated Arrow: Batching Queue → ARCP */}
+            <AnimatedFlowArrow
+              fromStation="Batching Queue"
+              toStation="ARCP"
+              flowRate={standardToARCPFlowRate}
+              demandRate={standardToARCPDemandRate}
+              color="amber"
+              vertical={true}
+            />
 
             {/* Station 6 - ARCP Manual */}
             <div className={`relative bg-orange-700 rounded-xl p-5 mb-2 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
@@ -1288,10 +1371,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               )}
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-orange-400">↓</div>
-            </div>
+            {/* Animated Arrow: ARCP → Second Batching */}
+            <AnimatedFlowArrow
+              fromStation="ARCP"
+              toStation="Second Batching"
+              flowRate={arcpToStandardBatch2FlowRate}
+              demandRate={arcpToStandardBatch2DemandRate}
+              color="orange"
+              vertical={true}
+            />
 
             {/* Second Batching */}
             <div className="relative bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
@@ -1344,10 +1432,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-amber-300">Wait: 1 day</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-amber-400">↓</div>
-            </div>
+            {/* Animated Arrow: Second Batching → Finished Goods */}
+            <AnimatedFlowArrow
+              fromStation="Second Batching"
+              toStation="Finished Goods"
+              flowRate={batch2ToFinishedFlowRate}
+              demandRate={batch2ToFinishedDemandRate}
+              color="amber"
+              vertical={true}
+            />
 
             {/* Finished Goods Inventory */}
             <div className="relative bg-green-700 border-2 border-green-500 rounded-xl p-6 mb-2 text-center">
@@ -1401,10 +1494,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-green-300">units in stock</div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-green-400">↓</div>
-            </div>
+            {/* Animated Arrow: Finished Goods → Ship */}
+            <AnimatedFlowArrow
+              fromStation="Finished Goods"
+              toStation="Ship to Customer"
+              flowRate={finishedToCustomerFlowRate}
+              demandRate={finishedToCustomerDemandRate}
+              color="green"
+              vertical={true}
+            />
 
             {/* Ship */}
             <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
