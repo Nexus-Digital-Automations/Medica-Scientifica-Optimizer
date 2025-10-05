@@ -46,51 +46,56 @@ export function loadHistoricalData(): SimulationResult | null {
     policyChanges: [],
   };
 
-  // Generate realistic historical data
-  let cash = 75000;
-  const debt = 0;
-  let rawMaterial = 150;
-  let standardWIP = 80;
-  let customWIP = 30;
-  let finishedStandard = 50;
-  let finishedCustom = 10;
-  const experts = 8;
-  const rookies = 4;
-  const inTraining = 2;
+  // Generate realistic historical data based on Day 51 initial conditions
+  // Source: Reference Guide.md - Initial Conditions (Start of Day 51)
+  let cash = 8206.12;
+  const debt = 70000;
+  let rawMaterial = 0;
+  let standardWIP = 120;
+  let customWIP = 295;
+  let finishedStandard = 0;
+  let finishedCustom = 0;
+  const experts = 1; // CRITICAL: Only 1 expert creates severe ARCP bottleneck
+  const rookies = 0;
+  const inTraining = 0;
 
   for (let day = 1; day <= days; day++) {
     // Add some variance to make it realistic
     const variance = Math.sin(day / 50) * 0.2;
 
-    // Daily production
-    const standardProduction = Math.floor(35 + variance * 10);
-    const customProduction = Math.floor(18 + variance * 5);
+    // Daily production - SEVERELY limited by 1 expert ARCP bottleneck
+    // 1 expert = 3 units/day total ARCP capacity shared between both lines
+    // Assuming ~70% to standard, ~30% to custom allocation
+    const standardProduction = Math.max(0, Math.floor(2 + variance * 0.5)); // ~2 units/day
+    const customProduction = Math.max(0, Math.floor(1 + variance * 0.3)); // ~1 order/day
 
-    // Revenue and expenses
-    const revenue = (standardProduction * 225) + (customProduction * 110);
-    const expenses = 8000 + (experts * 120) + (rookies * 60);
+    // Revenue and expenses with accurate salaries
+    // Expert: $150/day, Rookie: $85/day (from Reference Guide)
+    const revenue = (standardProduction * 750) + (customProduction * 1100); // Realistic prices
+    const expenses = (experts * 150) + (rookies * 85) + 500; // Salaries + overhead
 
     // Update cash
     cash += revenue - expenses;
 
-    // Update WIP (with some oscillation but ensuring positive values)
-    standardWIP = Math.max(20, Math.min(150, Math.floor(standardWIP + Math.sin(day / 30) * 15)));
-    customWIP = Math.max(10, Math.min(60, Math.floor(customWIP + Math.sin(day / 20) * 8)));
+    // Update WIP - MASSIVE buildup due to ARCP bottleneck
+    // WIP grows because MCE can process much more than ARCP can complete
+    standardWIP = Math.max(120, Math.min(550, Math.floor(standardWIP + 15 - standardProduction)));
+    customWIP = Math.max(295, Math.min(360, Math.floor(customWIP + 5 - customProduction)));
 
-    // Update finished goods inventory (simulate production and sales)
-    finishedStandard = Math.max(30, Math.min(80, Math.floor(finishedStandard + standardProduction - 30 + variance * 5)));
-    finishedCustom = Math.max(5, Math.min(25, Math.floor(finishedCustom + customProduction - 15 + variance * 2)));
+    // Finished goods - stockout conditions (demand >> production)
+    finishedStandard = 0; // All units sell immediately
+    finishedCustom = 0; // Custom ships direct (no inventory)
 
-    // Update raw materials (reorder logic with proper inventory management)
-    const materialUsed = (standardProduction * 3 + customProduction);
+    // Raw materials - frequent stockouts with minimal inventory
+    const materialUsed = (standardProduction * 2 + customProduction * 1);
     rawMaterial -= materialUsed;
     let materialOrdered = 0;
-    if (rawMaterial < 100) {
+    if (rawMaterial < 50 && day % 10 === 0) { // Periodic reordering
       materialOrdered = 200;
-      rawMaterial += materialOrdered; // Reorder arrives
+      rawMaterial += materialOrdered; // Assumes 4-day lead time already passed
     }
-    // Ensure raw material never goes below 50
-    rawMaterial = Math.max(50, rawMaterial);
+    // Realistic low inventory with frequent stockouts
+    rawMaterial = Math.max(0, rawMaterial);
 
     // Push to history
     history.dailyCash.push({ day, value: Math.floor(cash) });
@@ -113,16 +118,16 @@ export function loadHistoricalData(): SimulationResult | null {
     history.dailyExperts.push({ day, value: experts });
     history.dailyRookies.push({ day, value: rookies });
     history.dailyRookiesInTraining.push({ day, value: inTraining });
-    history.dailySalaryCost.push({ day, value: (experts * 120) + (rookies * 60) });
-    history.dailyMCECount.push({ day, value: 4 });
-    history.dailyWMACount.push({ day, value: 3 });
-    history.dailyPUCCount.push({ day, value: 2 });
-    history.dailyStandardPrice.push({ day, value: 225 });
-    history.dailyCustomPrice.push({ day, value: 110 });
-    history.dailyCustomDeliveryTime.push({ day, value: 12 });
-    history.dailyReorderPoint.push({ day, value: 100 });
+    history.dailySalaryCost.push({ day, value: (experts * 150) + (rookies * 85) }); // Accurate salaries
+    history.dailyMCECount.push({ day, value: 1 }); // Minimal machine setup
+    history.dailyWMACount.push({ day, value: 1 });
+    history.dailyPUCCount.push({ day, value: 1 });
+    history.dailyStandardPrice.push({ day, value: 750 }); // Realistic pricing
+    history.dailyCustomPrice.push({ day, value: 1100 });
+    history.dailyCustomDeliveryTime.push({ day, value: 45 }); // Very long due to backlog
+    history.dailyReorderPoint.push({ day, value: 50 });
     history.dailyOrderQuantity.push({ day, value: 200 });
-    history.dailyStandardBatchSize.push({ day, value: 50 });
+    history.dailyStandardBatchSize.push({ day, value: 60 });
   }
 
   const finalNetWorth = Math.floor(cash - debt + 50000);
@@ -158,9 +163,9 @@ export function loadHistoricalData(): SimulationResult | null {
         employeeOvertimeTracking: [],
       },
       machines: {
-        MCE: 4,
-        WMA: 3,
-        PUC: 2,
+        MCE: 1, // Minimal machine setup at Day 51
+        WMA: 1,
+        PUC: 1,
       },
       pendingRawMaterialOrders: [],
       rejectedMaterialOrders: 0,
