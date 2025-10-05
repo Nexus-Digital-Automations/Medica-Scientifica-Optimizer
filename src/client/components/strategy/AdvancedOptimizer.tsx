@@ -90,10 +90,10 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     WMA: 'unlocked',
     PUC: 'unlocked'
   });
-  const [lockedPolicies, setLockedPolicies] = useState({
-    batchSize: false,
-    price: false,
-    mceAllocation: false,
+  const [policyLockStates, setPolicyLockStates] = useState<Record<'batchSize' | 'price' | 'mceAllocation', LockState>>({
+    batchSize: 'unlocked',
+    price: 'unlocked',
+    mceAllocation: 'unlocked',
   });
 
   // Handler functions for current state locks - cycle through states
@@ -135,7 +135,23 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
   };
 
   const handleLockPolicy = (policyType: 'batchSize' | 'price' | 'mceAllocation') => {
-    setLockedPolicies(prev => ({ ...prev, [policyType]: !prev[policyType] }));
+    setPolicyLockStates(prev => {
+      const newStates = {
+        ...prev,
+        [policyType]: (() => {
+          switch (prev[policyType]) {
+            case 'unlocked': return 'minimum';
+            case 'minimum': return 'maximum';
+            case 'maximum': return 'locked';
+            case 'locked': return 'unlocked';
+            default: return 'unlocked';
+          }
+        })()
+      };
+      // Sync with constraints
+      setConstraints(c => ({ ...c, policyLockStates: newStates }));
+      return newStates;
+    });
   };
 
   // Get values on the selected test day (applying all timed actions up to that day)
@@ -225,15 +241,15 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
     // Check if any batch size actions are locked
     // Also check current state panel policy lock
-    const hasLockedBatchSizeAction = lockedPolicies.batchSize || lockedActions.some(a => a.type === 'ADJUST_BATCH_SIZE');
+    const hasLockedBatchSizeAction = policyLockStates.batchSize === 'locked' || lockedActions.some(a => a.type === 'ADJUST_BATCH_SIZE');
 
     // Check if any price actions are locked
     // Also check current state panel policy lock
-    const hasLockedPriceAction = lockedPolicies.price || lockedActions.some(a => a.type === 'ADJUST_PRICE');
+    const hasLockedPriceAction = policyLockStates.price === 'locked' || lockedActions.some(a => a.type === 'ADJUST_PRICE');
 
     // Check if any MCE allocation actions are locked
     // Also check current state panel policy lock
-    const hasLockedMCEAllocationAction = lockedPolicies.mceAllocation || lockedActions.some(a => a.type === 'ADJUST_MCE_ALLOCATION');
+    const hasLockedMCEAllocationAction = policyLockStates.mceAllocation === 'locked' || lockedActions.some(a => a.type === 'ADJUST_MCE_ALLOCATION');
 
     if (params) {
       // Only add actions for non-fixed policies AND non-locked actions
@@ -1688,54 +1704,135 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         <div>
           <h5 className="text-sm font-semibold text-gray-300 mb-3">⚙️ Policy Settings</h5>
           <div className="space-y-3">
-            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.batchSize ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+            {/* Standard Batch Size */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.batchSize === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.batchSize === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.batchSize === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
               <div>
                 <p className="text-sm font-medium text-white">Standard Batch Size</p>
                 <p className="text-2xl font-bold text-white">{currentValues.standardBatchSize || 60}</p>
+                {policyLockStates.batchSize !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.batchSize === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.batchSize === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.batchSize === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.batchSize === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => handleLockPolicy('batchSize')}
                 className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
-                  lockedPolicies.batchSize
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  policyLockStates.batchSize === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.batchSize === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.batchSize === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  policyLockStates.batchSize === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.batchSize === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.batchSize === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedPolicies.batchSize ? '🔓 Unlock' : '🔒 Lock'}
+                {policyLockStates.batchSize === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.batchSize === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.batchSize === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
               </button>
             </div>
 
-            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.price ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+            {/* Standard Price */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.price === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.price === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.price === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
               <div>
                 <p className="text-sm font-medium text-white">Standard Price</p>
                 <p className="text-2xl font-bold text-white">${currentValues.standardPrice || 225}</p>
+                {policyLockStates.price !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.price === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.price === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.price === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.price === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => handleLockPolicy('price')}
                 className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
-                  lockedPolicies.price
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  policyLockStates.price === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.price === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.price === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  policyLockStates.price === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.price === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.price === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedPolicies.price ? '🔓 Unlock' : '🔒 Lock'}
+                {policyLockStates.price === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.price === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.price === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
               </button>
             </div>
 
-            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.mceAllocation ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+            {/* MCE Allocation */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.mceAllocation === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.mceAllocation === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.mceAllocation === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
               <div>
                 <p className="text-sm font-medium text-white">MCE Allocation (Custom)</p>
                 <p className="text-2xl font-bold text-white">{(currentValues.mceAllocationCustom * 100).toFixed(0)}%</p>
+                {policyLockStates.mceAllocation !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.mceAllocation === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.mceAllocation === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.mceAllocation === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.mceAllocation === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => handleLockPolicy('mceAllocation')}
                 className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
-                  lockedPolicies.mceAllocation
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  policyLockStates.mceAllocation === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.mceAllocation === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.mceAllocation === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  policyLockStates.mceAllocation === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.mceAllocation === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.mceAllocation === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedPolicies.mceAllocation ? '🔓 Unlock' : '🔒 Lock'}
+                {policyLockStates.mceAllocation === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.mceAllocation === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.mceAllocation === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
               </button>
             </div>
           </div>
@@ -1743,7 +1840,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
         <div className="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg">
           <p className="text-xs text-blue-300">
-            ℹ️ Locked values prevent the optimizer from making changes. Values shown reflect Day {constraints.testDay} state.
+            ℹ️ Lock states: <span className="font-semibold">Unlocked</span> = any change, <span className="font-semibold text-blue-300">Minimum</span> = can only increase, <span className="font-semibold text-orange-300">Maximum</span> = can only decrease, <span className="font-semibold text-red-300">Locked</span> = no change. Values shown reflect Day {constraints.testDay} state.
           </p>
         </div>
       </div>
