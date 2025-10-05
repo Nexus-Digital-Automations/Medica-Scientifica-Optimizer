@@ -49,12 +49,21 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     evaluationWindow: 30,
   });
 
-  // Genetic algorithm parameters
-  const [gaParams, setGaParams] = useState({
+  // Phase 1 genetic algorithm parameters
+  const [phase1Params, setPhase1Params] = useState({
     populationSize: 30,
     generations: 10,
     mutationRate: 0.3,
     eliteCount: 3,
+  });
+
+  // Phase 2 refinement parameters
+  const [phase2Params, setPhase2Params] = useState({
+    populationSize: 25,
+    generations: 10,
+    mutationRate: 0.25,
+    eliteCount: 3,
+    refinementIntensity: 0.10, // ±10% mutations
   });
 
   // Current state locks
@@ -131,7 +140,9 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
   // Optimization state
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizationResults, setOptimizationResults] = useState<OptimizationCandidate[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<'idle' | 'phase1' | 'phase2'>('idle');
+  const [phase1Results, setPhase1Results] = useState<OptimizationCandidate[]>([]);
+  const [phase2Results, setPhase2Results] = useState<OptimizationCandidate[]>([]);
   const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
 
   // Convert strategy parameters to policy decision actions for a specific day
@@ -312,14 +323,17 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
-    setOptimizationResults([]);
+    setCurrentPhase('phase1');
+    setPhase1Results([]);
+    setPhase2Results([]);
 
     // Start debug logging (overwrites previous logs)
     debugLogger.start();
-    console.log('🚀 Starting constrained optimization');
+    console.log('🚀 Starting Two-Phase Optimization');
+    console.log('🔵 Phase 1: Broad Exploration');
 
     try {
-      const { populationSize, generations, mutationRate, eliteCount } = gaParams;
+      const { populationSize, generations, mutationRate, eliteCount } = phase1Params;
 
       // Check if any policies can vary
       const variablePolicies = Object.values(constraints.fixedPolicies).filter(v => !v).length;
@@ -545,15 +559,15 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         .sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0))
         .slice(0, 5);
 
-      setOptimizationResults(topResults);
-      console.log('✅ Optimization complete!');
+      setPhase1Results(topResults);
+      console.log('✅ Phase 1 Complete!');
       console.log('🚀 Top 5 by Growth Rate:', topResults);
 
-      // Notify parent component (OptimizerPage) that Phase 1 results are ready
-      if (onResultsReady) {
-        onResultsReady(topResults, constraints.evaluationWindow);
-        console.log('📤 Phase 1 results sent to OptimizerPage for Phase 2');
-      }
+      // Automatically start Phase 2 with top 3 strategies from Phase 1
+      console.log('🟢 Phase 2: Focused Refinement');
+      setCurrentPhase('phase2');
+      const seedStrategies = topResults.slice(0, 3); // Top 3 for seeding
+      await runPhase2(seedStrategies);
 
       // Debug: Check if all have same history reference (shallow copy issue)
       const firstHistory = topResults[0]?.history;
@@ -587,6 +601,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     } catch (error) {
       console.error('❌ Optimization failed:', error);
       alert('Optimization failed. Check console for details.');
+      setCurrentPhase('idle');
     } finally {
       setIsOptimizing(false);
       setOptimizationProgress({ current: 0, total: 0 });
@@ -595,6 +610,186 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
       debugLogger.stop();
       debugLogger.download('optimizer-debug.log');
       console.log('📥 Debug log file downloaded');
+    }
+  };
+
+  const runPhase2 = async (seedStrategies: OptimizationCandidate[]) => {
+    const { populationSize, generations, mutationRate, eliteCount, refinementIntensity } = phase2Params;
+
+    try {
+      // Import generateSeededPopulation and related functions
+      const { generateSeededPopulation, mutateRefinement, generateLocalVariations } = await import('../../utils/geneticOptimizer');
+
+      // Generate seeded population from Phase 1 results with constraints
+      let population = generateSeededPopulation(seedStrategies, populationSize, refinementIntensity, constraints);
+
+      if (population.length === 0) {
+        alert('⚠️ Failed to generate Phase 2 population from Phase 1 results.');
+        return;
+      }
+
+      console.log(`🟢 Starting Phase 2 refinement with ${population.length} candidates`);
+
+      // Evolution loop for Phase 2
+      for (let gen = 0; gen < generations; gen++) {
+        console.log(`🧬 Phase 2 Generation ${gen + 1}/${generations}`);
+        setOptimizationProgress({ current: gen, total: generations });
+
+        // Evaluate fitness for all candidates
+        const testPromises = population.map(async (candidate) => {
+          const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+          const testStrategy: Strategy = {
+            ...strategy,
+            ...(candidate.strategyParams?.dailyOvertimeHours !== undefined && {
+              dailyOvertimeHours: candidate.strategyParams.dailyOvertimeHours
+            }),
+            timedActions: [
+              ...actionsBeforeTestDay,
+              ...candidate.actions,
+            ].sort((a, b) => a.day - b.day),
+          };
+
+          try {
+            const response = await fetch('/api/simulate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+              },
+              cache: 'no-store',
+              body: JSON.stringify({ strategy: testStrategy }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Simulation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success || !data.result) {
+              throw new Error(`Simulation failed: ${data.error}`);
+            }
+
+            const result = data.result;
+            candidate.fullState = result;
+
+            // Calculate growth rate
+            let growthRate = 0;
+            let endNetWorth = result.finalNetWorth;
+
+            if (result.state?.history?.dailyNetWorth) {
+              const dailyNetWorth = result.state.history.dailyNetWorth;
+              const startDay = constraints.testDay;
+              const evaluationEndDay = Math.min(startDay + constraints.evaluationWindow, constraints.endDay);
+
+              const startNetWorth = dailyNetWorth.find((d: { day: number; value: number }) => d.day === startDay)?.value || 0;
+
+              const endDayData = dailyNetWorth.find((d: { day: number; value: number }) => d.day === evaluationEndDay);
+              endNetWorth = endDayData?.value || result.finalNetWorth;
+              growthRate = (endNetWorth - startNetWorth) / constraints.evaluationWindow;
+
+              candidate.history = dailyNetWorth;
+            }
+
+            candidate.netWorth = endNetWorth;
+            candidate.growthRate = growthRate;
+            candidate.fitness = growthRate;
+
+            console.log(`Phase 2 Candidate ${candidate.id}: $${growthRate.toFixed(0)}/day`);
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Phase 2 simulation error for ${candidate.id}:`, errorMsg);
+            candidate.fitness = -Infinity;
+            candidate.netWorth = -Infinity;
+            candidate.error = errorMsg;
+          }
+        });
+
+        await Promise.all(testPromises);
+
+        // Check if all failed
+        const allFailed = population.every(c => c.fitness === -Infinity);
+        if (allFailed) {
+          throw new Error('All Phase 2 simulations failed!');
+        }
+
+        // Sort by fitness
+        population.sort((a, b) => b.fitness - a.fitness);
+
+        // If last generation, save results
+        if (gen === generations - 1) {
+          const topResults = [...population]
+            .sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0))
+            .slice(0, 5);
+
+          setPhase2Results(topResults);
+          console.log('✅ Phase 2 refinement complete!');
+          console.log('🚀 Top 5 Results:', topResults);
+
+          // Notify parent component
+          if (onResultsReady) {
+            onResultsReady(topResults, constraints.evaluationWindow);
+          }
+          break;
+        }
+
+        // Selection: Keep elite
+        const elite = population.slice(0, eliteCount);
+
+        // Generate next generation
+        const nextGen: OptimizationCandidate[] = [...elite];
+
+        while (nextGen.length < populationSize) {
+          // Tournament selection
+          const parent1 = population[Math.floor(Math.random() * Math.min(10, population.length))];
+          const parent2 = population[Math.floor(Math.random() * Math.min(10, population.length))];
+
+          // Crossover actions
+          const splitPoint = Math.floor(Math.random() * Math.min(parent1.actions.length, parent2.actions.length));
+          let childActions = [
+            ...parent1.actions.slice(0, splitPoint),
+            ...parent2.actions.slice(splitPoint),
+          ];
+
+          // Mutate with refinement intensity
+          if (Math.random() < mutationRate) {
+            childActions = generateLocalVariations(childActions, refinementIntensity);
+          }
+
+          // Crossover strategy parameters
+          let childParams: OptimizationCandidate['strategyParams'] = undefined;
+          if (parent1.strategyParams && parent2.strategyParams) {
+            childParams = {};
+            Object.keys(parent1.strategyParams).forEach(key => {
+              const k = key as keyof typeof parent1.strategyParams;
+              if (parent1.strategyParams![k] !== undefined && parent2.strategyParams![k] !== undefined) {
+                childParams![k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
+              }
+            });
+
+            // Mutate with refinement and constraints
+            if (Math.random() < mutationRate) {
+              childParams = mutateRefinement(childParams, refinementIntensity, constraints);
+            }
+          }
+
+          nextGen.push({
+            id: `phase2-gen${gen + 1}-${nextGen.length}`,
+            actions: childActions,
+            fitness: 0,
+            netWorth: 0,
+            strategyParams: childParams,
+          });
+        }
+
+        population = nextGen;
+      }
+
+      setCurrentPhase('idle');
+    } catch (error) {
+      console.error('❌ Phase 2 refinement failed:', error);
+      alert('Phase 2 refinement failed. Check console for details.');
+      setCurrentPhase('idle');
     }
   };
 
@@ -1001,113 +1196,180 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
           </div>
         </div>
 
-        {/* Genetic Algorithm Parameters */}
+        {/* Phase 1 Parameters */}
         <div className="mb-6">
-          <h5 className="text-sm font-semibold text-gray-300 mb-3">🧬 Genetic Algorithm Parameters</h5>
+          <h5 className="text-sm font-semibold text-blue-300 mb-3">🔵 Phase 1: Broad Exploration Parameters</h5>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="population-size" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="phase1-population-size" className="block text-sm font-medium text-white mb-2">
                 Population Size
               </label>
               <input
-                id="population-size"
-                name="populationSize"
+                id="phase1-population-size"
                 type="number"
-                value={gaParams.populationSize}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!isNaN(val)) {
-                    setGaParams(prev => ({ ...prev, populationSize: val }));
-                  }
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                value={phase1Params.populationSize}
+                onChange={(e) => setPhase1Params(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="10"
                 max="100"
                 step="5"
               />
-              <p className="text-xs text-gray-400 mt-1">Number of strategies per generation</p>
+              <p className="text-xs text-gray-400 mt-1">Strategies per generation</p>
             </div>
 
             <div>
-              <label htmlFor="generations" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="phase1-generations" className="block text-sm font-medium text-white mb-2">
                 Generations
               </label>
               <input
-                id="generations"
-                name="generations"
+                id="phase1-generations"
                 type="number"
-                value={gaParams.generations}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!isNaN(val)) {
-                    setGaParams(prev => ({ ...prev, generations: val }));
-                  }
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                value={phase1Params.generations}
+                onChange={(e) => setPhase1Params(prev => ({ ...prev, generations: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="5"
                 max="50"
                 step="1"
               />
-              <p className="text-xs text-gray-400 mt-1">Number of evolution cycles</p>
+              <p className="text-xs text-gray-400 mt-1">Evolution cycles</p>
             </div>
 
             <div>
-              <label htmlFor="mutation-rate" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="phase1-mutation-rate" className="block text-sm font-medium text-white mb-2">
                 Mutation Rate
               </label>
               <input
-                id="mutation-rate"
-                name="mutationRate"
+                id="phase1-mutation-rate"
                 type="number"
-                value={gaParams.mutationRate}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!isNaN(val)) {
-                    setGaParams(prev => ({ ...prev, mutationRate: val }));
-                  }
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                value={phase1Params.mutationRate}
+                onChange={(e) => setPhase1Params(prev => ({ ...prev, mutationRate: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="0.1"
                 max="0.9"
                 step="0.1"
               />
-              <p className="text-xs text-gray-400 mt-1">Probability of random changes (0-1)</p>
+              <p className="text-xs text-gray-400 mt-1">Probability of changes (0-1)</p>
             </div>
 
             <div>
-              <label htmlFor="elite-count" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="phase1-elite-count" className="block text-sm font-medium text-white mb-2">
                 Elite Count
               </label>
               <input
-                id="elite-count"
-                name="eliteCount"
+                id="phase1-elite-count"
                 type="number"
-                value={gaParams.eliteCount}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!isNaN(val)) {
-                    setGaParams(prev => ({ ...prev, eliteCount: val }));
-                  }
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                value={phase1Params.eliteCount}
+                onChange={(e) => setPhase1Params(prev => ({ ...prev, eliteCount: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="1"
                 max="10"
                 step="1"
               />
-              <p className="text-xs text-gray-400 mt-1">Top strategies preserved each generation</p>
+              <p className="text-xs text-gray-400 mt-1">Top strategies preserved</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg">
-          <h5 className="text-sm font-semibold text-blue-300 mb-2">Optimization Summary</h5>
+        {/* Phase 2 Parameters */}
+        <div className="mb-6">
+          <h5 className="text-sm font-semibold text-green-300 mb-3">🟢 Phase 2: Focused Refinement Parameters</h5>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="phase2-population-size" className="block text-sm font-medium text-white mb-2">
+                Population Size
+              </label>
+              <input
+                id="phase2-population-size"
+                type="number"
+                value={phase2Params.populationSize}
+                onChange={(e) => setPhase2Params(prev => ({ ...prev, populationSize: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                min="10"
+                max="100"
+                step="5"
+              />
+              <p className="text-xs text-gray-400 mt-1">Strategies per generation</p>
+            </div>
+
+            <div>
+              <label htmlFor="phase2-generations" className="block text-sm font-medium text-white mb-2">
+                Generations
+              </label>
+              <input
+                id="phase2-generations"
+                type="number"
+                value={phase2Params.generations}
+                onChange={(e) => setPhase2Params(prev => ({ ...prev, generations: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                min="5"
+                max="50"
+                step="1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Evolution cycles</p>
+            </div>
+
+            <div>
+              <label htmlFor="phase2-mutation-rate" className="block text-sm font-medium text-white mb-2">
+                Mutation Rate
+              </label>
+              <input
+                id="phase2-mutation-rate"
+                type="number"
+                value={phase2Params.mutationRate}
+                onChange={(e) => setPhase2Params(prev => ({ ...prev, mutationRate: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                min="0.1"
+                max="0.9"
+                step="0.1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Probability of changes</p>
+            </div>
+
+            <div>
+              <label htmlFor="phase2-elite-count" className="block text-sm font-medium text-white mb-2">
+                Elite Count
+              </label>
+              <input
+                id="phase2-elite-count"
+                type="number"
+                value={phase2Params.eliteCount}
+                onChange={(e) => setPhase2Params(prev => ({ ...prev, eliteCount: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                min="1"
+                max="10"
+                step="1"
+              />
+              <p className="text-xs text-gray-400 mt-1">Top strategies preserved</p>
+            </div>
+
+            <div>
+              <label htmlFor="phase2-refinement-intensity" className="block text-sm font-medium text-white mb-2">
+                Refinement Intensity
+              </label>
+              <input
+                id="phase2-refinement-intensity"
+                type="number"
+                value={phase2Params.refinementIntensity}
+                onChange={(e) => setPhase2Params(prev => ({ ...prev, refinementIntensity: Number(e.target.value) }))}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                min="0.05"
+                max="0.30"
+                step="0.05"
+              />
+              <p className="text-xs text-gray-400 mt-1">±{(phase2Params.refinementIntensity * 100).toFixed(0)}% mutations</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 p-4 bg-purple-900/20 border border-purple-600/30 rounded-lg">
+          <h5 className="text-sm font-semibold text-purple-300 mb-2">Two-Phase Optimization Summary</h5>
           <div className="text-xs text-gray-300 space-y-1">
             <div>🔒 Fixed Policies: {Object.values(constraints.fixedPolicies).filter(Boolean).length} / 6</div>
             <div>🔓 Variable Policies: {Object.values(constraints.fixedPolicies).filter(v => !v).length} / 6</div>
-            <div>🔒 Fixed Actions: {constraints.fixedActions.size}</div>
             <div>⏱️ Test Range: Days {constraints.testDay} - {constraints.endDay}</div>
-            <div>🧬 GA Settings: Pop={gaParams.populationSize}, Gen={gaParams.generations}, Mut={gaParams.mutationRate}, Elite={gaParams.eliteCount}</div>
-            <div>📊 Total Simulations: {gaParams.populationSize * gaParams.generations}</div>
+            <div>🔵 Phase 1: Pop={phase1Params.populationSize}, Gen={phase1Params.generations} → {phase1Params.populationSize * phase1Params.generations} sims</div>
+            <div>🟢 Phase 2: Pop={phase2Params.populationSize}, Gen={phase2Params.generations} → {phase2Params.populationSize * phase2Params.generations} sims</div>
+            <div>📊 Total Simulations: {(phase1Params.populationSize * phase1Params.generations) + (phase2Params.populationSize * phase2Params.generations)}</div>
           </div>
         </div>
       </div>
@@ -1288,14 +1550,14 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Optimizing... (Gen {optimizationProgress.current + 1}/{optimizationProgress.total})
+              {currentPhase === 'phase1' ? '🔵 Phase 1' : '🟢 Phase 2'} - Gen {optimizationProgress.current + 1}/{optimizationProgress.total}
             </>
           ) : (
             <>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              Run Optimizer
+              Run Two-Phase Optimizer
             </>
           )}
         </button>
@@ -1305,16 +1567,16 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         </p>
       </div>
 
-      {/* Optimization Results */}
-      {optimizationResults.length > 0 && (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-          <h4 className="text-lg font-semibold text-white mb-4">🎯 Optimization Results</h4>
+      {/* Phase 1 Results */}
+      {phase1Results.length > 0 && (
+        <div className="bg-gray-800 rounded-lg border border-blue-600 p-6">
+          <h4 className="text-lg font-semibold text-blue-300 mb-4">🔵 Phase 1: Exploration Results</h4>
           <p className="text-sm text-gray-400 mb-4">
-            Top 5 strategies ranked by growth rate from day {constraints.testDay} over {constraints.evaluationWindow} days
+            Top 5 strategies from broad exploration (top 3 will be refined in Phase 2)
           </p>
 
           <div className="space-y-4">
-            {optimizationResults.map((result, idx) => (
+            {phase1Results.map((result, idx) => (
                   <div
                     key={result.id}
                     className="p-4 bg-gradient-to-r from-gray-750 to-gray-800 border border-gray-600 rounded-lg"
@@ -1429,6 +1691,143 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                           type="monotone"
                           dataKey="value"
                           stroke={idx === 0 ? '#10B981' : idx === 1 ? '#3B82F6' : '#8B5CF6'}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            ))}
+              </div>
+        </div>
+      )}
+
+      {/* Phase 2 Results */}
+      {phase2Results.length > 0 && (
+        <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
+          <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
+          <p className="text-sm text-gray-400 mb-4">
+            Top 5 refined strategies - these are the final optimized recommendations
+          </p>
+
+          <div className="space-y-4">
+            {phase2Results.map((result, idx) => (
+                  <div
+                    key={result.id}
+                    className="p-4 bg-gradient-to-r from-green-900/20 to-green-800/20 border border-green-600 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '⭐'}</span>
+                          <h6 className="text-white font-semibold">Final Strategy #{idx + 1}</h6>
+                        </div>
+                        <p className="text-lg text-green-400 font-bold mt-1">
+                          Growth Rate: ${result.growthRate?.toFixed(0)}/day
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Total gain: ${((result.growthRate || 0) * constraints.evaluationWindow).toLocaleString()}
+                        </p>
+                      </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+
+                        loadStrategy({
+                          ...strategy,
+                          timedActions: [
+                            ...actionsBeforeTestDay,
+                            ...result.actions,
+                            ...actionsAfterTestDay,
+                          ].sort((a, b) => a.day - b.day),
+                        });
+                      }}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
+                    >
+                      Add to Current Strategy
+                    </button>
+                    <button
+                      onClick={() => {
+                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
+                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+
+                        exportStrategy({
+                          ...strategy,
+                          timedActions: [
+                            ...actionsBeforeTestDay,
+                            ...result.actions,
+                            ...actionsAfterTestDay,
+                          ].sort((a, b) => a.day - b.day),
+                        });
+                      }}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
+                    >
+                      Export
+                    </button>
+                    <button
+                      onClick={() => downloadComprehensiveXLSX(result, idx)}
+                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded"
+                    >
+                      📊 Excel
+                    </button>
+                  </div>
+                </div>
+
+                {result.actions && result.actions.length > 0 && (
+                  <div className="mt-3 p-3 bg-gray-900/50 rounded">
+                    <div className="text-xs text-gray-400 mb-2 font-semibold">
+                      📋 Policy Actions on Day {constraints.testDay}:
+                    </div>
+                    <div className="space-y-1">
+                      {getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
+                        <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
+                          <span className="text-green-400">•</span>
+                          {actionText}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Net Worth Over Time Graph */}
+                {result.history && result.history.length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-900/50 rounded">
+                    <div className="text-xs text-gray-400 mb-3 font-semibold">
+                      📈 Net Worth Over Time
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={result.history}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis
+                          dataKey="day"
+                          stroke="#9CA3AF"
+                          style={{ fontSize: '10px' }}
+                          label={{ value: 'Day', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
+                        />
+                        <YAxis
+                          stroke="#9CA3AF"
+                          style={{ fontSize: '10px' }}
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          label={{ value: 'Net Worth ($k)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1F2937',
+                            border: '1px solid #374151',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                          }}
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Net Worth']}
+                          labelFormatter={(label) => `Day ${label}`}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#10B981"
                           strokeWidth={2}
                           dot={false}
                         />
