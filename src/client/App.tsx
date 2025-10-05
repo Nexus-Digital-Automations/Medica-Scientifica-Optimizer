@@ -19,10 +19,10 @@ function App() {
           <div>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Strategy Builder
                 </h2>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-600">
                   Configure your factory's operating policies and plan timed actions
                 </p>
               </div>
@@ -41,10 +41,10 @@ function App() {
         {activeTab === 'results' && (
           <div>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Simulation Results
               </h2>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-600">
                 Detailed analysis of your factory's performance
               </p>
             </div>
@@ -54,10 +54,10 @@ function App() {
         {activeTab === 'library' && (
           <div>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Strategy Library
               </h2>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-600">
                 Manage your saved strategies - load, rename, or delete them
               </p>
             </div>

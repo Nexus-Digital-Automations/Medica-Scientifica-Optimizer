@@ -17,16 +17,25 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import ProcessMap from './ProcessMap';
+import SavedResultsManager from './SavedResultsManager';
+import { getMostRecentSavedResult } from '../../utils/savedResults';
 
 interface ResultsDashboardProps {
   onEditStrategy?: () => void;
 }
 
 export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardProps) {
-  const { simulationResult } = useStrategyStore();
+  const { simulationResult, saveCurrentResult, getViewingResult, currentViewingResultId, savedResults } = useStrategyStore();
   const [selectedTab, setSelectedTab] = useState<'processMap' | 'financial' | 'production' | 'workforce' | 'inventory' | 'market'>('processMap');
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveStrategyName, setSaveStrategyName] = useState('');
+  const [showResultsPanel, setShowResultsPanel] = useState(false);
 
-  if (!simulationResult) {
+  // Get the result being viewed (current or saved)
+  const viewingResult = getViewingResult();
+
+  // If no simulation and no saved results, show empty state
+  if (!viewingResult && savedResults.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-6xl mb-4">📊</div>
@@ -38,15 +47,36 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     );
   }
 
-  const { state, finalNetWorth, fitnessScore } = simulationResult;
+  // If no current viewing but have saved results, show most recent by default
+  const displayResult = viewingResult || getMostRecentSavedResult()?.result;
+
+  if (!displayResult) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">📊</div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">No Simulation Results</h3>
+        <p className="text-gray-600">Run a simulation to see results here.</p>
+      </div>
+    );
+  }
+
+  const { state, finalNetWorth, fitnessScore } = displayResult;
+
+  const handleSaveResult = () => {
+    if (saveStrategyName.trim()) {
+      saveCurrentResult(saveStrategyName.trim());
+      setShowSaveModal(false);
+      setSaveStrategyName('');
+    }
+  };
 
   // Validate simulation results
   const validationReport = useMemo(() => {
-    return validateSimulationResults(simulationResult);
-  }, [simulationResult]);
+    return validateSimulationResults(displayResult);
+  }, [displayResult]);
 
   const handleExportCSV = () => {
-    const csv = exportSimulationToCSV(simulationResult);
+    const csv = exportSimulationToCSV(displayResult);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -55,6 +85,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  const isViewingCurrent = currentViewingResultId === null;
 
   // Calculate totals from history
   const totalRevenue = state.history.dailyRevenue.reduce((sum, d) => sum + d.value, 0);
@@ -215,7 +247,27 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex gap-6">
+      {/* Saved Results Sidebar */}
+      {showResultsPanel && (
+        <div className="w-80 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Saved Results</h3>
+            <button
+              onClick={() => setShowResultsPanel(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <SavedResultsManager />
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
       {/* Validation Report */}
       {(validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -344,22 +396,53 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         </div>
       </div>
 
+      {/* Viewing Indicator */}
+      {!isViewingCurrent && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <p className="text-purple-900 text-sm font-medium">
+            📌 You are viewing a saved result. This is not your current simulation.
+          </p>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex justify-between items-center gap-4">
-        {onEditStrategy && (
+        <div className="flex gap-3">
           <button
-            onClick={onEditStrategy}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            onClick={() => setShowResultsPanel(!showResultsPanel)}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              showResultsPanel
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+            }`}
           >
-            ✏️ Edit Strategy & Rerun
+            📁 {showResultsPanel ? 'Hide' : 'Show'} Saved Results ({savedResults.length})
           </button>
-        )}
-        <button
-          onClick={handleExportCSV}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-        >
-          📥 Export Full CSV Report
-        </button>
+          {onEditStrategy && (
+            <button
+              onClick={onEditStrategy}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              ✏️ Edit Strategy & Rerun
+            </button>
+          )}
+        </div>
+        <div className="flex gap-3">
+          {simulationResult && isViewingCurrent && (
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              💾 Save Result
+            </button>
+          )}
+          <button
+            onClick={handleExportCSV}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            📥 Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Comprehensive Dashboard Tabs */}
@@ -434,7 +517,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         <div className="p-8">
           {/* Process Map Tab */}
           {selectedTab === 'processMap' && (
-            <ProcessMap simulationResult={simulationResult} />
+            <ProcessMap simulationResult={displayResult} />
           )}
 
           {/* Financial Performance Tab */}
@@ -639,6 +722,46 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           )}
         </div>
       </div>
+
+      {/* Save Result Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Save Simulation Result</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Give this simulation result a name so you can compare it with other strategies later.
+            </p>
+            <input
+              type="text"
+              value={saveStrategyName}
+              onChange={(e) => setSaveStrategyName(e.target.value)}
+              placeholder="e.g., Aggressive Growth Strategy"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveResult();
+                if (e.key === 'Escape') setShowSaveModal(false);
+              }}
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-900 rounded hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveResult}
+                disabled={!saveStrategyName.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                💾 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }

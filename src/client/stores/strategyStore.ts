@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import type { Strategy, StrategyAction, SimulationResult } from '../types/ui.types';
+import type { SavedSimulationResult } from '../utils/savedResults';
+import {
+  loadSavedResults,
+  saveSimulationResult,
+  deleteSavedResult,
+} from '../utils/savedResults';
 
 export interface SavedStrategy {
   id: string;
@@ -21,6 +27,10 @@ interface StrategyStore {
   // Saved strategies
   savedStrategies: SavedStrategy[];
 
+  // Saved simulation results
+  savedResults: SavedSimulationResult[];
+  currentViewingResultId: string | null; // ID of result being viewed, null means current simulation
+
   // Actions
   updateStrategy: (updates: Partial<Strategy>) => void;
   addTimedAction: (action: StrategyAction) => void;
@@ -39,6 +49,14 @@ interface StrategyStore {
   setSimulationResult: (result: SimulationResult | null) => void;
   setSimulating: (isSimulating: boolean) => void;
   setSimulationError: (error: string | null) => void;
+
+  // Saved results actions
+  saveCurrentResult: (strategyName: string) => void;
+  loadSavedResult: (id: string) => void;
+  deleteSavedResultById: (id: string) => void;
+  refreshSavedResults: () => void;
+  viewCurrentSimulation: () => void;
+  getViewingResult: () => SimulationResult | null; // Gets either current sim or saved result
 }
 
 const DEFAULT_STRATEGY: Strategy = {
@@ -103,6 +121,8 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
   isSimulating: false,
   simulationError: null,
   savedStrategies: loadSavedStrategiesFromStorage(),
+  savedResults: loadSavedResults(),
+  currentViewingResultId: null,
 
   updateStrategy: (updates) =>
     set((state) => ({
@@ -190,7 +210,60 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
     set({ savedStrategies: updated });
   },
 
-  setSimulationResult: (result) => set({ simulationResult: result }),
+  setSimulationResult: (result) => set({ simulationResult: result, currentViewingResultId: null }),
   setSimulating: (isSimulating) => set({ isSimulating }),
   setSimulationError: (error) => set({ simulationError: error }),
+
+  // Saved results management
+  saveCurrentResult: (strategyName) => {
+    const { simulationResult } = get();
+    if (simulationResult) {
+      try {
+        saveSimulationResult(strategyName, simulationResult);
+        set({ savedResults: loadSavedResults() });
+      } catch (error) {
+        console.error('Failed to save simulation result:', error);
+      }
+    }
+  },
+
+  loadSavedResult: (id) => {
+    const { savedResults } = get();
+    const result = savedResults.find(r => r.id === id);
+    if (result) {
+      set({
+        currentViewingResultId: id,
+        simulationResult: result.result,
+      });
+    }
+  },
+
+  deleteSavedResultById: (id) => {
+    try {
+      deleteSavedResult(id);
+      set({
+        savedResults: loadSavedResults(),
+        currentViewingResultId: get().currentViewingResultId === id ? null : get().currentViewingResultId,
+      });
+    } catch (error) {
+      console.error('Failed to delete saved result:', error);
+    }
+  },
+
+  refreshSavedResults: () => {
+    set({ savedResults: loadSavedResults() });
+  },
+
+  viewCurrentSimulation: () => {
+    set({ currentViewingResultId: null });
+  },
+
+  getViewingResult: () => {
+    const { currentViewingResultId, simulationResult, savedResults } = get();
+    if (currentViewingResultId) {
+      const saved = savedResults.find(r => r.id === currentViewingResultId);
+      return saved?.result || null;
+    }
+    return simulationResult;
+  },
 }));

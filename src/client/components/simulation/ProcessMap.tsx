@@ -1,12 +1,29 @@
 import { useMemo } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
+import { getMostRecentSavedResult } from '../../utils/savedResults';
 
 interface ProcessMapProps {
-  simulationResult: SimulationResult;
+  simulationResult: SimulationResult | null;
 }
 
 export default function ProcessMap({ simulationResult }: ProcessMapProps) {
-  const { state } = simulationResult;
+  // If no result provided, try to use most recent saved result
+  const displayResult = simulationResult || getMostRecentSavedResult()?.result;
+
+  // If still no result, show placeholder
+  if (!displayResult) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">🏭</div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">Process Map</h3>
+        <p className="text-gray-600">
+          Run a simulation to see your factory's live process flow with bottleneck detection.
+        </p>
+      </div>
+    );
+  }
+
+  const { state } = displayResult;
 
   // Get final day values
   const finalDayIndex = state.history.dailyCash.length - 1;

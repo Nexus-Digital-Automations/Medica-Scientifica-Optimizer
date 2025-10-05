@@ -748,15 +748,15 @@ export default function AdvancedOptimizer() {
   return (
     <div className="space-y-6">
       {/* Introduction */}
-      <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-600/30 rounded-lg p-6">
+      <div className="bg-gradient-to-r from-purple-900 to-blue-900 border border-purple-600 rounded-lg p-6">
         <h3 className="text-xl font-bold text-white mb-2">
           🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v3.0-MAXIMUM-DIVERSITY</span>
         </h3>
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-gray-200">
           Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
           but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
         </p>
-        <p className="text-xs text-yellow-400 mt-2">
+        <p className="text-xs text-yellow-300 mt-2">
           ✨ Testing diverse action combinations: HIRE_ROOKIE (70%, 1-10 workers), BUY_MACHINE (70%, 1-5 machines), FIRE_EMPLOYEE (30%, 1-3), SELL_MACHINE (30%, 1-2), automatic loans
         </p>
       </div>
