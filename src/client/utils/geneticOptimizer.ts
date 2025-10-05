@@ -30,6 +30,8 @@ export interface OptimizationCandidate {
   actions: StrategyAction[];
   fitness: number;
   netWorth: number;
+  growthRate?: number; // $/day growth rate over evaluation window
+  peakGrowth?: number; // Total $ gain from testDay to peak before decline
   error?: string; // Error message if simulation failed
   // Daily net worth history for graphing
   history?: Array<{ day: number; value: number }>;
@@ -68,6 +70,8 @@ export interface OptimizationConstraints {
   // Test day configuration
   testDay: number;
   endDay: number;
+  // Evaluation window for short-term growth rate calculation
+  evaluationWindow: number; // Days to measure growth rate (default: 30)
 }
 
 /**
