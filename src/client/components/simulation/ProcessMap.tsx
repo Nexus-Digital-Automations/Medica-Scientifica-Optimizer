@@ -438,7 +438,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           <div className="text-center">
             <div className="text-lg font-bold text-amber-300 mb-3">📦 RAW MATERIAL INVENTORY</div>
             <div className="text-5xl font-bold text-white mb-3">{Math.round(finalRawMaterial)}</div>
-            <div className="text-sm text-amber-200 mb-1">parts available</div>
+            <div className="text-sm text-white drop-shadow-lg mb-1">parts available</div>
             {isRawMaterialBottleneck && (
               <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                 ⚠️ LOW INVENTORY BOTTLENECK
@@ -708,9 +708,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-3xl font-bold text-purple-300 mb-2">🎨 CUSTOM LINE</div>
-              <div className="text-lg text-purple-200 mb-2">(Make-to-Order)</div>
-              <div className="text-sm text-gray-300 mt-2">1 part/unit • FIRST priority on MCE</div>
+              <div className="text-3xl font-bold text-white mb-2 drop-shadow-lg">🎨 CUSTOM LINE</div>
+              <div className="text-lg text-white mb-2 drop-shadow-md">(Make-to-Order)</div>
+              <div className="text-sm text-white mt-2 drop-shadow-md">1 part/unit • FIRST priority on MCE</div>
             </div>
 
             {/* Custom Line Stats */}
@@ -771,13 +771,13 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-base font-semibold text-purple-200 mb-1">📊 Work-In-Progress (WIP)</div>
-              <div className="text-xs text-purple-300 mb-3">Orders currently being processed</div>
-              <div className="text-4xl font-bold text-white mb-2">{Math.round(finalCustomWIP)}</div>
-              <div className="text-sm text-purple-300">custom orders</div>
+              <div className="text-base font-semibold text-white mb-1 drop-shadow-lg">📊 Work-In-Progress (WIP)</div>
+              <div className="text-xs text-purple-100 mb-3 drop-shadow-md">Orders currently being processed</div>
+              <div className="text-4xl font-bold text-white mb-2 drop-shadow-lg">{Math.round(finalCustomWIP)}</div>
+              <div className="text-sm text-purple-100 drop-shadow-md">custom orders</div>
               <div className="border-t border-purple-600 mt-4 pt-3">
-                <div className="text-xs text-purple-300 mb-1">Average Daily Output</div>
-                <div className="text-lg font-bold text-white">{avgCustomProduction.toFixed(1)} orders/day</div>
+                <div className="text-xs text-purple-100 mb-1 drop-shadow-md">Average Daily Output</div>
+                <div className="text-lg font-bold text-white drop-shadow-lg">{avgCustomProduction.toFixed(1)} orders/day</div>
               </div>
               {isCustomBottleneck && (
                 <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
@@ -843,7 +843,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 1</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">Station 2 - WMA Pass 1</div>
               <div className="text-base text-white font-semibold mb-2">Whittling & Micro Abrasion</div>
             </div>
 
@@ -909,7 +909,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-pink-200 mb-2">Station 4 - PUC</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">Station 4 - PUC</div>
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
             </div>
 
@@ -974,7 +974,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 2</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">Station 2 - WMA Pass 2</div>
               <div className="text-base text-white font-semibold mb-2">Final Adjustments</div>
             </div>
 
@@ -989,7 +989,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
             {/* Ship Direct */}
             <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
-              <div className="text-base font-bold text-green-200 mb-2">✈️ SHIP TO CUSTOMER</div>
+              <div className="text-base font-bold text-white drop-shadow-lg mb-2">✈️ SHIP TO CUSTOMER</div>
               <div className="text-sm text-white mb-3">Direct Ship (No Inventory Held)</div>
               <div className="text-xs text-green-300 mb-2">Orders Completed Today</div>
               <div className="text-3xl font-bold text-white mb-2">{Math.round(finalCustomProduction)}</div>
@@ -1134,9 +1134,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-3xl font-bold text-blue-300 mb-2">💎 STANDARD LINE</div>
-              <div className="text-lg text-blue-200 mb-2">(Make-to-Stock)</div>
-              <div className="text-sm text-gray-300 mt-2">2 parts/unit • Second priority on MCE</div>
+              <div className="text-3xl font-bold text-white mb-2 drop-shadow-lg">💎 STANDARD LINE</div>
+              <div className="text-lg text-white mb-2 drop-shadow-md">(Make-to-Stock)</div>
+              <div className="text-sm text-white mt-2 drop-shadow-md">2 parts/unit • Second priority on MCE</div>
             </div>
 
             {/* Standard Line Stats */}
@@ -1204,13 +1204,13 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-base font-semibold text-blue-200 mb-1">📊 Work-In-Progress (WIP)</div>
-              <div className="text-xs text-blue-300 mb-3">Units currently being processed</div>
-              <div className="text-4xl font-bold text-white mb-2">{Math.round(finalStandardWIP)}</div>
-              <div className="text-sm text-blue-300">standard units</div>
+              <div className="text-base font-semibold text-white mb-1 drop-shadow-lg">📊 Work-In-Progress (WIP)</div>
+              <div className="text-xs text-blue-100 mb-3 drop-shadow-md">Units currently being processed</div>
+              <div className="text-4xl font-bold text-white mb-2 drop-shadow-lg">{Math.round(finalStandardWIP)}</div>
+              <div className="text-sm text-blue-100 drop-shadow-md">standard units</div>
               <div className="border-t border-blue-600 mt-4 pt-3">
-                <div className="text-xs text-blue-300 mb-1">Average Daily Output</div>
-                <div className="text-lg font-bold text-white">{avgStandardProduction.toFixed(1)} units/day</div>
+                <div className="text-xs text-blue-100 mb-1 drop-shadow-md">Average Daily Output</div>
+                <div className="text-lg font-bold text-white drop-shadow-lg">{avgStandardProduction.toFixed(1)} units/day</div>
               </div>
               {isStandardBottleneck && (
                 <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
@@ -1265,7 +1265,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCHING QUEUE</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">⏳ BATCHING QUEUE</div>
               <div className="text-base text-white font-semibold mb-2">Wait for Batch Size</div>
             </div>
 
@@ -1373,7 +1373,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-orange-200 mb-2">Station 6 - ARCP (Manual)</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">Station 6 - ARCP (Manual)</div>
               <div className="text-base text-white font-semibold mb-3">Assembly & Quality Control</div>
               <div className="text-sm text-orange-300 mb-1">Workforce: {finalExperts} experts + {finalRookies} rookies</div>
               <div className="text-sm text-orange-300">Capacity: {arcpCapacity.toFixed(1)} units/day</div>
@@ -1439,7 +1439,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-sm font-bold text-amber-200 mb-2">⏳ SECOND BATCHING</div>
+              <div className="text-sm font-bold text-white drop-shadow-lg mb-2">⏳ SECOND BATCHING</div>
               <div className="text-base text-white font-semibold mb-2">Final Batching</div>
             </div>
 
@@ -1498,7 +1498,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                   }
                 />
               </div>
-              <div className="text-base font-bold text-green-200 mb-3">📦 FINISHED GOODS INVENTORY</div>
+              <div className="text-base font-bold text-white drop-shadow-lg mb-3">📦 FINISHED GOODS INVENTORY</div>
               <div className="text-sm text-white mb-2">Ready to Ship</div>
               <div className="text-4xl font-bold text-white mb-1">{Math.round(finalFinishedStandard)}</div>
               <div className="text-sm text-green-300">units in stock</div>
@@ -1515,7 +1515,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
             {/* Ship */}
             <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
-              <div className="text-base font-bold text-green-200 mb-2">✈️ SHIP TO CUSTOMER</div>
+              <div className="text-base font-bold text-white drop-shadow-lg mb-2">✈️ SHIP TO CUSTOMER</div>
               <div className="text-sm text-white mb-3">Shipped From Finished Goods Inventory</div>
               <div className="text-xs text-green-300 mb-2">Units Shipped Today</div>
               <div className="text-3xl font-bold text-white mb-2">{Math.round(finalStandardProduction)}</div>
