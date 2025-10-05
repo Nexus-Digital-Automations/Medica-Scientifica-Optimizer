@@ -206,6 +206,60 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       </div>
 
+      {/* Arrow Legend */}
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-700 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-white mb-4">📌 Flow Arrow Legend</h3>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Shortage Arrow */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3">
+              <svg width="32" height="80" viewBox="0 0 32 80">
+                <polygon points="14,0 18,0 24,60 8,60" fill="#ef4444" opacity="0.95" />
+                <polygon points="16,80 4,60 28,60" fill="#ef4444" opacity="0.95" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <div className="text-red-400 font-bold text-sm mb-1">⚠️ Supply Shortage</div>
+              <div className="text-gray-400 text-xs">Thin top → Thick bottom</div>
+              <div className="text-gray-500 text-xs mt-1">Not enough supply</div>
+            </div>
+          </div>
+
+          {/* Balanced Arrow */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3">
+              <svg width="32" height="80" viewBox="0 0 32 80">
+                <polygon points="10,0 22,0 22,60 10,60" fill="#3b82f6" opacity="0.95" />
+                <polygon points="16,80 4,60 28,60" fill="#3b82f6" opacity="0.95" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <div className="text-blue-400 font-bold text-sm mb-1">✅ Balanced Flow</div>
+              <div className="text-gray-400 text-xs">Uniform width</div>
+              <div className="text-gray-500 text-xs mt-1">Healthy supply & demand</div>
+            </div>
+          </div>
+
+          {/* Excess Arrow */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3">
+              <svg width="32" height="80" viewBox="0 0 32 80">
+                <polygon points="4,0 28,0 18,60 14,60" fill="#22c55e" opacity="0.95" />
+                <polygon points="16,80 4,60 28,60" fill="#22c55e" opacity="0.95" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <div className="text-green-400 font-bold text-sm mb-1">📈 Excess Supply</div>
+              <div className="text-gray-400 text-xs">Thick top → Thin bottom</div>
+              <div className="text-gray-500 text-xs mt-1">Supply exceeds demand</div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 text-center text-gray-400 text-xs">
+          Click any arrow in the process map for detailed flow metrics
+        </div>
+      </div>
+
       {/* Comprehensive Statistics Panel */}
       {showStatistics && (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6">
