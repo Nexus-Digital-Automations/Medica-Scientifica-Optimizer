@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
-import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams } from '../../utils/geneticOptimizer';
+import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams, ensureSufficientCash } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { debugLogger } from '../../utils/debugLogger';
 
@@ -147,7 +147,35 @@ export default function AdvancedOptimizer() {
       // It affects daily operations, not a one-time decision
     }
 
-    return actions;
+    // Add one-time actions (50% chance for hiring, 50% chance for machine purchase)
+    if (Math.random() < 0.5) {
+      const hireCount = Math.floor(1 + Math.random() * 3); // 1-3 workers
+      console.log(`[AdvancedOptimizer] Adding HIRE_ROOKIE action: day=${day}, count=${hireCount}`);
+      actions.push({
+        day,
+        type: 'HIRE_ROOKIE',
+        count: hireCount,
+      });
+    }
+
+    if (Math.random() < 0.5) {
+      const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
+      const machineType = machineTypes[Math.floor(Math.random() * 3)];
+      const machineCount = Math.floor(1 + Math.random() * 2); // 1-2 machines
+      console.log(`[AdvancedOptimizer] Adding BUY_MACHINE action: day=${day}, type=${machineType}, count=${machineCount}`);
+      actions.push({
+        day,
+        type: 'BUY_MACHINE',
+        machineType,
+        count: machineCount,
+      });
+    }
+
+    // Add automatic loan management to ensure actions don't violate minimum cash threshold
+    const actionsWithLoans = ensureSufficientCash(actions, 100000, 50000);
+    console.log(`[AdvancedOptimizer] Generated ${actions.length} actions, after loan management: ${actionsWithLoans.length} actions`);
+
+    return actionsWithLoans;
   };
 
   const runConstrainedOptimization = async () => {
@@ -235,7 +263,7 @@ export default function AdvancedOptimizer() {
           }
 
           try {
-            const response = await fetch('http://localhost:3000/api/simulate', {
+            const response = await fetch('/api/simulate', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -508,10 +536,15 @@ export default function AdvancedOptimizer() {
     <div className="space-y-6">
       {/* Introduction */}
       <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-600/30 rounded-lg p-6">
-        <h3 className="text-xl font-bold text-white mb-2">🎯 Advanced Optimizer</h3>
+        <h3 className="text-xl font-bold text-white mb-2">
+          🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v2.0-ENHANCED</span>
+        </h3>
         <p className="text-sm text-gray-300">
           Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
           but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
+        </p>
+        <p className="text-xs text-yellow-400 mt-2">
+          ✨ Now testing one-time actions: HIRE_ROOKIE (50% chance), BUY_MACHINE (50% chance), automatic loan management
         </p>
       </div>
 

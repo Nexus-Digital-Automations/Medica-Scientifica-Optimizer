@@ -22,6 +22,12 @@ interface OptimizerResults {
 export default function BulkOptimizer() {
   const { strategy } = useStrategyStore();
   const [testDay, setTestDay] = useState<number>(75);
+
+  // Version check - log when component loads
+  React.useEffect(() => {
+    console.log('🚀 BulkOptimizer v2.0-ENHANCED loaded successfully!');
+    console.log('📍 If you see this, the new code is active');
+  }, []);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, generation: 0 });
   const [results, setResults] = useState<OptimizerResults | null>(null);
@@ -338,10 +344,13 @@ export default function BulkOptimizer() {
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-white mb-1">
-          🧬 Genetic Algorithm Optimizer
+          🧬 Genetic Algorithm Optimizer <span className="text-xs text-green-400 ml-2">v2.0-ENHANCED</span>
         </h3>
         <p className="text-sm text-gray-400">
           Find optimal actions for a specific day using evolutionary optimization
+        </p>
+        <p className="text-xs text-yellow-400 mt-1">
+          ✨ Enhanced: 50% hiring, 50% machine purchases, automatic loan management
         </p>
       </div>
 
