@@ -51,7 +51,7 @@ const DEFAULT_STRATEGY: Strategy = {
   mceAllocationCustom: 0.50, // 50% to custom, 50% to standard
 
   // Pricing
-  standardPrice: 800,
+  standardPrice: 225, // Competitive market price (reflects steep demand curve)
   dailyOvertimeHours: 0,
   customBasePrice: 106.56,
   customPenaltyPerDay: 0.27,
@@ -63,9 +63,10 @@ const DEFAULT_STRATEGY: Strategy = {
   customDemandMean2: 32.5,
   customDemandStdDev2: 6.5,
 
-  // Standard Demand Curve
-  standardDemandIntercept: 500,
-  standardDemandSlope: -0.25,
+  // Standard Demand Curve (COMPETITIVE market - steep slope)
+  // Q = 1500 - 5.0 * P means zero demand at prices above $300
+  standardDemandIntercept: 1500,
+  standardDemandSlope: -5.0,
 
   // Quit Risk Model
   overtimeTriggerDays: 5,

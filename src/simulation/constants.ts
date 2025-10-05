@@ -169,7 +169,7 @@ export const DEFAULT_STRATEGY: Strategy = {
   mceAllocationCustom: 0.7, // 70% to custom, 30% to standard
 
   // Pricing Policy
-  standardPrice: 750, // $ per unit
+  standardPrice: 225, // $ per unit (competitive market price - business case page 2)
   dailyOvertimeHours: 0, // hours per day (0-4 hours, at 1.5x cost)
   customBasePrice: 106.56, // $ base price (from historical data regression analysis)
   customPenaltyPerDay: 0.27, // $ penalty for each day over target (from regression slope)
@@ -182,8 +182,12 @@ export const DEFAULT_STRATEGY: Strategy = {
   customDemandStdDev2: 6.5, // Phase 2 standard deviation
 
   // Standard Product Demand Curve (linear: Q = intercept + slope * P)
-  standardDemandIntercept: 500, // Theoretical demand at price $0
-  standardDemandSlope: -0.25, // Lose 1 unit demand per $4 price increase
+  // Reflects VERY COMPETITIVE market per business case (Page 2):
+  // "The market for standard products was dominated by purchasing departments
+  // of large health institutions, and it was very competitive"
+  // Competitive markets punish above-market pricing severely - demand drops to zero
+  standardDemandIntercept: 1500, // Theoretical demand at price $0
+  standardDemandSlope: -5.0, // Steep slope for competitive market (zero demand at $300+)
 
   // Quit Risk Model (employee reaction to overtime)
   overtimeTriggerDays: 5, // Consecutive overtime days before quit risk begins
