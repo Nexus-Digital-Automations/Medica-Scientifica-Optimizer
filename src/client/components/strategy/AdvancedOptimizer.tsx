@@ -5,7 +5,7 @@ import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams, ensureSufficientCash } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { debugLogger } from '../../utils/debugLogger';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
 
 interface OptimizationConstraints {
@@ -555,7 +555,7 @@ export default function AdvancedOptimizer() {
     linkElement.click();
   };
 
-  const downloadComprehensiveXLSX = (candidate: OptimizationCandidate, idx: number) => {
+  const downloadComprehensiveXLSX = async (candidate: OptimizationCandidate, idx: number) => {
     if (!candidate.fullState) {
       alert('No simulation data available for this result');
       return;
@@ -564,10 +564,10 @@ export default function AdvancedOptimizer() {
     const historicalData = historicalDataImport as Record<string, { headers: string[]; data: Record<string, unknown>[] }>;
 
     // Create a new workbook
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
 
     // ==================== SHEET 1: DAILY HISTORY (Days 1-500) ====================
-    const dailyHistoryData: (string | number)[][] = [];
+    const dailyHistorySheet = workbook.addWorksheet('Daily History');
 
     // Collect all simulation metrics from the candidate
     const simulationHistory = candidate.fullState.state?.history || {};
@@ -584,7 +584,7 @@ export default function AdvancedOptimizer() {
       headerRow.push(formatted);
     });
 
-    dailyHistoryData.push(headerRow);
+    dailyHistorySheet.addRow(headerRow);
 
     // Generate rows for days 1-500
     for (let day = 1; day <= 500; day++) {
@@ -620,58 +620,55 @@ export default function AdvancedOptimizer() {
         }
       });
 
-      dailyHistoryData.push(row);
+      dailyHistorySheet.addRow(row);
     }
-
-    const dailyHistorySheet = XLSX.utils.aoa_to_sheet(dailyHistoryData);
-    XLSX.utils.book_append_sheet(workbook, dailyHistorySheet, 'Daily History');
 
     // ==================== SHEET 2: SUMMARY & METADATA ====================
-    const summaryData: (string | number)[][] = [];
+    const summarySheet = workbook.addWorksheet('Summary');
 
     // Section 1: Simulation Summary
-    summaryData.push(['=== SIMULATION SUMMARY ===']);
-    summaryData.push([]);
-    summaryData.push(['Metric', 'Value']);
-    summaryData.push(['Strategy ID', candidate.id]);
-    summaryData.push(['Rank', `#${idx + 1}`]);
-    summaryData.push(['Peak Net Worth', `$${candidate.netWorth.toLocaleString()}`]);
-    summaryData.push(['Final Net Worth', `$${candidate.fullState.finalNetWorth?.toLocaleString() || 'N/A'}`]);
-    summaryData.push(['Historical Data Period', 'Days 1-50']);
-    summaryData.push(['Strategy Testing Started', `Day ${constraints.testDay}`]);
-    summaryData.push(['Simulation End Day', constraints.endDay]);
-    summaryData.push([]);
+    summarySheet.addRow(['=== SIMULATION SUMMARY ===']);
+    summarySheet.addRow([]);
+    summarySheet.addRow(['Metric', 'Value']);
+    summarySheet.addRow(['Strategy ID', candidate.id]);
+    summarySheet.addRow(['Rank', `#${idx + 1}`]);
+    summarySheet.addRow(['Peak Net Worth', `$${candidate.netWorth.toLocaleString()}`]);
+    summarySheet.addRow(['Final Net Worth', `$${candidate.fullState.finalNetWorth?.toLocaleString() || 'N/A'}`]);
+    summarySheet.addRow(['Historical Data Period', 'Days 1-50']);
+    summarySheet.addRow(['Strategy Testing Started', `Day ${constraints.testDay}`]);
+    summarySheet.addRow(['Simulation End Day', constraints.endDay]);
+    summarySheet.addRow([]);
 
     // Section 2: Strategy Parameters
-    summaryData.push(['=== STRATEGY PARAMETERS ===']);
-    summaryData.push([]);
-    summaryData.push(['Parameter', 'Value']);
+    summarySheet.addRow(['=== STRATEGY PARAMETERS ===']);
+    summarySheet.addRow([]);
+    summarySheet.addRow(['Parameter', 'Value']);
     if (candidate.strategyParams) {
       if (candidate.strategyParams.reorderPoint !== undefined) {
-        summaryData.push(['Reorder Point', `${candidate.strategyParams.reorderPoint} units`]);
+        summarySheet.addRow(['Reorder Point', `${candidate.strategyParams.reorderPoint} units`]);
       }
       if (candidate.strategyParams.orderQuantity !== undefined) {
-        summaryData.push(['Order Quantity', `${candidate.strategyParams.orderQuantity} units`]);
+        summarySheet.addRow(['Order Quantity', `${candidate.strategyParams.orderQuantity} units`]);
       }
       if (candidate.strategyParams.standardPrice !== undefined) {
-        summaryData.push(['Standard Price', `$${candidate.strategyParams.standardPrice}`]);
+        summarySheet.addRow(['Standard Price', `$${candidate.strategyParams.standardPrice}`]);
       }
       if (candidate.strategyParams.standardBatchSize !== undefined) {
-        summaryData.push(['Standard Batch Size', `${candidate.strategyParams.standardBatchSize} units`]);
+        summarySheet.addRow(['Standard Batch Size', `${candidate.strategyParams.standardBatchSize} units`]);
       }
       if (candidate.strategyParams.mceAllocationCustom !== undefined) {
-        summaryData.push(['MCE Custom Allocation', `${(candidate.strategyParams.mceAllocationCustom * 100).toFixed(1)}%`]);
+        summarySheet.addRow(['MCE Custom Allocation', `${(candidate.strategyParams.mceAllocationCustom * 100).toFixed(1)}%`]);
       }
       if (candidate.strategyParams.dailyOvertimeHours !== undefined) {
-        summaryData.push(['Daily Overtime Hours', `${candidate.strategyParams.dailyOvertimeHours}h`]);
+        summarySheet.addRow(['Daily Overtime Hours', `${candidate.strategyParams.dailyOvertimeHours}h`]);
       }
     }
-    summaryData.push([]);
+    summarySheet.addRow([]);
 
     // Section 3: Timed Actions
-    summaryData.push(['=== TIMED ACTIONS ===']);
-    summaryData.push([]);
-    summaryData.push(['Day', 'Action Type', 'Details']);
+    summarySheet.addRow(['=== TIMED ACTIONS ===']);
+    summarySheet.addRow([]);
+    summarySheet.addRow(['Day', 'Action Type', 'Details']);
     candidate.actions.forEach(action => {
       let details = '';
       if ('newReorderPoint' in action) details = `New Reorder Point: ${action.newReorderPoint} units`;
@@ -684,67 +681,68 @@ export default function AdvancedOptimizer() {
       else if ('machineType' in action) details = `Machine Type: ${action.machineType}`;
       else if ('productType' in action) details = `Product Type: ${action.productType}`;
 
-      summaryData.push([action.day, action.type, details]);
+      summarySheet.addRow([action.day, action.type, details]);
     });
-    summaryData.push([]);
+    summarySheet.addRow([]);
 
     // Section 4: Final State
     if (candidate.fullState.state) {
-      summaryData.push(['=== FINAL STATE ===']);
-      summaryData.push([]);
-      summaryData.push(['Metric', 'Value']);
+      summarySheet.addRow(['=== FINAL STATE ===']);
+      summarySheet.addRow([]);
+      summarySheet.addRow(['Metric', 'Value']);
 
       const state = candidate.fullState.state;
-      if (state.cash !== undefined) summaryData.push(['Cash', `$${state.cash.toLocaleString()}`]);
-      if (state.debt !== undefined) summaryData.push(['Debt', `$${state.debt.toLocaleString()}`]);
-      if (state.inventory !== undefined) summaryData.push(['Inventory', `${state.inventory} units`]);
-      if (state.backlog !== undefined) summaryData.push(['Backlog', `${state.backlog} orders`]);
-      if (state.totalRevenue !== undefined) summaryData.push(['Total Revenue', `$${state.totalRevenue.toLocaleString()}`]);
-      if (state.totalCosts !== undefined) summaryData.push(['Total Costs', `$${state.totalCosts.toLocaleString()}`]);
-      if (state.profit !== undefined) summaryData.push(['Profit', `$${state.profit.toLocaleString()}`]);
+      if (state.cash !== undefined) summarySheet.addRow(['Cash', `$${state.cash.toLocaleString()}`]);
+      if (state.debt !== undefined) summarySheet.addRow(['Debt', `$${state.debt.toLocaleString()}`]);
+      if (state.inventory !== undefined) summarySheet.addRow(['Inventory', `${state.inventory} units`]);
+      if (state.backlog !== undefined) summarySheet.addRow(['Backlog', `${state.backlog} orders`]);
+      if (state.totalRevenue !== undefined) summarySheet.addRow(['Total Revenue', `$${state.totalRevenue.toLocaleString()}`]);
+      if (state.totalCosts !== undefined) summarySheet.addRow(['Total Costs', `$${state.totalCosts.toLocaleString()}`]);
+      if (state.profit !== undefined) summarySheet.addRow(['Profit', `$${state.profit.toLocaleString()}`]);
 
       // Machines
       if (state.machines) {
-        summaryData.push(['MCE Machines', state.machines.MCE || 0]);
-        summaryData.push(['WMA Machines', state.machines.WMA || 0]);
-        summaryData.push(['PUC Machines', state.machines.PUC || 0]);
+        summarySheet.addRow(['MCE Machines', state.machines.MCE || 0]);
+        summarySheet.addRow(['WMA Machines', state.machines.WMA || 0]);
+        summarySheet.addRow(['PUC Machines', state.machines.PUC || 0]);
       }
 
       // Employees
       if (state.employees) {
-        summaryData.push(['Expert Employees', state.employees.experts || 0]);
-        summaryData.push(['Rookie Employees', state.employees.rookies || 0]);
-        summaryData.push(['Rookies in Training', state.employees.rookiesInTraining || 0]);
+        summarySheet.addRow(['Expert Employees', state.employees.experts || 0]);
+        summarySheet.addRow(['Rookie Employees', state.employees.rookies || 0]);
+        summarySheet.addRow(['Rookies in Training', state.employees.rookiesInTraining || 0]);
       }
 
-      summaryData.push([]);
+      summarySheet.addRow([]);
     }
-
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
 
     // ==================== SHEET 3: HISTORICAL DATA REFERENCE ====================
     // Add historical data as a reference sheet
     if (historicalData && historicalData.Standard && historicalData.Standard.data) {
-      const historicalSheetData: (string | number | unknown)[][] = [];
+      const historicalSheet = workbook.addWorksheet('Historical Data');
 
       // Add header
-      historicalSheetData.push(['Historical Data (Days 0-50)']);
-      historicalSheetData.push([]);
-      historicalSheetData.push(historicalData.Standard.headers);
+      historicalSheet.addRow(['Historical Data (Days 0-50)']);
+      historicalSheet.addRow([]);
+      historicalSheet.addRow(historicalData.Standard.headers);
 
       // Add data rows
       historicalData.Standard.data.forEach((row: Record<string, unknown>) => {
         const rowData = historicalData.Standard.headers.map((header: string) => row[header] !== undefined ? row[header] : '');
-        historicalSheetData.push(rowData);
+        historicalSheet.addRow(rowData);
       });
-
-      const historicalSheet = XLSX.utils.aoa_to_sheet(historicalSheetData);
-      XLSX.utils.book_append_sheet(workbook, historicalSheet, 'Historical Data');
     }
 
     // Write and download the XLSX file
-    XLSX.writeFile(workbook, `simulation-strategy-${idx + 1}-${candidate.id}-${Date.now()}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `simulation-strategy-${idx + 1}-${candidate.id}-${Date.now()}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (
