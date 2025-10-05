@@ -16,6 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import ProcessMap from './ProcessMap';
 
 interface ResultsDashboardProps {
   onEditStrategy?: () => void;
@@ -23,7 +24,7 @@ interface ResultsDashboardProps {
 
 export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardProps) {
   const { simulationResult } = useStrategyStore();
-  const [selectedTab, setSelectedTab] = useState<'financial' | 'production' | 'workforce' | 'inventory' | 'market'>('financial');
+  const [selectedTab, setSelectedTab] = useState<'processMap' | 'financial' | 'production' | 'workforce' | 'inventory' | 'market'>('processMap');
 
   if (!simulationResult) {
     return (
@@ -367,6 +368,16 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         <div className="border-b border-gray-200 bg-gray-50">
           <div className="flex overflow-x-auto">
             <button
+              onClick={() => setSelectedTab('processMap')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'processMap'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              🏭 Process Map
+            </button>
+            <button
               onClick={() => setSelectedTab('financial')}
               className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 selectedTab === 'financial'
@@ -421,6 +432,11 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
 
         {/* Tab Content */}
         <div className="p-8">
+          {/* Process Map Tab */}
+          {selectedTab === 'processMap' && (
+            <ProcessMap simulationResult={simulationResult} />
+          )}
+
           {/* Financial Performance Tab */}
           {selectedTab === 'financial' && (
             <div className="space-y-8">
