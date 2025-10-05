@@ -5,7 +5,7 @@ import DayActionSelector from './DayActionSelector';
 import type { StrategyAction } from '../../types/ui.types';
 
 export default function TimelineEditor() {
-  const { strategy, removeTimedAction } = useStrategyStore();
+  const { strategy, removeTimedAction, toggleTimedActionLock } = useStrategyStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -23,6 +23,10 @@ export default function TimelineEditor() {
     if (confirm('Are you sure you want to delete this action?')) {
       removeTimedAction(index);
     }
+  };
+
+  const handleToggleLock = (index: number) => {
+    toggleTimedActionLock(index);
   };
 
   const getActionIcon = (action: StrategyAction) => {
@@ -133,7 +137,11 @@ export default function TimelineEditor() {
               {strategy.timedActions.map((action, index) => (
                 <div
                   key={index}
-                  className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200 hover:border-blue-300 hover:bg-white transition-all"
+                  className={`rounded-lg p-4 flex items-center justify-between border-2 transition-all ${
+                    action.isLocked
+                      ? 'bg-red-50 border-red-300 hover:border-red-400'
+                      : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:bg-white'
+                  }`}
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <div className="text-2xl">{getActionIcon(action)}</div>
@@ -142,9 +150,25 @@ export default function TimelineEditor() {
                         Day {action.day}
                       </span>
                       <span className="text-gray-900 font-medium text-sm">{getActionLabel(action)}</span>
+                      {action.isLocked && (
+                        <span className="text-xs bg-red-600 text-white px-2 py-1 rounded font-bold">
+                          🔒 LOCKED
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleLock(index)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        action.isLocked
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      }`}
+                      title={action.isLocked ? 'Unlock action (allow optimizer to modify)' : 'Lock action (prevent optimizer from modifying)'}
+                    >
+                      {action.isLocked ? '🔓 Unlock' : '🔒 Lock'}
+                    </button>
                     <button
                       onClick={() => handleEditAction(index)}
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"

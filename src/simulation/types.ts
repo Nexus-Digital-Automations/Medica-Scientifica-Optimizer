@@ -227,18 +227,21 @@ export interface TakeLoanAction {
   day: number;
   type: 'TAKE_LOAN';
   amount: number;
+  isLocked?: boolean;
 }
 
 export interface PayDebtAction {
   day: number;
   type: 'PAY_DEBT';
   amount: number;
+  isLocked?: boolean;
 }
 
 export interface HireRookieAction {
   day: number;
   type: 'HIRE_ROOKIE';
   count: number;
+  isLocked?: boolean;
 }
 
 export interface BuyMachineAction {
@@ -246,6 +249,7 @@ export interface BuyMachineAction {
   type: 'BUY_MACHINE';
   machineType: 'MCE' | 'WMA' | 'PUC';
   count: number;
+  isLocked?: boolean;
 }
 
 export interface SellMachineAction {
@@ -253,29 +257,34 @@ export interface SellMachineAction {
   type: 'SELL_MACHINE';
   machineType: 'MCE' | 'WMA' | 'PUC';
   count: number;
+  isLocked?: boolean;
 }
 
 export interface OrderMaterialsAction {
   day: number;
   type: 'ORDER_MATERIALS';
   quantity: number;
+  isLocked?: boolean;
 }
 
 export interface StopMaterialOrdersAction {
   day: number;
   type: 'STOP_MATERIAL_ORDERS';
+  isLocked?: boolean;
 }
 
 export interface AdjustBatchSizeAction {
   day: number;
   type: 'ADJUST_BATCH_SIZE';
   newSize: number;
+  isLocked?: boolean;
 }
 
 export interface AdjustMCEAllocationAction {
   day: number;
   type: 'ADJUST_MCE_ALLOCATION';
   newAllocation: number;
+  isLocked?: boolean;
 }
 
 export interface AdjustPriceAction {
@@ -283,6 +292,7 @@ export interface AdjustPriceAction {
   type: 'ADJUST_PRICE';
   productType: 'standard' | 'custom';
   newPrice: number;
+  isLocked?: boolean;
 }
 
 export interface FireEmployeeAction {
@@ -290,18 +300,21 @@ export interface FireEmployeeAction {
   type: 'FIRE_EMPLOYEE';
   employeeType: 'expert' | 'rookie';
   count: number;
+  isLocked?: boolean;
 }
 
 export interface SetReorderPointAction {
   day: number;
   type: 'SET_REORDER_POINT';
   newReorderPoint: number;
+  isLocked?: boolean;
 }
 
 export interface SetOrderQuantityAction {
   day: number;
   type: 'SET_ORDER_QUANTITY';
   newOrderQuantity: number;
+  isLocked?: boolean;
 }
 
 // ============================================================================

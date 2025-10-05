@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { debugLogger } from '../../utils/debugLogger';
 import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
+import CurrentStatePanel from './CurrentStatePanel';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -49,6 +50,28 @@ export default function AdvancedOptimizer() {
     mutationRate: 0.3,
     eliteCount: 3,
   });
+
+  // Current state locks
+  const [lockedWorkforce, setLockedWorkforce] = useState(false);
+  const [lockedMachines, setLockedMachines] = useState({ MCE: false, WMA: false, PUC: false });
+  const [lockedPolicies, setLockedPolicies] = useState({
+    batchSize: false,
+    price: false,
+    mceAllocation: false,
+  });
+
+  // Handler functions for current state locks
+  const handleLockWorkforce = () => {
+    setLockedWorkforce(!lockedWorkforce);
+  };
+
+  const handleLockMachine = (machineType: 'MCE' | 'WMA' | 'PUC') => {
+    setLockedMachines(prev => ({ ...prev, [machineType]: !prev[machineType] }));
+  };
+
+  const handleLockPolicy = (policyType: 'batchSize' | 'price' | 'mceAllocation') => {
+    setLockedPolicies(prev => ({ ...prev, [policyType]: !prev[policyType] }));
+  };
 
   // Get current values from most recent timed actions
   const getCurrentPolicyValues = () => {
@@ -93,8 +116,41 @@ export default function AdvancedOptimizer() {
   ): Strategy['timedActions'] => {
     const actions: Strategy['timedActions'] = [];
 
+    // Get all locked actions to determine what the optimizer cannot modify
+    const lockedActions = strategy.timedActions.filter(a => a.isLocked);
+
+    // Check if any workforce actions are locked (HIRE_ROOKIE, FIRE_EMPLOYEE)
+    // Also check current state panel workforce lock
+    const hasLockedWorkforceAction = lockedWorkforce || lockedActions.some(a =>
+      a.type === 'HIRE_ROOKIE' || a.type === 'FIRE_EMPLOYEE'
+    );
+
+    // Check if any machine actions are locked per machine type
+    // Also check current state panel machine locks
+    const hasLockedMCEAction = lockedMachines.MCE || lockedActions.some(a =>
+      (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'MCE'
+    );
+    const hasLockedWMAAction = lockedMachines.WMA || lockedActions.some(a =>
+      (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'WMA'
+    );
+    const hasLockedPUCAction = lockedMachines.PUC || lockedActions.some(a =>
+      (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'PUC'
+    );
+
+    // Check if any batch size actions are locked
+    // Also check current state panel policy lock
+    const hasLockedBatchSizeAction = lockedPolicies.batchSize || lockedActions.some(a => a.type === 'ADJUST_BATCH_SIZE');
+
+    // Check if any price actions are locked
+    // Also check current state panel policy lock
+    const hasLockedPriceAction = lockedPolicies.price || lockedActions.some(a => a.type === 'ADJUST_PRICE');
+
+    // Check if any MCE allocation actions are locked
+    // Also check current state panel policy lock
+    const hasLockedMCEAllocationAction = lockedPolicies.mceAllocation || lockedActions.some(a => a.type === 'ADJUST_MCE_ALLOCATION');
+
     if (params) {
-      // Only add actions for non-fixed policies
+      // Only add actions for non-fixed policies AND non-locked actions
       if (!constraints.fixedPolicies.reorderPoint && params.reorderPoint !== undefined) {
         actions.push({
           day,
@@ -111,7 +167,7 @@ export default function AdvancedOptimizer() {
         });
       }
 
-      if (!constraints.fixedPolicies.standardBatchSize && params.standardBatchSize !== undefined) {
+      if (!constraints.fixedPolicies.standardBatchSize && params.standardBatchSize !== undefined && !hasLockedBatchSizeAction) {
         actions.push({
           day,
           type: 'ADJUST_BATCH_SIZE',
@@ -119,7 +175,7 @@ export default function AdvancedOptimizer() {
         });
       }
 
-      if (!constraints.fixedPolicies.standardPrice && params.standardPrice !== undefined) {
+      if (!constraints.fixedPolicies.standardPrice && params.standardPrice !== undefined && !hasLockedPriceAction) {
         actions.push({
           day,
           type: 'ADJUST_PRICE',
@@ -128,7 +184,7 @@ export default function AdvancedOptimizer() {
         });
       }
 
-      if (!constraints.fixedPolicies.mceAllocationCustom && params.mceAllocationCustom !== undefined) {
+      if (!constraints.fixedPolicies.mceAllocationCustom && params.mceAllocationCustom !== undefined && !hasLockedMCEAllocationAction) {
         actions.push({
           day,
           type: 'ADJUST_MCE_ALLOCATION',
@@ -141,8 +197,10 @@ export default function AdvancedOptimizer() {
     }
 
     // Add diverse one-time actions with increased probabilities and ranges
-    // HIRE_ROOKIE - 70% chance, 1-10 workers
-    if (Math.random() < 0.7) {
+    // Only add if no locked actions prevent it
+
+    // HIRE_ROOKIE - 70% chance, 1-10 workers (only if no workforce actions are locked)
+    if (!hasLockedWorkforceAction && Math.random() < 0.7) {
       const hireCount = Math.floor(1 + Math.random() * 10); // 1-10 workers
       console.log(`[AdvancedOptimizer] Adding HIRE_ROOKIE action: day=${day}, count=${hireCount}`);
       actions.push({
@@ -150,24 +208,37 @@ export default function AdvancedOptimizer() {
         type: 'HIRE_ROOKIE',
         count: hireCount,
       });
+    } else if (hasLockedWorkforceAction) {
+      console.log(`[AdvancedOptimizer] Skipping HIRE_ROOKIE - workforce actions are locked`);
     }
 
-    // BUY_MACHINE - 70% chance, 1-5 machines
+    // BUY_MACHINE - 70% chance, 1-5 machines (only if that machine type is not locked)
     if (Math.random() < 0.7) {
       const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
-      const machineType = machineTypes[Math.floor(Math.random() * 3)];
-      const machineCount = Math.floor(1 + Math.random() * 5); // 1-5 machines
-      console.log(`[AdvancedOptimizer] Adding BUY_MACHINE action: day=${day}, type=${machineType}, count=${machineCount}`);
-      actions.push({
-        day,
-        type: 'BUY_MACHINE',
-        machineType,
-        count: machineCount,
+      const availableMachineTypes = machineTypes.filter(type => {
+        if (type === 'MCE') return !hasLockedMCEAction;
+        if (type === 'WMA') return !hasLockedWMAAction;
+        if (type === 'PUC') return !hasLockedPUCAction;
+        return true;
       });
+
+      if (availableMachineTypes.length > 0) {
+        const machineType = availableMachineTypes[Math.floor(Math.random() * availableMachineTypes.length)];
+        const machineCount = Math.floor(1 + Math.random() * 5); // 1-5 machines
+        console.log(`[AdvancedOptimizer] Adding BUY_MACHINE action: day=${day}, type=${machineType}, count=${machineCount}`);
+        actions.push({
+          day,
+          type: 'BUY_MACHINE',
+          machineType,
+          count: machineCount,
+        });
+      } else {
+        console.log(`[AdvancedOptimizer] Skipping BUY_MACHINE - all machine types are locked`);
+      }
     }
 
-    // FIRE_EMPLOYEE - 30% chance, 1-3 employees
-    if (Math.random() < 0.3) {
+    // FIRE_EMPLOYEE - 30% chance, 1-3 employees (only if no workforce actions are locked)
+    if (!hasLockedWorkforceAction && Math.random() < 0.3) {
       const employeeTypes: Array<'expert' | 'rookie'> = ['expert', 'rookie'];
       const employeeType = employeeTypes[Math.floor(Math.random() * 2)];
       const fireCount = Math.floor(1 + Math.random() * 3); // 1-3 employees
@@ -178,20 +249,33 @@ export default function AdvancedOptimizer() {
         employeeType,
         count: fireCount,
       });
+    } else if (hasLockedWorkforceAction) {
+      console.log(`[AdvancedOptimizer] Skipping FIRE_EMPLOYEE - workforce actions are locked`);
     }
 
-    // SELL_MACHINE - 30% chance, 1-2 machines
+    // SELL_MACHINE - 30% chance, 1-2 machines (only if that machine type is not locked)
     if (Math.random() < 0.3) {
       const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
-      const machineType = machineTypes[Math.floor(Math.random() * 3)];
-      const sellCount = Math.floor(1 + Math.random() * 2); // 1-2 machines
-      console.log(`[AdvancedOptimizer] Adding SELL_MACHINE action: day=${day}, type=${machineType}, count=${sellCount}`);
-      actions.push({
-        day,
-        type: 'SELL_MACHINE',
-        machineType,
-        count: sellCount,
+      const availableMachineTypes = machineTypes.filter(type => {
+        if (type === 'MCE') return !hasLockedMCEAction;
+        if (type === 'WMA') return !hasLockedWMAAction;
+        if (type === 'PUC') return !hasLockedPUCAction;
+        return true;
       });
+
+      if (availableMachineTypes.length > 0) {
+        const machineType = availableMachineTypes[Math.floor(Math.random() * availableMachineTypes.length)];
+        const sellCount = Math.floor(1 + Math.random() * 2); // 1-2 machines
+        console.log(`[AdvancedOptimizer] Adding SELL_MACHINE action: day=${day}, type=${machineType}, count=${sellCount}`);
+        actions.push({
+          day,
+          type: 'SELL_MACHINE',
+          machineType,
+          count: sellCount,
+        });
+      } else {
+        console.log(`[AdvancedOptimizer] Skipping SELL_MACHINE - all machine types are locked`);
+      }
     }
 
     // Add automatic loan management to ensure actions don't violate minimum cash threshold
@@ -735,6 +819,17 @@ export default function AdvancedOptimizer() {
         </p>
       </div>
 
+      {/* Current State Panel */}
+      <CurrentStatePanel
+        strategy={strategy}
+        onLockWorkforce={handleLockWorkforce}
+        onLockMachine={handleLockMachine}
+        onLockPolicy={handleLockPolicy}
+        lockedWorkforce={lockedWorkforce}
+        lockedMachines={lockedMachines}
+        lockedPolicies={lockedPolicies}
+      />
+
       {/* Policy Decision Controls */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
         <h4 className="text-lg font-semibold text-white mb-4">📋 Policy Decisions</h4>
@@ -1014,13 +1109,13 @@ export default function AdvancedOptimizer() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              Run Constrained Optimization
+              Run Optimizer
             </>
           )}
         </button>
         <p className="text-xs text-gray-500 text-center mt-2">
           Will test {Object.values(constraints.fixedPolicies).filter(v => !v).length} variable policy actions on Day {constraints.testDay},
-          respecting {Object.values(constraints.fixedPolicies).filter(v => v).length} fixed policies and {constraints.fixedActions.size} locked actions
+          respecting {Object.values(constraints.fixedPolicies).filter(v => v).length} fixed policies and {strategy.timedActions.filter(a => a.isLocked).length} locked actions
         </p>
       </div>
 

@@ -36,6 +36,7 @@ interface StrategyStore {
   addTimedAction: (action: StrategyAction) => void;
   updateTimedAction: (index: number, action: StrategyAction) => void;
   removeTimedAction: (index: number) => void;
+  toggleTimedActionLock: (index: number) => void;
   resetStrategy: () => void;
   loadStrategy: (strategy: Strategy) => void;
 
@@ -150,6 +151,16 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
       strategy: {
         ...state.strategy,
         timedActions: state.strategy.timedActions.filter((_, i) => i !== index),
+      },
+    })),
+
+  toggleTimedActionLock: (index) =>
+    set((state) => ({
+      strategy: {
+        ...state.strategy,
+        timedActions: state.strategy.timedActions.map((a, i) =>
+          i === index ? { ...a, isLocked: !a.isLocked } : a
+        ),
       },
     })),
 
