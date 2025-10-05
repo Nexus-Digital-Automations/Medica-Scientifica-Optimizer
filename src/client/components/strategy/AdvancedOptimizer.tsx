@@ -147,9 +147,10 @@ export default function AdvancedOptimizer() {
       // It affects daily operations, not a one-time decision
     }
 
-    // Add one-time actions (50% chance for hiring, 50% chance for machine purchase)
-    if (Math.random() < 0.5) {
-      const hireCount = Math.floor(1 + Math.random() * 3); // 1-3 workers
+    // Add diverse one-time actions with increased probabilities and ranges
+    // HIRE_ROOKIE - 70% chance, 1-10 workers
+    if (Math.random() < 0.7) {
+      const hireCount = Math.floor(1 + Math.random() * 10); // 1-10 workers
       console.log(`[AdvancedOptimizer] Adding HIRE_ROOKIE action: day=${day}, count=${hireCount}`);
       actions.push({
         day,
@@ -158,16 +159,45 @@ export default function AdvancedOptimizer() {
       });
     }
 
-    if (Math.random() < 0.5) {
+    // BUY_MACHINE - 70% chance, 1-5 machines
+    if (Math.random() < 0.7) {
       const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
       const machineType = machineTypes[Math.floor(Math.random() * 3)];
-      const machineCount = Math.floor(1 + Math.random() * 2); // 1-2 machines
+      const machineCount = Math.floor(1 + Math.random() * 5); // 1-5 machines
       console.log(`[AdvancedOptimizer] Adding BUY_MACHINE action: day=${day}, type=${machineType}, count=${machineCount}`);
       actions.push({
         day,
         type: 'BUY_MACHINE',
         machineType,
         count: machineCount,
+      });
+    }
+
+    // FIRE_EMPLOYEE - 30% chance, 1-3 employees
+    if (Math.random() < 0.3) {
+      const employeeTypes: Array<'expert' | 'rookie'> = ['expert', 'rookie'];
+      const employeeType = employeeTypes[Math.floor(Math.random() * 2)];
+      const fireCount = Math.floor(1 + Math.random() * 3); // 1-3 employees
+      console.log(`[AdvancedOptimizer] Adding FIRE_EMPLOYEE action: day=${day}, type=${employeeType}, count=${fireCount}`);
+      actions.push({
+        day,
+        type: 'FIRE_EMPLOYEE',
+        employeeType,
+        count: fireCount,
+      });
+    }
+
+    // SELL_MACHINE - 30% chance, 1-2 machines
+    if (Math.random() < 0.3) {
+      const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
+      const machineType = machineTypes[Math.floor(Math.random() * 3)];
+      const sellCount = Math.floor(1 + Math.random() * 2); // 1-2 machines
+      console.log(`[AdvancedOptimizer] Adding SELL_MACHINE action: day=${day}, type=${machineType}, count=${sellCount}`);
+      actions.push({
+        day,
+        type: 'SELL_MACHINE',
+        machineType,
+        count: sellCount,
       });
     }
 
@@ -537,14 +567,14 @@ export default function AdvancedOptimizer() {
       {/* Introduction */}
       <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-600/30 rounded-lg p-6">
         <h3 className="text-xl font-bold text-white mb-2">
-          🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v2.0-ENHANCED</span>
+          🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v3.0-MAXIMUM-DIVERSITY</span>
         </h3>
         <p className="text-sm text-gray-300">
           Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
           but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
         </p>
         <p className="text-xs text-yellow-400 mt-2">
-          ✨ Now testing one-time actions: HIRE_ROOKIE (50% chance), BUY_MACHINE (50% chance), automatic loan management
+          ✨ Testing diverse action combinations: HIRE_ROOKIE (70%, 1-10 workers), BUY_MACHINE (70%, 1-5 machines), FIRE_EMPLOYEE (30%, 1-3), SELL_MACHINE (30%, 1-2), automatic loans
         </p>
       </div>
 
