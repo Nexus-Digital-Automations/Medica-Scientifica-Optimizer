@@ -552,7 +552,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       <div className="grid grid-cols-2 gap-12">
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
-          <div className="bg-purple-900 border-3 border-purple-500 rounded-2xl p-8">
+          <div className="border-3 border-purple-500 rounded-2xl p-8">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
                 <InfoPopup
@@ -565,14 +565,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                         <p className="text-gray-300 text-sm">
                           Make-to-Order (MTO): Each customer order is manufactured individually and shipped directly upon completion. No finished goods inventory is maintained.
                         </p>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-600 rounded-xl p-4">
-                        <h4 className="text-xl font-bold text-white text-center mb-3">Total Processing Time</h4>
-                        <div className="text-4xl font-bold text-white text-center mb-3">~10-12 days</div>
-                        <div className="text-sm text-purple-200 text-center">
-                          MCE → WMA(2d) → PUC(1d) → WMA(2d) → Ship
-                        </div>
                       </div>
 
                       <div className="bg-gray-800 rounded-lg p-4">
@@ -720,17 +712,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                           High WIP (&gt;50 orders) indicates a bottleneck. Common causes: insufficient ARCP capacity, low MCE allocation, or WMA capacity constraints.
                         </p>
                       </div>
-
-                      <div className="bg-gray-800 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Total Processing Time</h4>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Expected Duration:</span>
-                          <span className="text-white font-bold">~10-12 days</span>
-                        </div>
-                        <p className="text-gray-400 text-xs mt-2">
-                          Actual time varies based on workforce capacity and allocation strategy
-                        </p>
-                      </div>
                     </div>
                   }
                 />
@@ -809,7 +790,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
               <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 1</div>
               <div className="text-base text-white font-semibold mb-2">Whittling & Micro Abrasion</div>
-              <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
             {/* Animated Arrow: WMA Pass 1 → PUC */}
@@ -877,7 +857,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
               <div className="text-sm font-bold text-pink-200 mb-2">Station 4 - PUC</div>
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
-              <div className="text-sm text-pink-300">Processing: 1 day</div>
             </div>
 
             {/* Animated Arrow: PUC → WMA Pass 2 */}
@@ -944,7 +923,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
               <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 2</div>
               <div className="text-base text-white font-semibold mb-2">Final Adjustments</div>
-              <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
             {/* Animated Arrow: WMA Pass 2 → ARCP → Ship */}
@@ -973,7 +951,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
         {/* STANDARD LINE - Right */}
         <div className="space-y-6">
-          <div className="bg-blue-900 border-3 border-blue-500 rounded-2xl p-8">
+          <div className="border-3 border-blue-500 rounded-2xl p-8">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
                 <InfoPopup
@@ -986,14 +964,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                         <p className="text-gray-300 text-sm">
                           Make-to-Stock (MTS): Units are manufactured in batches and added to finished goods inventory. Customer orders are fulfilled from inventory stock, not directly from production.
                         </p>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-blue-900 to-blue-800 border-2 border-blue-600 rounded-xl p-4">
-                        <h4 className="text-xl font-bold text-white text-center mb-3">Total Processing Time</h4>
-                        <div className="text-4xl font-bold text-white text-center mb-3">~9-11 days</div>
-                        <div className="text-sm text-blue-200 text-center">
-                          MCE → Batch(4d) → ARCP → Batch(1d) → Inventory
-                        </div>
                       </div>
 
                       <div className="bg-gray-800 rounded-lg p-4">
@@ -1245,7 +1215,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
               <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCHING QUEUE</div>
               <div className="text-base text-white font-semibold mb-2">Wait for Batch Size</div>
-              <div className="text-sm text-amber-300">Wait: 4 days</div>
             </div>
 
             {/* Animated Arrow: Batching Queue → ARCP */}
@@ -1422,7 +1391,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
               <div className="text-sm font-bold text-amber-200 mb-2">⏳ SECOND BATCHING</div>
               <div className="text-base text-white font-semibold mb-2">Final Batching</div>
-              <div className="text-sm text-amber-300">Wait: 1 day</div>
             </div>
 
             {/* Animated Arrow: Second Batching → Finished Goods */}
