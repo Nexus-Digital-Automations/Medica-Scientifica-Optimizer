@@ -3,6 +3,7 @@ import type { SimulationResult } from '../../types/ui.types';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
+import InfoPopup from './InfoPopup';
 import {
   LineChart,
   Line,
@@ -314,11 +315,80 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       {/* Raw Material Inventory - Top */}
       <div className="flex justify-center mb-12">
         <div className={`relative bg-gradient-to-br ${isRawMaterialBottleneck ? 'from-red-900 to-red-800 border-red-500' : 'from-amber-900 to-amber-800 border-amber-500'} border-3 rounded-3xl p-8 min-w-[400px] shadow-2xl`}>
+          <div className="absolute top-4 right-4">
+            <InfoPopup
+              title="📦 Raw Material Inventory"
+              content={
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-amber-300 mb-2">Overview</h4>
+                    <p className="text-gray-300">
+                      Raw material parts are the foundation of all production. Both production lines consume these parts at the MCE station to begin manufacturing.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-amber-300 mb-2">Current Status</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Current Inventory:</span>
+                        <span className="text-white font-bold">{Math.round(finalRawMaterial)} parts</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-amber-300 mb-2">Ordering Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Cost per Part:</span>
+                        <span className="text-white font-bold">$50</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Order Fee:</span>
+                        <span className="text-white font-bold">$1,000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Lead Time:</span>
+                        <span className="text-white font-bold">4 days</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-amber-300 mb-2">Usage by Production Line</h4>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-purple-300 font-semibold">Custom Line:</span>
+                          <span className="text-white font-bold">1 part per order</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">Make-to-order production with first priority on MCE</p>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-blue-300 font-semibold">Standard Line:</span>
+                          <span className="text-white font-bold">2 parts per unit</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">Make-to-stock production with second priority on MCE</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Bottleneck Indicators</h4>
+                    <p className="text-gray-300 text-sm">
+                      Low inventory (&lt;50 parts) indicates a bottleneck. This prevents new production from starting at the MCE station, causing both production lines to starve.
+                    </p>
+                  </div>
+                </div>
+              }
+            />
+          </div>
           <div className="text-center">
             <div className="text-lg font-bold text-amber-300 mb-3">📦 RAW MATERIAL INVENTORY</div>
             <div className="text-5xl font-bold text-white mb-3">{Math.round(finalRawMaterial)}</div>
             <div className="text-sm text-amber-200 mb-1">parts available</div>
-            <div className="text-sm text-gray-300 mt-4">$50/part • $1,000/order • 4-day lead time</div>
             {isRawMaterialBottleneck && (
               <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                 ⚠️ LOW INVENTORY BOTTLENECK
@@ -335,7 +405,95 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
       {/* Unified MCE Station */}
       <div className="flex justify-center mb-12">
-        <div className="bg-gradient-to-r from-purple-700 via-gray-700 to-blue-700 border-3 border-gray-500 rounded-3xl p-8 min-w-[600px] shadow-2xl">
+        <div className="relative bg-gradient-to-r from-purple-700 via-gray-700 to-blue-700 border-3 border-gray-500 rounded-3xl p-8 min-w-[600px] shadow-2xl">
+          <div className="absolute top-4 right-4">
+            <InfoPopup
+              title="⚙️ Station 3 - MCE (Material Consumption & Forming)"
+              content={
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">Overview</h4>
+                    <p className="text-gray-300">
+                      The MCE (Material Consumption & Forming) station is the shared entry point for both production lines. It consumes raw material parts and begins the forming process.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">Current Allocation</h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-purple-300 font-semibold">Custom Line Allocation:</span>
+                        <span className="text-white font-bold">{((displayResult?.strategy?.mceAllocationCustom ?? 0.5) * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-300 font-semibold">Standard Line Allocation:</span>
+                        <span className="text-white font-bold">{((1 - (displayResult?.strategy?.mceAllocationCustom ?? 0.5)) * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">Material Consumption</h4>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-purple-300 font-semibold">Custom Line:</span>
+                          <span className="text-white font-bold">1 part per order</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">Lower material consumption, higher priority allocation</p>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-blue-300 font-semibold">Standard Line:</span>
+                          <span className="text-white font-bold">2 parts per unit</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">Higher material consumption, secondary priority</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">Process Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Processing Time:</span>
+                        <span className="text-white font-bold">Immediate (Day 0)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Station Type:</span>
+                        <span className="text-white font-bold">Automated (Machine)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Capacity Source:</span>
+                        <span className="text-white font-bold">Number of MCE Machines</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">💡 Strategic Importance</h4>
+                    <p className="text-gray-300 text-sm">
+                      The MCE allocation percentage is a critical strategic parameter. It determines how machine capacity is divided between custom and standard production. Custom line has first priority on allocated capacity, while standard line uses remaining capacity.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-blue-300 mb-2">Capital Investment</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Purchase Cost:</span>
+                        <span className="text-white font-bold">$20,000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Resale Value:</span>
+                        <span className="text-white font-bold">$10,000</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            />
+          </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-white mb-3">⚙️ STATION 3 - MCE (SHARED)</div>
             <div className="text-lg text-gray-200 mb-4">Material Consumption & Forming</div>
@@ -391,7 +549,74 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Custom Line Stats */}
-            <div className={`bg-purple-800 rounded-xl p-6 mb-6 text-center ${isCustomBottleneck ? 'border-3 border-red-500' : ''}`}>
+            <div className={`relative bg-purple-800 rounded-xl p-6 mb-6 text-center ${isCustomBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="🎨 Custom Line - Work-In-Progress (WIP)"
+                  buttonClassName="bg-purple-600 hover:bg-purple-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          Work-In-Progress (WIP) represents custom orders currently being processed through the production pipeline but not yet completed and shipped.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Current Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Current WIP:</span>
+                            <span className="text-white font-bold">{Math.round(finalCustomWIP)} orders</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Average Daily Output:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Maximum WIP Capacity:</span>
+                            <span className="text-white font-bold">360 orders</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Production Flow</h4>
+                        <p className="text-gray-300 text-sm mb-3">
+                          Custom line follows a make-to-order model. Each order flows through:
+                        </p>
+                        <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+                          <li>MCE - Material Consumption (Day 0)</li>
+                          <li>WMA Pass 1 - Whittling & Micro Abrasion (2 days)</li>
+                          <li>PUC - Precision Ultra-fine Cutting (1 day)</li>
+                          <li>WMA Pass 2 - Final Adjustments (2 days)</li>
+                          <li>ARCP - Assembly & Quality (variable)</li>
+                          <li>Direct Ship to Customer</li>
+                        </ol>
+                      </div>
+
+                      <div className="bg-purple-900 border border-purple-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">⚠️ Bottleneck Detection</h4>
+                        <p className="text-gray-300 text-sm">
+                          High WIP (&gt;50 orders) indicates a bottleneck. Common causes: insufficient ARCP capacity, low MCE allocation, or WMA capacity constraints.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Total Processing Time</h4>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Expected Duration:</span>
+                          <span className="text-white font-bold">~10-12 days</span>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-2">
+                          Actual time varies based on workforce capacity and allocation strategy
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-base font-semibold text-purple-200 mb-1">📊 Work-In-Progress (WIP)</div>
               <div className="text-xs text-purple-300 mb-3">Orders currently being processed</div>
               <div className="text-4xl font-bold text-white mb-2">{Math.round(finalCustomWIP)}</div>
@@ -408,11 +633,65 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Station 2 - WMA Pass 1 */}
-            <div className="bg-teal-700 rounded-xl p-5 mb-2 text-center">
+            <div className="relative bg-teal-700 rounded-xl p-5 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="Station 2 - WMA Pass 1 (Whittling & Micro Abrasion)"
+                  buttonClassName="bg-teal-600 hover:bg-teal-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          First pass through the Whittling and Micro Abrasion station. This automated station performs initial surface preparation and micro-abrasion on custom orders.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Process Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Time:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Max Throughput:</span>
+                            <span className="text-white font-bold">6 orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Station Type:</span>
+                            <span className="text-white font-bold">Automated (Machine)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Critical Note</h4>
+                        <p className="text-gray-300 text-sm">
+                          This station is shared with WMA Pass 2. Total capacity (6 orders/day) is split between both passes. Heavy usage in one pass reduces capacity for the other.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Capital Investment</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Purchase Cost:</span>
+                            <span className="text-white font-bold">$15,000</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Resale Value:</span>
+                            <span className="text-white font-bold">$7,500</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 1</div>
               <div className="text-base text-white font-semibold mb-2">Whittling & Micro Abrasion</div>
-              <div className="text-sm text-teal-300">Processing time: 2 days</div>
-              <div className="text-sm text-teal-300">Max throughput: 6 orders/day</div>
+              <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
             {/* Arrow */}
@@ -421,10 +700,61 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Station 4 - PUC */}
-            <div className="bg-pink-700 rounded-xl p-5 mb-2 text-center">
+            <div className="relative bg-pink-700 rounded-xl p-5 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="Station 4 - PUC (Precision Ultra-fine Cutting)"
+                  buttonClassName="bg-pink-600 hover:bg-pink-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          The Precision Ultra-fine Cutting station performs high-precision cutting operations on custom orders between the two WMA passes.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">Process Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Time:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Station Type:</span>
+                            <span className="text-white font-bold">Automated (Machine)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">Position in Flow</h4>
+                        <p className="text-gray-300 text-sm">
+                          PUC sits between WMA Pass 1 and WMA Pass 2, performing ultra-fine cutting operations after initial micro-abrasion and before final adjustments.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">Capital Investment</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Purchase Cost:</span>
+                            <span className="text-white font-bold">$12,000</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Resale Value:</span>
+                            <span className="text-white font-bold">$4,000</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-pink-200 mb-2">Station 4 - PUC</div>
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
-              <div className="text-sm text-pink-300">Processing time: 1 day</div>
+              <div className="text-sm text-pink-300">Processing: 1 day</div>
             </div>
 
             {/* Arrow */}
@@ -433,11 +763,60 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Station 2 - WMA Pass 2 */}
-            <div className="bg-teal-700 rounded-xl p-5 mb-2 text-center">
+            <div className="relative bg-teal-700 rounded-xl p-5 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="Station 2 - WMA Pass 2 (Final Adjustments)"
+                  buttonClassName="bg-teal-600 hover:bg-teal-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          Second pass through the Whittling and Micro Abrasion station. Performs final surface adjustments after PUC cutting operations.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Process Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Time:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Station Type:</span>
+                            <span className="text-white font-bold">Automated (Machine)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-red-900 border border-red-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-red-300 mb-2">🚨 Shared Capacity Alert</h4>
+                        <p className="text-gray-300 text-sm mb-2">
+                          This is the SAME physical WMA machine as Pass 1. Both passes share a total capacity of 6 orders/day.
+                        </p>
+                        <div className="bg-gray-800 rounded p-2 mt-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Combined Capacity:</span>
+                            <span className="text-white font-bold">6 orders/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">Position in Flow</h4>
+                        <p className="text-gray-300 text-sm">
+                          Final station before ARCP assembly. Orders complete WMA Pass 2, then proceed to manual assembly and quality control before shipping.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 2</div>
               <div className="text-base text-white font-semibold mb-2">Final Adjustments</div>
-              <div className="text-sm text-teal-300 mb-2">Processing time: 2 days</div>
-              <div className="text-sm text-teal-300 mb-2">Shares capacity with Pass 1</div>
+              <div className="text-sm text-teal-300">Processing: 2 days</div>
             </div>
 
             {/* Arrow */}
@@ -476,7 +855,70 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Standard Line Stats */}
-            <div className={`bg-blue-800 rounded-xl p-6 mb-6 text-center ${isStandardBottleneck ? 'border-3 border-red-500' : ''}`}>
+            <div className={`relative bg-blue-800 rounded-xl p-6 mb-6 text-center ${isStandardBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="💎 Standard Line - Work-In-Progress (WIP)"
+                  buttonClassName="bg-blue-600 hover:bg-blue-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          Work-In-Progress (WIP) represents standard units currently being processed through the production pipeline but not yet completed and added to finished goods inventory.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Current Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Current WIP:</span>
+                            <span className="text-white font-bold">{Math.round(finalStandardWIP)} units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Average Daily Output:</span>
+                            <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Production Flow</h4>
+                        <p className="text-gray-300 text-sm mb-3">
+                          Standard line follows a make-to-stock model. Each unit flows through:
+                        </p>
+                        <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+                          <li>MCE - Material Consumption (Day 0)</li>
+                          <li>Batching Queue - Wait for batch size (4 days)</li>
+                          <li>ARCP - Manual Assembly & Quality (variable)</li>
+                          <li>Second Batching - Final batch wait (1 day)</li>
+                          <li>Finished Goods Inventory</li>
+                          <li>Ship to Customer</li>
+                        </ol>
+                      </div>
+
+                      <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">⚠️ Bottleneck Detection</h4>
+                        <p className="text-gray-300 text-sm">
+                          High WIP (&gt;100 units) indicates a bottleneck. Common causes: insufficient ARCP capacity, low MCE allocation, or batching delays accumulating units faster than ARCP can process them.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Total Processing Time</h4>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Expected Duration:</span>
+                          <span className="text-white font-bold">~4-6 days + delays</span>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-2">
+                          Two batching stages add 5 days baseline delay, plus variable ARCP processing time
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-base font-semibold text-blue-200 mb-1">📊 Work-In-Progress (WIP)</div>
               <div className="text-xs text-blue-300 mb-3">Units currently being processed</div>
               <div className="text-4xl font-bold text-white mb-2">{Math.round(finalStandardWIP)}</div>
@@ -493,11 +935,54 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Batching Queue */}
-            <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
+            <div className="relative bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="⏳ Batching Queue (First Stage)"
+                  buttonClassName="bg-amber-600 hover:bg-amber-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          Units wait in the first batching queue after MCE processing until enough units accumulate to form an efficient ARCP processing batch.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Batching Parameters</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Wait Time:</span>
+                            <span className="text-white font-bold">4 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Target Batch Size:</span>
+                            <span className="text-white font-bold">60 units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Purpose</h4>
+                        <p className="text-gray-300 text-sm">
+                          Batching reduces setup costs and improves ARCP efficiency by processing multiple units together. However, it also adds delay to the production pipeline.
+                        </p>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Trade-off</h4>
+                        <p className="text-gray-300 text-sm">
+                          Longer batch wait times reduce setup frequency but increase WIP and total lead time. This 4-day wait is fixed and cannot be bypassed.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCHING QUEUE</div>
               <div className="text-base text-white font-semibold mb-2">Wait for Batch Size</div>
-              <div className="text-sm text-amber-300">Wait time: 4 days</div>
-              <div className="text-sm text-amber-300">Batch target: 60 units</div>
+              <div className="text-sm text-amber-300">Wait: 4 days</div>
             </div>
 
             {/* Arrow */}
@@ -506,12 +991,104 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Station 6 - ARCP Manual */}
-            <div className={`bg-orange-700 rounded-xl p-5 mb-2 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
+            <div className={`relative bg-orange-700 rounded-xl p-5 mb-2 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="Station 6 - ARCP (Assembly & Quality Control)"
+                  buttonClassName="bg-orange-600 hover:bg-orange-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          The ARCP (Assembly, Refinishing, Cosmetic work, and Packaging) station is a manual, labor-intensive operation shared between both production lines. This is the primary workforce bottleneck in the factory.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Current Workforce</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Expert Workers:</span>
+                            <span className="text-white font-bold">{finalExperts}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Rookie Workers:</span>
+                            <span className="text-white font-bold">{finalRookies}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Total Daily Capacity:</span>
+                            <span className="text-white font-bold">{arcpCapacity.toFixed(1)} units/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Productivity Rates</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Expert Productivity:</span>
+                            <span className="text-white font-bold">3 units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Rookie Productivity:</span>
+                            <span className="text-white font-bold">1.2 units/day (40%)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Workforce Development</h4>
+                        <p className="text-gray-300 text-sm mb-2">
+                          Rookies become experts after 15 days of training. This automatic promotion significantly increases productivity.
+                        </p>
+                        <div className="bg-gray-900 rounded p-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Training Period:</span>
+                            <span className="text-white font-bold">15 days</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Labor Costs</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Expert Salary:</span>
+                            <span className="text-white font-bold">$150/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Rookie Salary:</span>
+                            <span className="text-white font-bold">$85/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Overtime Rate:</span>
+                            <span className="text-white font-bold">1.5x normal</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-red-900 border border-red-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-red-300 mb-2">🚨 Critical Bottleneck</h4>
+                        <p className="text-gray-300 text-sm">
+                          ARCP is typically the factory's primary bottleneck. Low capacity (&lt;10 units/day) causes WIP to accumulate rapidly. Hiring additional workers is often the most effective optimization strategy.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Capacity Allocation</h4>
+                        <p className="text-gray-300 text-sm">
+                          ARCP capacity is allocated proportionally between Custom and Standard lines based on MCE allocation percentages, ensuring both lines can complete orders.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-orange-200 mb-2">Station 6 - ARCP (Manual)</div>
               <div className="text-base text-white font-semibold mb-3">Assembly & Quality Control</div>
-              <div className="text-sm text-orange-300 mb-1">Current workforce: {finalExperts} experts + {finalRookies} rookies</div>
-              <div className="text-sm text-orange-300 mb-1">Daily capacity: {arcpCapacity.toFixed(1)} units</div>
-              <div className="text-sm text-orange-300">Expert rate: 3 units/day • Rookie: 40% efficiency</div>
+              <div className="text-sm text-orange-300 mb-1">Workforce: {finalExperts} experts + {finalRookies} rookies</div>
+              <div className="text-sm text-orange-300">Capacity: {arcpCapacity.toFixed(1)} units/day</div>
               {isARCPBottleneck && (
                 <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                   ⚠️ LABOR CAPACITY BOTTLENECK
@@ -525,11 +1102,54 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Second Batching */}
-            <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
+            <div className="relative bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="⏳ Second Batching (Final Stage)"
+                  buttonClassName="bg-amber-600 hover:bg-amber-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          After ARCP processing, units wait in a second batching queue before being added to finished goods inventory. This ensures efficient packaging and inventory management.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Batching Parameters</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Wait Time:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Target Batch Size:</span>
+                            <span className="text-white font-bold">12 units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">Total Pipeline Delay</h4>
+                        <p className="text-gray-300 text-sm mb-2">
+                          Combined with the first batching queue, the standard line experiences 5 days of batching delay (4 + 1 days) in every production cycle.
+                        </p>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Impact on WIP</h4>
+                        <p className="text-gray-300 text-sm">
+                          This second batching stage contributes to WIP accumulation. Units are complete from ARCP but not yet available for shipping.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-sm font-bold text-amber-200 mb-2">⏳ SECOND BATCHING</div>
               <div className="text-base text-white font-semibold mb-2">Final Batching</div>
-              <div className="text-sm text-amber-300">Wait time: 1 day</div>
-              <div className="text-sm text-amber-300">Batch target: 12 units</div>
+              <div className="text-sm text-amber-300">Wait: 1 day</div>
             </div>
 
             {/* Arrow */}
@@ -538,7 +1158,51 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             </div>
 
             {/* Finished Goods Inventory */}
-            <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 mb-2 text-center">
+            <div className="relative bg-green-700 border-2 border-green-500 rounded-xl p-6 mb-2 text-center">
+              <div className="absolute top-2 right-2">
+                <InfoPopup
+                  title="📦 Finished Goods Inventory"
+                  buttonClassName="bg-green-600 hover:bg-green-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-green-300 mb-2">Overview</h4>
+                        <p className="text-gray-300">
+                          Finished goods inventory holds completed standard units that are ready to ship to customers. This is the final buffer before customer delivery.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-green-300 mb-2">Current Status</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Units in Stock:</span>
+                            <span className="text-white font-bold">{Math.round(finalFinishedStandard)} units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Production Completed:</span>
+                            <span className="text-white font-bold">{Math.round(finalStandardProduction)} units today</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-green-300 mb-2">Purpose</h4>
+                        <p className="text-gray-300 text-sm">
+                          The finished goods inventory allows the factory to maintain stock levels and fulfill customer orders even when production capacity is limited. This is characteristic of make-to-stock production.
+                        </p>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Stockout Conditions</h4>
+                        <p className="text-gray-300 text-sm">
+                          When demand exceeds production capacity, finished goods may remain at zero. This indicates all completed units are immediately shipped, with no inventory buffer. This is normal when production is the bottleneck.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-base font-bold text-green-200 mb-3">📦 FINISHED GOODS INVENTORY</div>
               <div className="text-sm text-white mb-2">Ready to Ship</div>
               <div className="text-4xl font-bold text-white mb-1">{Math.round(finalFinishedStandard)}</div>
