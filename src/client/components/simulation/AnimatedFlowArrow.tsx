@@ -52,12 +52,13 @@ export default function AnimatedFlowArrow({
   // Determine flow characteristics
   const gap = flowRate - demandRate;
   const isShortage = gap < 0; // Not enough supply to meet demand
+  const hasExcess = gap > 0; // Supply exceeds demand
 
   // Calculate tapering for visual metaphor
   // Shortage: thin top (little supply) → thick bottom (lots of demand)
-  // Bottleneck: thick top (lots of supply) → thin bottom (little demand/processing)
-  const topWidth = isShortage ? 8 : isBottleneck ? 20 : 12;
-  const bottomWidth = isShortage ? 20 : isBottleneck ? 8 : 12;
+  // Excess: thick top (lots of supply) → thin bottom (less demand)
+  const topWidth = isShortage ? 8 : hasExcess ? 20 : 12;
+  const bottomWidth = isShortage ? 20 : hasExcess ? 8 : 12;
 
   return (
     <div className="flex flex-col items-center my-4 relative">
