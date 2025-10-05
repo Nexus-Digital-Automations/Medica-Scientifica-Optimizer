@@ -12,9 +12,10 @@ import ExcelJS from 'exceljs';
 
 interface Phase2OptimizerProps {
   selectedStrategies: OptimizationCandidate[];
+  evaluationWindow: number;
 }
 
-export default function Phase2Optimizer({ selectedStrategies }: Phase2OptimizerProps) {
+export default function Phase2Optimizer({ selectedStrategies, evaluationWindow }: Phase2OptimizerProps) {
   const { strategy, loadStrategy } = useStrategyStore();
 
   // Phase 2 Configuration - All Granular Controls
@@ -32,7 +33,6 @@ export default function Phase2Optimizer({ selectedStrategies }: Phase2OptimizerP
   // Get test day and end day from Phase 1 results (assuming consistent across all candidates)
   const testDay = 51; // Default, can be extracted from Phase 1 if needed
   const endDay = 415;
-  const evaluationWindow = 30;
 
   const hasPhase2Results = phase2Results.length > 0;
 

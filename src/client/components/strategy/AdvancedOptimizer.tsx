@@ -9,7 +9,7 @@ import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
 
 interface AdvancedOptimizerProps {
-  onResultsReady?: (results: OptimizationCandidate[]) => void;
+  onResultsReady?: (results: OptimizationCandidate[], evaluationWindow: number) => void;
 }
 
 interface OptimizationConstraints {
@@ -551,7 +551,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
       // Notify parent component (OptimizerPage) that Phase 1 results are ready
       if (onResultsReady) {
-        onResultsReady(topResults);
+        onResultsReady(topResults, constraints.evaluationWindow);
         console.log('📤 Phase 1 results sent to OptimizerPage for Phase 2');
       }
 

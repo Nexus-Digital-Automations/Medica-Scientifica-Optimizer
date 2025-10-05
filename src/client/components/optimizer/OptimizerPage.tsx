@@ -5,17 +5,20 @@ import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 
 export default function OptimizerPage() {
   const [phase1Results, setPhase1Results] = useState<OptimizationCandidate[]>([]);
+  const [evaluationWindow, setEvaluationWindow] = useState<number>(30); // Default, will be updated from Phase 1
 
   // User-selected strategies for Phase 2 seeding
   const [selectedStrategies, setSelectedStrategies] = useState<OptimizationCandidate[]>([]);
 
-  const handlePhase1Complete = (results: OptimizationCandidate[]) => {
+  const handlePhase1Complete = (results: OptimizationCandidate[], evalWindow: number) => {
     setPhase1Results(results);
+    setEvaluationWindow(evalWindow);
     // Auto-select top strategy by growth rate as default
     if (results.length > 0) {
       setSelectedStrategies([results[0]]);
     }
     console.log('Phase 1 results received in OptimizerPage:', results);
+    console.log('Evaluation window from Phase 1:', evalWindow);
   };
 
   const handleStrategySelection = (strategy: OptimizationCandidate, checked: boolean) => {
@@ -152,7 +155,7 @@ export default function OptimizerPage() {
             </div>
           )}
         </div>
-        <Phase2Optimizer selectedStrategies={selectedStrategies} />
+        <Phase2Optimizer selectedStrategies={selectedStrategies} evaluationWindow={evaluationWindow} />
       </section>
     </div>
   );
