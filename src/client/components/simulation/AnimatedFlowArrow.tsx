@@ -50,50 +50,50 @@ export default function AnimatedFlowArrow({
   const animationDuration = Math.max(1, 5 - (flowRate / 10)); // 1-5 seconds
 
   return (
-    <div className="flex flex-col items-center my-4 relative">
+    <div className="flex flex-col items-center my-2 relative">
       {/* Arrow with animation */}
       <div
-        className={`relative ${vertical ? 'h-24 w-2' : 'w-24 h-2'} flex ${vertical ? 'flex-col' : 'flex-row'} items-center justify-center cursor-pointer group`}
+        className={`relative ${vertical ? 'h-16 w-0.5' : 'w-16 h-0.5'} flex ${vertical ? 'flex-col' : 'flex-row'} items-center justify-center cursor-pointer group`}
         onClick={() => setShowPopup(!showPopup)}
       >
-        {/* Background arrow line */}
+        {/* Background arrow line - very thin */}
         <div
-          className={`absolute ${vertical ? 'w-2 h-full' : 'h-2 w-full'} rounded-full transition-all group-hover:opacity-100`}
-          style={{ backgroundColor: arrowColorHex, opacity: 0.6 }}
+          className={`absolute ${vertical ? 'w-0.5 h-full' : 'h-0.5 w-full'} transition-all group-hover:w-1 group-hover:h-1`}
+          style={{ backgroundColor: arrowColorHex, opacity: 0.8 }}
         />
 
-        {/* Animated flow particles */}
+        {/* Animated flow particles - smaller */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className={`absolute ${vertical ? 'w-3 h-3 left-1/2 -translate-x-1/2' : 'h-3 w-3 top-1/2 -translate-y-1/2'} rounded-full shadow-lg`}
+              className={`absolute ${vertical ? 'w-2 h-2 left-1/2 -translate-x-1/2' : 'h-2 w-2 top-1/2 -translate-y-1/2'} rounded-full`}
               style={{
                 backgroundColor: arrowColorHex,
                 animation: vertical
                   ? `flowDown ${animationDuration}s linear infinite`
                   : `flowRight ${animationDuration}s linear infinite`,
                 animationDelay: `${i * (animationDuration / 3)}s`,
-                opacity: flowRate > 0 ? 0.9 : 0,
+                opacity: flowRate > 0 ? 0.7 : 0,
               }}
             />
           ))}
         </div>
 
-        {/* Arrow head */}
+        {/* Arrow head - smaller and sharper */}
         <div
           className={`absolute ${vertical ? 'bottom-0 left-1/2 -translate-x-1/2' : 'right-0 top-1/2 -translate-y-1/2'} w-0 h-0`}
           style={{
-            borderLeft: vertical ? '10px solid transparent' : '16px solid',
-            borderRight: vertical ? '10px solid transparent' : 'none',
-            borderTop: vertical ? '16px solid' : '10px solid transparent',
-            borderBottom: vertical ? 'none' : '10px solid transparent',
+            borderLeft: vertical ? '6px solid transparent' : '10px solid',
+            borderRight: vertical ? '6px solid transparent' : 'none',
+            borderTop: vertical ? '10px solid' : '6px solid transparent',
+            borderBottom: vertical ? 'none' : '6px solid transparent',
             borderColor: arrowColorHex,
           }}
         />
 
-        {/* Info icon */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
+        {/* Info icon - smaller */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/90 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
           ℹ️
         </div>
       </div>

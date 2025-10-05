@@ -1,7 +1,15 @@
 {
   "project": "Medica Scientifica Optimizer",
   "features": [],
-  "agents": {},
+  "agents": {
+    "agent-1759678981": {
+      "lastHeartbeat": "2025-10-05T15:43:02.210Z",
+      "status": "active",
+      "reinitialized": "2025-10-05T15:43:02.210Z",
+      "sessionId": "ee4f8dafc74d78dc",
+      "previousSessions": []
+    }
+  },
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
@@ -10,26 +18,26 @@
     "approval_history": [],
     "initialization_stats": {
       "total_initializations": 0,
-      "total_reinitializations": 4,
-      "current_day": "2025-10-04",
+      "total_reinitializations": 5,
+      "current_day": "2025-10-05",
       "time_buckets": {
-        "17:00-21:59": {
+        "19:00-23:59": {
+          "init": 0,
+          "reinit": 0
+        },
+        "00:00-04:59": {
+          "init": 0,
+          "reinit": 0
+        },
+        "05:00-09:59": {
+          "init": 0,
+          "reinit": 0
+        },
+        "10:00-14:59": {
           "init": 0,
           "reinit": 1
         },
-        "22:00-02:59": {
-          "init": 0,
-          "reinit": 0
-        },
-        "03:00-07:59": {
-          "init": 0,
-          "reinit": 0
-        },
-        "08:00-12:59": {
-          "init": 0,
-          "reinit": 0
-        },
-        "13:00-17:59": {
+        "15:00-19:59": {
           "init": 0,
           "reinit": 0
         }
@@ -88,10 +96,37 @@
               "reinit": 0
             }
           }
+        },
+        {
+          "date": "2025-10-04",
+          "total_init": 0,
+          "total_reinit": 1,
+          "buckets": {
+            "17:00-21:59": {
+              "init": 0,
+              "reinit": 1
+            },
+            "22:00-02:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "03:00-07:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "08:00-12:59": {
+              "init": 0,
+              "reinit": 0
+            },
+            "13:00-17:59": {
+              "init": 0,
+              "reinit": 0
+            }
+          }
         }
       ],
-      "last_reset": "2025-10-04T01:21:32.121Z",
-      "last_updated": "2025-10-04T01:21:32.121Z"
+      "last_reset": "2025-10-05T15:43:02.211Z",
+      "last_updated": "2025-10-05T15:43:02.211Z"
     }
   },
   "workflow_config": {

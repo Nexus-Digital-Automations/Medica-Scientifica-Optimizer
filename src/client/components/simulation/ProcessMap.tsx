@@ -968,13 +968,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                 <div className="text-xs text-green-400">Maximum WIP Capacity: 360 orders</div>
               </div>
             </div>
-
-            {/* Processing Time */}
-            <div className="mt-6 bg-purple-900 rounded-xl p-5 border-2 border-purple-600 text-center">
-              <div className="text-sm font-bold text-purple-200 mb-3">Total Processing Time</div>
-              <div className="text-3xl font-bold text-white mb-3">~10-12 days</div>
-              <div className="text-sm text-purple-300">MCE → WMA(2d) → PUC(1d) → WMA(2d) → Ship</div>
-            </div>
           </div>
         </div>
 
@@ -1511,14 +1504,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-xs text-green-300 mb-2">Units Shipped Today</div>
               <div className="text-3xl font-bold text-white mb-2">{Math.round(finalStandardProduction)}</div>
               <div className="text-sm text-green-300">standard units shipped</div>
-            </div>
-
-            {/* Processing Time */}
-            <div className="mt-6 bg-blue-900 rounded-xl p-5 border-2 border-blue-600 text-center">
-              <div className="text-sm font-bold text-blue-200 mb-3">Total Processing Time</div>
-              <div className="text-3xl font-bold text-white mb-3">~4-6 days + delays</div>
-              <div className="text-sm text-blue-300 mb-2">MCE → Batch(4d) → ARCP → Batch(1d) → FG → Ship</div>
-              <div className="text-sm text-red-300">⚠️ TWO batching delays (5 days total)</div>
             </div>
           </div>
         </div>
