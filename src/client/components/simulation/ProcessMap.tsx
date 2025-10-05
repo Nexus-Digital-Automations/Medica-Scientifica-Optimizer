@@ -1,6 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
+import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface ProcessMapProps {
   simulationResult: SimulationResult | null;
@@ -24,6 +35,12 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   }
 
   const { state } = displayResult;
+
+  // Perform comprehensive bottleneck analysis
+  const bottleneckAnalysis = useMemo(() => analyzeBottlenecks(displayResult), [displayResult]);
+  const [showStatistics, setShowStatistics] = useState(true);
+  const [showProblems, setShowProblems] = useState(true);
+  const [showTrends, setShowTrends] = useState(false);
 
   // Get final day values
   const finalDayIndex = state.history.dailyCash.length - 1;
@@ -59,14 +76,218 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const isARCPBottleneck = arcpCapacity < 10;
   const isRawMaterialBottleneck = finalRawMaterial < 50;
 
+  // Prepare trend chart data
+  const trendChartData = useMemo(() => {
+    const sampleInterval = Math.max(1, Math.floor(finalDayIndex / 50)); // Sample ~50 points
+    return state.history.dailyStandardWIP
+      .filter((_, idx) => idx % sampleInterval === 0)
+      .map((_, idx) => {
+        const actualIdx = idx * sampleInterval;
+        return {
+          day: state.history.dailyStandardWIP[actualIdx].day,
+          standardWIP: state.history.dailyStandardWIP[actualIdx].value,
+          customWIP: state.history.dailyCustomWIP[actualIdx]?.value || 0,
+          rawMaterial: state.history.dailyRawMaterial[actualIdx]?.value || 0,
+        };
+      });
+  }, [state.history, finalDayIndex]);
+
+  // Get severity color
+  const getSeverityColor = (severity: 'critical' | 'warning' | 'optimal') => {
+    return severity === 'critical' ? 'border-red-500 bg-red-900/20' :
+           severity === 'warning' ? 'border-yellow-500 bg-yellow-900/20' :
+           'border-green-500 bg-green-900/20';
+  };
+
+  const getSeverityBadge = (severity: 'critical' | 'warning' | 'optimal') => {
+    return severity === 'critical' ? 'bg-red-600 text-white' :
+           severity === 'warning' ? 'bg-yellow-600 text-white' :
+           'bg-green-600 text-white';
+  };
+
+  const getSeverityIcon = (severity: 'critical' | 'warning' | 'optimal') => {
+    return severity === 'critical' ? '🚨' :
+           severity === 'warning' ? '⚠️' : '✅';
+  };
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-600/30 rounded-xl p-6">
-        <h2 className="text-2xl font-bold text-white mb-2">🏭 Live Factory Process Map</h2>
-        <p className="text-gray-300 text-sm">
-          Real-time visualization of production flow with bottleneck detection
-        </p>
+      {/* Header with Overall Health */}
+      <div className={`bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-2 rounded-xl p-6 ${getSeverityColor(bottleneckAnalysis.overallHealth)}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              🏭 Live Factory Process Map
+            </h2>
+            <p className="text-gray-300 text-sm">
+              Real-time visualization with comprehensive bottleneck analysis
+            </p>
+          </div>
+          <div className="text-right">
+            <div className={`px-4 py-2 rounded-lg ${getSeverityBadge(bottleneckAnalysis.overallHealth)} text-sm font-bold mb-2`}>
+              {getSeverityIcon(bottleneckAnalysis.overallHealth)} {bottleneckAnalysis.overallHealth.toUpperCase()}
+            </div>
+            <div className="text-xs text-gray-400">
+              {bottleneckAnalysis.summaryStats.criticalBottlenecks} Critical • {bottleneckAnalysis.summaryStats.totalBottlenecks} Total Issues
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Comprehensive Statistics Panel */}
+      {showStatistics && (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-white">📊 Bottleneck Statistics</h3>
+            <button
+              onClick={() => setShowStatistics(false)}
+              className="text-gray-400 hover:text-white text-sm"
+            >
+              Hide
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {bottleneckAnalysis.metrics.map((metric, idx) => (
+              <div key={idx} className={`border-2 rounded-lg p-4 ${getSeverityColor(metric.severity)}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold text-white">{metric.station}</div>
+                  <div className={`px-2 py-1 rounded text-xs font-bold ${getSeverityBadge(metric.severity)}`}>
+                    {metric.severity === 'critical' ? 'CRITICAL' : metric.severity === 'warning' ? 'WARNING' : 'OPTIMAL'}
+                  </div>
+                </div>
+                <div className="space-y-2 text-xs text-gray-300">
+                  <div>Avg WIP/Level: <span className="text-white font-semibold">{metric.averageWIP.toFixed(1)}</span></div>
+                  <div>Peak: <span className="text-white font-semibold">{metric.peakWIP.toFixed(0)}</span> (Day {metric.peakDay})</div>
+                  <div>Bottlenecked: <span className="text-white font-semibold">{metric.percentageBottlenecked.toFixed(1)}%</span> ({metric.daysBottlenecked}/{metric.totalDays} days)</div>
+                  <div>Trend: <span className={`font-semibold ${metric.trend === 'increasing' ? 'text-red-400' : metric.trend === 'decreasing' ? 'text-green-400' : 'text-gray-400'}`}>
+                    {metric.trend === 'increasing' ? '📈 Worsening' : metric.trend === 'decreasing' ? '📉 Improving' : '➡️ Stable'}
+                  </span></div>
+                  <div>Health Score: <span className="text-white font-semibold">{metric.utilizationRate.toFixed(0)}%</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Problem Analysis Panel */}
+      {showProblems && bottleneckAnalysis.problems.length > 0 && (
+        <div className="bg-gradient-to-br from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-white">🔍 Detected Problems & Recommendations</h3>
+            <button
+              onClick={() => setShowProblems(false)}
+              className="text-gray-400 hover:text-white text-sm"
+            >
+              Hide
+            </button>
+          </div>
+          <div className="space-y-4">
+            {bottleneckAnalysis.problems.map((problem) => (
+              <div key={problem.id} className={`border-2 rounded-lg p-5 ${getSeverityColor(problem.severity)}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-bold text-white">{problem.title}</h4>
+                  <div className={`px-3 py-1 rounded ${getSeverityBadge(problem.severity)} text-xs font-bold`}>
+                    {problem.severity.toUpperCase()}
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-gray-400">Description:</span>
+                    <p className="text-white mt-1">{problem.description}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Root Cause:</span>
+                    <p className="text-yellow-300 mt-1">{problem.rootCause}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Impact:</span>
+                    <p className="text-red-300 mt-1">{problem.impact}</p>
+                  </div>
+                  <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-3">
+                    <span className="text-blue-300 font-semibold">💡 Recommendation:</span>
+                    <p className="text-blue-200 mt-1">{problem.recommendation}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-700">
+                    <div className="text-center">
+                      <div className="text-gray-400 text-xs">Peak WIP</div>
+                      <div className="text-white font-bold">{problem.metrics.peakWIP.toFixed(0)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-400 text-xs">Health Score</div>
+                      <div className="text-white font-bold">{problem.metrics.utilizationRate.toFixed(0)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-400 text-xs">Station</div>
+                      <div className="text-white font-bold text-xs">{problem.station}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Historical Trends Chart */}
+      {showTrends && (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-white">📈 Bottleneck Evolution Over Time</h3>
+            <button
+              onClick={() => setShowTrends(false)}
+              className="text-gray-400 hover:text-white text-sm"
+            >
+              Hide
+            </button>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={trendChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="day" stroke="#9ca3af" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.95)', border: '1px solid #374151', borderRadius: '8px' }}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="standardWIP" stroke="#3b82f6" strokeWidth={2} name="Standard WIP" dot={false} />
+              <Line type="monotone" dataKey="customWIP" stroke="#8b5cf6" strokeWidth={2} name="Custom WIP" dot={false} />
+              <Line type="monotone" dataKey="rawMaterial" stroke="#f59e0b" strokeWidth={2} name="Raw Material" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Toggle Buttons */}
+      <div className="flex gap-3 justify-center">
+        {!showStatistics && (
+          <button
+            onClick={() => setShowStatistics(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+          >
+            Show Statistics
+          </button>
+        )}
+        {!showProblems && bottleneckAnalysis.problems.length > 0 && (
+          <button
+            onClick={() => setShowProblems(true)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
+          >
+            Show Problems ({bottleneckAnalysis.problems.length})
+          </button>
+        )}
+        {!showTrends && (
+          <button
+            onClick={() => setShowTrends(true)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium"
+          >
+            Show Trends
+          </button>
+        )}
+      </div>
+
+      <div className="border-t-2 border-gray-700 pt-8">
+        <h3 className="text-xl font-bold text-white mb-4 text-center">Factory Flow Visualization</h3>
       </div>
 
       {/* Raw Material Inventory - Top */}
