@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
+import { loadHistoricalData } from '../../utils/historicalDataLoader';
 import {
   LineChart,
   Line,
@@ -18,10 +19,10 @@ interface ProcessMapProps {
 }
 
 export default function ProcessMap({ simulationResult }: ProcessMapProps) {
-  // If no result provided, try to use most recent saved result
-  const displayResult = simulationResult || getMostRecentSavedResult()?.result;
+  // Fallback chain: current simulation -> most recent saved -> historical data
+  const displayResult = simulationResult || getMostRecentSavedResult()?.result || loadHistoricalData();
 
-  // If still no result, show placeholder
+  // If still no result (shouldn't happen with historical data), show placeholder
   if (!displayResult) {
     return (
       <div className="text-center py-12">
@@ -33,6 +34,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
     );
   }
+
+  // Determine data source for display
+  const isHistoricalData = !simulationResult && !getMostRecentSavedResult();
 
   const { state } = displayResult;
 
@@ -112,15 +116,32 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   return (
     <div className="space-y-8">
+      {/* Data Source Indicator */}
+      {isHistoricalData && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-600 text-lg">📊</span>
+            <div>
+              <p className="text-amber-900 text-sm font-semibold">Historical Reference Data</p>
+              <p className="text-amber-700 text-xs">
+                Showing baseline factory performance. Run a simulation to see your custom strategy results.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Overall Health */}
       <div className={`bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-2 rounded-xl p-6 ${getSeverityColor(bottleneckAnalysis.overallHealth)}`}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              🏭 Live Factory Process Map
+              🏭 {isHistoricalData ? 'Factory Process Map (Historical Data)' : 'Live Factory Process Map'}
             </h2>
             <p className="text-gray-300 text-sm">
-              Real-time visualization with comprehensive bottleneck analysis
+              {isHistoricalData
+                ? 'Reference visualization showing typical factory operation'
+                : 'Real-time visualization with comprehensive bottleneck analysis'}
             </p>
           </div>
           <div className="text-right">
