@@ -8,6 +8,9 @@ import { debugLogger } from '../../utils/debugLogger';
 import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
 
+// Lock state for granular control
+type LockState = 'unlocked' | 'minimum' | 'maximum' | 'locked';
+
 interface AdvancedOptimizerProps {
   onResultsReady?: (results: OptimizationCandidate[], evaluationWindow: number) => void;
 }
@@ -29,6 +32,13 @@ interface OptimizationConstraints {
   endDay: number;
   // Evaluation window for short-term growth rate calculation
   evaluationWindow: number; // Days to measure growth rate (default: 30)
+  // Granular lock states for workforce and machines
+  workforceLockState: LockState;
+  machineLockStates: {
+    MCE: LockState;
+    WMA: LockState;
+    PUC: LockState;
+  };
 }
 
 export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerProps = {}) {
@@ -47,6 +57,12 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     testDay: 51,
     endDay: 415,
     evaluationWindow: 30,
+    workforceLockState: 'unlocked',
+    machineLockStates: {
+      MCE: 'unlocked',
+      WMA: 'unlocked',
+      PUC: 'unlocked'
+    },
   });
 
   // Phase 1 genetic algorithm parameters
@@ -66,22 +82,56 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     refinementIntensity: 0.10, // ±10% mutations
   });
 
-  // Current state locks
-  const [lockedWorkforce, setLockedWorkforce] = useState(false);
-  const [lockedMachines, setLockedMachines] = useState({ MCE: false, WMA: false, PUC: false });
+  // Current state locks - now with granular control
+  type LockState = 'unlocked' | 'minimum' | 'maximum' | 'locked';
+  const [workforceLockState, setWorkforceLockState] = useState<LockState>('unlocked');
+  const [machineLockStates, setMachineLockStates] = useState<Record<'MCE' | 'WMA' | 'PUC', LockState>>({
+    MCE: 'unlocked',
+    WMA: 'unlocked',
+    PUC: 'unlocked'
+  });
   const [lockedPolicies, setLockedPolicies] = useState({
     batchSize: false,
     price: false,
     mceAllocation: false,
   });
 
-  // Handler functions for current state locks
+  // Handler functions for current state locks - cycle through states
   const handleLockWorkforce = () => {
-    setLockedWorkforce(!lockedWorkforce);
+    setWorkforceLockState(prev => {
+      const newState = (() => {
+        switch (prev) {
+          case 'unlocked': return 'minimum';
+          case 'minimum': return 'maximum';
+          case 'maximum': return 'locked';
+          case 'locked': return 'unlocked';
+          default: return 'unlocked';
+        }
+      })();
+      // Sync with constraints
+      setConstraints(c => ({ ...c, workforceLockState: newState }));
+      return newState;
+    });
   };
 
   const handleLockMachine = (machineType: 'MCE' | 'WMA' | 'PUC') => {
-    setLockedMachines(prev => ({ ...prev, [machineType]: !prev[machineType] }));
+    setMachineLockStates(prev => {
+      const newStates = {
+        ...prev,
+        [machineType]: (() => {
+          switch (prev[machineType]) {
+            case 'unlocked': return 'minimum';
+            case 'minimum': return 'maximum';
+            case 'maximum': return 'locked';
+            case 'locked': return 'unlocked';
+            default: return 'unlocked';
+          }
+        })()
+      };
+      // Sync with constraints
+      setConstraints(c => ({ ...c, machineLockStates: newStates }));
+      return newStates;
+    });
   };
 
   const handleLockPolicy = (policyType: 'batchSize' | 'price' | 'mceAllocation') => {
@@ -157,19 +207,19 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
     // Check if any workforce actions are locked (HIRE_ROOKIE, FIRE_EMPLOYEE)
     // Also check current state panel workforce lock
-    const hasLockedWorkforceAction = lockedWorkforce || lockedActions.some(a =>
+    const hasLockedWorkforceAction = workforceLockState === 'locked' || lockedActions.some(a =>
       a.type === 'HIRE_ROOKIE' || a.type === 'FIRE_EMPLOYEE'
     );
 
     // Check if any machine actions are locked per machine type
     // Also check current state panel machine locks
-    const hasLockedMCEAction = lockedMachines.MCE || lockedActions.some(a =>
+    const hasLockedMCEAction = machineLockStates.MCE === 'locked' || lockedActions.some(a =>
       (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'MCE'
     );
-    const hasLockedWMAAction = lockedMachines.WMA || lockedActions.some(a =>
+    const hasLockedWMAAction = machineLockStates.WMA === 'locked' || lockedActions.some(a =>
       (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'WMA'
     );
-    const hasLockedPUCAction = lockedMachines.PUC || lockedActions.some(a =>
+    const hasLockedPUCAction = machineLockStates.PUC === 'locked' || lockedActions.some(a =>
       (a.type === 'BUY_MACHINE' || a.type === 'SELL_MACHINE') && a.machineType === 'PUC'
     );
 
@@ -235,8 +285,9 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     // Add diverse one-time actions with increased probabilities and ranges
     // Only add if no locked actions prevent it
 
-    // HIRE_ROOKIE - 70% chance, 1-10 workers (only if no workforce actions are locked)
-    if (!hasLockedWorkforceAction && Math.random() < 0.7) {
+    // HIRE_ROOKIE - 70% chance, 1-10 workers (respect workforce lock state)
+    const canHire = workforceLockState === 'unlocked' || workforceLockState === 'minimum';
+    if (canHire && !hasLockedWorkforceAction && Math.random() < 0.7) {
       const hireCount = Math.floor(1 + Math.random() * 10); // 1-10 workers
       console.log(`[AdvancedOptimizer] Adding HIRE_ROOKIE action: day=${day}, count=${hireCount}`);
       actions.push({
@@ -244,17 +295,22 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         type: 'HIRE_ROOKIE',
         count: hireCount,
       });
+    } else if (!canHire) {
+      console.log(`[AdvancedOptimizer] Skipping HIRE_ROOKIE - workforce lock state: ${workforceLockState}`);
     } else if (hasLockedWorkforceAction) {
       console.log(`[AdvancedOptimizer] Skipping HIRE_ROOKIE - workforce actions are locked`);
     }
 
-    // BUY_MACHINE - 70% chance, 1-5 machines (only if that machine type is not locked)
+    // BUY_MACHINE - 70% chance, 1-5 machines (respect machine lock states)
     if (Math.random() < 0.7) {
       const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
       const availableMachineTypes = machineTypes.filter(type => {
-        if (type === 'MCE') return !hasLockedMCEAction;
-        if (type === 'WMA') return !hasLockedWMAAction;
-        if (type === 'PUC') return !hasLockedPUCAction;
+        // Can buy if unlocked or minimum (minimum = can only add)
+        const lockState = machineLockStates[type];
+        const canBuy = lockState === 'unlocked' || lockState === 'minimum';
+        if (type === 'MCE') return canBuy && !hasLockedMCEAction;
+        if (type === 'WMA') return canBuy && !hasLockedWMAAction;
+        if (type === 'PUC') return canBuy && !hasLockedPUCAction;
         return true;
       });
 
@@ -269,12 +325,13 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
           count: machineCount,
         });
       } else {
-        console.log(`[AdvancedOptimizer] Skipping BUY_MACHINE - all machine types are locked`);
+        console.log(`[AdvancedOptimizer] Skipping BUY_MACHINE - no machine types available (lock states)`);
       }
     }
 
-    // FIRE_EMPLOYEE - 30% chance, 1-3 employees (only if no workforce actions are locked)
-    if (!hasLockedWorkforceAction && Math.random() < 0.3) {
+    // FIRE_EMPLOYEE - 30% chance, 1-3 employees (respect workforce lock state)
+    const canFire = workforceLockState === 'unlocked' || workforceLockState === 'maximum';
+    if (canFire && !hasLockedWorkforceAction && Math.random() < 0.3) {
       const employeeTypes: Array<'expert' | 'rookie'> = ['expert', 'rookie'];
       const employeeType = employeeTypes[Math.floor(Math.random() * 2)];
       const fireCount = Math.floor(1 + Math.random() * 3); // 1-3 employees
@@ -285,17 +342,22 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         employeeType,
         count: fireCount,
       });
+    } else if (!canFire) {
+      console.log(`[AdvancedOptimizer] Skipping FIRE_EMPLOYEE - workforce lock state: ${workforceLockState}`);
     } else if (hasLockedWorkforceAction) {
       console.log(`[AdvancedOptimizer] Skipping FIRE_EMPLOYEE - workforce actions are locked`);
     }
 
-    // SELL_MACHINE - 30% chance, 1-2 machines (only if that machine type is not locked)
+    // SELL_MACHINE - 30% chance, 1-2 machines (respect machine lock states)
     if (Math.random() < 0.3) {
       const machineTypes: Array<'MCE' | 'WMA' | 'PUC'> = ['MCE', 'WMA', 'PUC'];
       const availableMachineTypes = machineTypes.filter(type => {
-        if (type === 'MCE') return !hasLockedMCEAction;
-        if (type === 'WMA') return !hasLockedWMAAction;
-        if (type === 'PUC') return !hasLockedPUCAction;
+        // Can sell if unlocked or maximum (maximum = can only remove)
+        const lockState = machineLockStates[type];
+        const canSell = lockState === 'unlocked' || lockState === 'maximum';
+        if (type === 'MCE') return canSell && !hasLockedMCEAction;
+        if (type === 'WMA') return canSell && !hasLockedWMAAction;
+        if (type === 'PUC') return canSell && !hasLockedPUCAction;
         return true;
       });
 
@@ -310,7 +372,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
           count: sellCount,
         });
       } else {
-        console.log(`[AdvancedOptimizer] Skipping SELL_MACHINE - all machine types are locked`);
+        console.log(`[AdvancedOptimizer] Skipping SELL_MACHINE - no machine types available (lock states)`);
       }
     }
 
@@ -1172,25 +1234,24 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
               <label htmlFor="evaluation-window" className="block text-sm font-medium text-white mb-2">
                 Evaluation Window (Days)
               </label>
-              <select
+              <input
                 id="evaluation-window"
                 name="evaluationWindow"
+                type="number"
                 value={constraints.evaluationWindow}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (!isNaN(val)) {
+                  if (!isNaN(val) && val > 0) {
                     setConstraints(prev => ({ ...prev, evaluationWindow: val }));
                   }
                 }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={14}>14 days - Quick decisions only</option>
-                <option value={21}>21 days - Balanced</option>
-                <option value={30}>30 days - Full cycle (Recommended) ⭐</option>
-                <option value={45}>45 days - Extended impact</option>
-              </select>
+                min="1"
+                max="365"
+                step="1"
+              />
               <p className="text-xs text-gray-400 mt-1">
-                Time horizon for measuring growth rate. Longer windows capture workforce maturation and production cycles.
+                Exact number of days for measuring growth rate (e.g., 30 = one full production cycle). Range: 1-365 days.
               </p>
             </div>
           </div>
@@ -1344,7 +1405,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
             <div>
               <label htmlFor="phase2-refinement-intensity" className="block text-sm font-medium text-white mb-2">
-                Refinement Intensity
+                Refinement Intensity (Maximum Mutation)
               </label>
               <input
                 id="phase2-refinement-intensity"
@@ -1356,7 +1417,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                 max="0.30"
                 step="0.05"
               />
-              <p className="text-xs text-gray-400 mt-1">±{(phase2Params.refinementIntensity * 100).toFixed(0)}% mutations</p>
+              <p className="text-xs text-gray-400 mt-1">Maximum ±{(phase2Params.refinementIntensity * 100).toFixed(0)}% variation from Phase 1 values</p>
             </div>
           </div>
         </div>
@@ -1392,28 +1453,53 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
             <button
               onClick={handleLockWorkforce}
               className={`px-3 py-1.5 rounded text-sm font-bold transition-colors ${
-                lockedWorkforce
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                workforceLockState === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                workforceLockState === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                workforceLockState === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                'bg-red-600 hover:bg-red-700 text-white'
               }`}
-              title={lockedWorkforce ? 'Unlock workforce (allow hiring/firing)' : 'Lock workforce (prevent hiring/firing)'}
+              title={
+                workforceLockState === 'unlocked' ? 'Click to set minimum (can only hire)' :
+                workforceLockState === 'minimum' ? 'Click to set maximum (can only fire)' :
+                workforceLockState === 'maximum' ? 'Click to lock (no changes)' :
+                'Click to unlock (allow all changes)'
+              }
             >
-              {lockedWorkforce ? '🔓 Unlock All' : '🔒 Lock All'}
+              {workforceLockState === 'unlocked' ? '🔓 Unlocked' :
+               workforceLockState === 'minimum' ? '⬆️ Minimum' :
+               workforceLockState === 'maximum' ? '⬇️ Maximum' :
+               '🔒 Locked'}
             </button>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className={`p-4 rounded-lg border-2 ${lockedWorkforce ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+            <div className={`p-4 rounded-lg border-2 ${
+              workforceLockState === 'unlocked' ? 'bg-gray-700 border-gray-600' :
+              workforceLockState === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              workforceLockState === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-red-900/20 border-red-600/50'
+            }`}>
               <p className="text-sm text-gray-400 mb-1">Experts</p>
               <p className="text-2xl font-bold text-white">{currentValues.experts}</p>
             </div>
-            <div className={`p-4 rounded-lg border-2 ${lockedWorkforce ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+            <div className={`p-4 rounded-lg border-2 ${
+              workforceLockState === 'unlocked' ? 'bg-gray-700 border-gray-600' :
+              workforceLockState === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              workforceLockState === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-red-900/20 border-red-600/50'
+            }`}>
               <p className="text-sm text-gray-400 mb-1">Rookies</p>
               <p className="text-2xl font-bold text-white">{currentValues.rookies}</p>
             </div>
           </div>
-          {lockedWorkforce && (
-            <div className="mt-2 text-xs bg-red-900/30 text-red-300 px-3 py-2 rounded">
-              🔒 Optimizer cannot hire or fire employees
+          {workforceLockState !== 'unlocked' && (
+            <div className={`mt-2 text-xs px-3 py-2 rounded ${
+              workforceLockState === 'minimum' ? 'bg-blue-900/30 text-blue-300' :
+              workforceLockState === 'maximum' ? 'bg-orange-900/30 text-orange-300' :
+              'bg-red-900/30 text-red-300'
+            }`}>
+              {workforceLockState === 'minimum' ? '⬆️ Optimizer can only hire (minimum constraint)' :
+               workforceLockState === 'maximum' ? '⬇️ Optimizer can only fire (maximum constraint)' :
+               '🔒 Optimizer cannot hire or fire employees'}
             </div>
           )}
         </div>
@@ -1422,53 +1508,136 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         <div className="mb-6">
           <h5 className="text-sm font-semibold text-gray-300 mb-3">🏭 Machines</h5>
           <div className="grid grid-cols-3 gap-4">
+            {/* MCE Machine */}
             <div>
-              <div className={`p-4 rounded-lg border-2 ${lockedMachines.MCE ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div className={`p-4 rounded-lg border-2 ${
+                machineLockStates.MCE === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+                machineLockStates.MCE === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+                machineLockStates.MCE === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+                'bg-gray-700 border-gray-600'
+              }`}>
                 <p className="text-sm text-gray-400 mb-1">MCE</p>
                 <p className="text-2xl font-bold text-white">{currentValues.machines.MCE}</p>
               </div>
               <button
                 onClick={() => handleLockMachine('MCE')}
                 className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-                  lockedMachines.MCE
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  machineLockStates.MCE === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  machineLockStates.MCE === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  machineLockStates.MCE === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  machineLockStates.MCE === 'unlocked' ? 'Click to set minimum (can only buy)' :
+                  machineLockStates.MCE === 'minimum' ? 'Click to set maximum (can only sell)' :
+                  machineLockStates.MCE === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedMachines.MCE ? '🔓 Unlock' : '🔒 Lock'}
+                {machineLockStates.MCE === 'unlocked' ? '🔓' :
+                 machineLockStates.MCE === 'minimum' ? '⬆️' :
+                 machineLockStates.MCE === 'maximum' ? '⬇️' :
+                 '🔒'}
               </button>
+              {machineLockStates.MCE !== 'unlocked' && (
+                <div className={`mt-1 text-xs px-2 py-1 rounded ${
+                  machineLockStates.MCE === 'minimum' ? 'bg-blue-900/30 text-blue-300' :
+                  machineLockStates.MCE === 'maximum' ? 'bg-orange-900/30 text-orange-300' :
+                  'bg-red-900/30 text-red-300'
+                }`}>
+                  {machineLockStates.MCE === 'minimum' ? 'Buy only' :
+                   machineLockStates.MCE === 'maximum' ? 'Sell only' :
+                   'Locked'}
+                </div>
+              )}
             </div>
+
+            {/* WMA Machine */}
             <div>
-              <div className={`p-4 rounded-lg border-2 ${lockedMachines.WMA ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div className={`p-4 rounded-lg border-2 ${
+                machineLockStates.WMA === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+                machineLockStates.WMA === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+                machineLockStates.WMA === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+                'bg-gray-700 border-gray-600'
+              }`}>
                 <p className="text-sm text-gray-400 mb-1">WMA</p>
                 <p className="text-2xl font-bold text-white">{currentValues.machines.WMA}</p>
               </div>
               <button
                 onClick={() => handleLockMachine('WMA')}
                 className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-                  lockedMachines.WMA
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  machineLockStates.WMA === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  machineLockStates.WMA === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  machineLockStates.WMA === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  machineLockStates.WMA === 'unlocked' ? 'Click to set minimum (can only buy)' :
+                  machineLockStates.WMA === 'minimum' ? 'Click to set maximum (can only sell)' :
+                  machineLockStates.WMA === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedMachines.WMA ? '🔓 Unlock' : '🔒 Lock'}
+                {machineLockStates.WMA === 'unlocked' ? '🔓' :
+                 machineLockStates.WMA === 'minimum' ? '⬆️' :
+                 machineLockStates.WMA === 'maximum' ? '⬇️' :
+                 '🔒'}
               </button>
+              {machineLockStates.WMA !== 'unlocked' && (
+                <div className={`mt-1 text-xs px-2 py-1 rounded ${
+                  machineLockStates.WMA === 'minimum' ? 'bg-blue-900/30 text-blue-300' :
+                  machineLockStates.WMA === 'maximum' ? 'bg-orange-900/30 text-orange-300' :
+                  'bg-red-900/30 text-red-300'
+                }`}>
+                  {machineLockStates.WMA === 'minimum' ? 'Buy only' :
+                   machineLockStates.WMA === 'maximum' ? 'Sell only' :
+                   'Locked'}
+                </div>
+              )}
             </div>
+
+            {/* PUC Machine */}
             <div>
-              <div className={`p-4 rounded-lg border-2 ${lockedMachines.PUC ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div className={`p-4 rounded-lg border-2 ${
+                machineLockStates.PUC === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+                machineLockStates.PUC === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+                machineLockStates.PUC === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+                'bg-gray-700 border-gray-600'
+              }`}>
                 <p className="text-sm text-gray-400 mb-1">PUC</p>
                 <p className="text-2xl font-bold text-white">{currentValues.machines.PUC}</p>
               </div>
               <button
                 onClick={() => handleLockMachine('PUC')}
                 className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-                  lockedMachines.PUC
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  machineLockStates.PUC === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  machineLockStates.PUC === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  machineLockStates.PUC === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
                 }`}
+                title={
+                  machineLockStates.PUC === 'unlocked' ? 'Click to set minimum (can only buy)' :
+                  machineLockStates.PUC === 'minimum' ? 'Click to set maximum (can only sell)' :
+                  machineLockStates.PUC === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
               >
-                {lockedMachines.PUC ? '🔓 Unlock' : '🔒 Lock'}
+                {machineLockStates.PUC === 'unlocked' ? '🔓' :
+                 machineLockStates.PUC === 'minimum' ? '⬆️' :
+                 machineLockStates.PUC === 'maximum' ? '⬇️' :
+                 '🔒'}
               </button>
+              {machineLockStates.PUC !== 'unlocked' && (
+                <div className={`mt-1 text-xs px-2 py-1 rounded ${
+                  machineLockStates.PUC === 'minimum' ? 'bg-blue-900/30 text-blue-300' :
+                  machineLockStates.PUC === 'maximum' ? 'bg-orange-900/30 text-orange-300' :
+                  'bg-red-900/30 text-red-300'
+                }`}>
+                  {machineLockStates.PUC === 'minimum' ? 'Buy only' :
+                   machineLockStates.PUC === 'maximum' ? 'Sell only' :
+                   'Locked'}
+                </div>
+              )}
             </div>
           </div>
         </div>
