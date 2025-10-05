@@ -7,7 +7,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { debugLogger } from '../../utils/debugLogger';
 import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
-import CurrentStatePanel from './CurrentStatePanel';
 
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
@@ -73,8 +72,8 @@ export default function AdvancedOptimizer() {
     setLockedPolicies(prev => ({ ...prev, [policyType]: !prev[policyType] }));
   };
 
-  // Get current values from most recent timed actions
-  const getCurrentPolicyValues = () => {
+  // Get values on the selected test day (applying all timed actions up to that day)
+  const getValuesOnDay = (day: number) => {
     const values = {
       reorderPoint: strategy.reorderPoint,
       orderQuantity: strategy.orderQuantity,
@@ -82,10 +81,17 @@ export default function AdvancedOptimizer() {
       standardBatchSize: strategy.standardBatchSize,
       mceAllocationCustom: strategy.mceAllocationCustom,
       dailyOvertimeHours: strategy.dailyOvertimeHours,
+      experts: 1, // Starting values from day 51
+      rookies: 0,
+      machines: { MCE: 1, WMA: 2, PUC: 2 },
     };
 
-    // Find the most recent timed action for each policy
-    for (const action of strategy.timedActions) {
+    // Apply all timed actions up to and including the selected day
+    const actionsUpToDay = strategy.timedActions
+      .filter(a => a.day <= day)
+      .sort((a, b) => a.day - b.day);
+
+    for (const action of actionsUpToDay) {
       if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
         values.reorderPoint = action.newReorderPoint;
       } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
@@ -96,13 +102,25 @@ export default function AdvancedOptimizer() {
         values.standardBatchSize = action.newSize;
       } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
         values.mceAllocationCustom = action.newAllocation;
+      } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+        values.rookies += action.count;
+      } else if (action.type === 'FIRE_EMPLOYEE' && 'count' in action && 'employeeType' in action) {
+        if (action.employeeType === 'expert') {
+          values.experts = Math.max(0, values.experts - action.count);
+        } else {
+          values.rookies = Math.max(0, values.rookies - action.count);
+        }
+      } else if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
+        values.machines[action.machineType] += action.count;
+      } else if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
+        values.machines[action.machineType] = Math.max(0, values.machines[action.machineType] - action.count);
       }
     }
 
     return values;
   };
 
-  const currentValues = getCurrentPolicyValues();
+  const currentValues = getValuesOnDay(constraints.testDay);
 
   // Optimization state
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -560,31 +578,6 @@ export default function AdvancedOptimizer() {
     }
   };
 
-  const togglePolicyFixed = (policy: keyof OptimizationConstraints['fixedPolicies']) => {
-    setConstraints(prev => ({
-      ...prev,
-      fixedPolicies: {
-        ...prev.fixedPolicies,
-        [policy]: !prev.fixedPolicies[policy],
-      },
-    }));
-  };
-
-  const toggleActionFixed = (actionId: string) => {
-    setConstraints(prev => {
-      const newFixedActions = new Set(prev.fixedActions);
-      if (newFixedActions.has(actionId)) {
-        newFixedActions.delete(actionId);
-      } else {
-        newFixedActions.add(actionId);
-      }
-      return {
-        ...prev,
-        fixedActions: newFixedActions,
-      };
-    });
-  };
-
   // Placeholder for saving recommended strategies - will be connected to optimizer results
   // const saveRecommendedStrategy = (strategyToSave: Strategy, netWorth: number) => {
   //   const name = prompt('Enter a name for this strategy:');
@@ -819,113 +812,6 @@ export default function AdvancedOptimizer() {
         </p>
       </div>
 
-      {/* Current State Panel */}
-      <CurrentStatePanel
-        strategy={strategy}
-        onLockWorkforce={handleLockWorkforce}
-        onLockMachine={handleLockMachine}
-        onLockPolicy={handleLockPolicy}
-        lockedWorkforce={lockedWorkforce}
-        lockedMachines={lockedMachines}
-        lockedPolicies={lockedPolicies}
-      />
-
-      {/* Policy Decision Controls */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">📋 Policy Decisions</h4>
-        <p className="text-sm text-gray-400 mb-4">
-          Toggle each policy to mark it as Fixed (🔒 locked value) or Variable (🔓 can be optimized)
-        </p>
-
-        <div className="grid grid-cols-2 gap-4">
-          {Object.entries(constraints.fixedPolicies).map(([policy, isFixed]) => (
-            <div
-              key={policy}
-              className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                isFixed
-                  ? 'bg-red-900/20 border-red-600/50'
-                  : 'bg-green-900/20 border-green-600/50'
-              }`}
-              onClick={() => togglePolicyFixed(policy as keyof OptimizationConstraints['fixedPolicies'])}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-white">
-                  {
-                    policy === 'reorderPoint' ? 'Reorder Point - Raw Materials (Both Lines)' :
-                    policy === 'orderQuantity' ? 'Order Quantity - Raw Materials (Both Lines)' :
-                    policy === 'standardPrice' ? 'Standard Line - Price' :
-                    policy === 'standardBatchSize' ? 'Standard Line - Batch Size' :
-                    policy === 'mceAllocationCustom' ? 'MCE Allocation - % to Custom Line' :
-                    policy === 'dailyOvertimeHours' ? 'Daily Overtime - Both Lines' :
-                    policy.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-                  }
-                </span>
-                <span className="text-2xl">{isFixed ? '🔒' : '🔓'}</span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {isFixed ? 'Fixed - will not change' : 'Variable - can be optimized'}
-              </div>
-              <div className="text-xs text-gray-300 mt-1">
-                Current: {
-                  policy === 'reorderPoint' ? `${currentValues.reorderPoint} units` :
-                  policy === 'orderQuantity' ? `${currentValues.orderQuantity} units` :
-                  policy === 'standardPrice' ? `$${currentValues.standardPrice}` :
-                  policy === 'standardBatchSize' ? `${currentValues.standardBatchSize} units` :
-                  policy === 'mceAllocationCustom' ? `${(currentValues.mceAllocationCustom * 100).toFixed(0)}%` :
-                  policy === 'dailyOvertimeHours' ? `${currentValues.dailyOvertimeHours}h` :
-                  'N/A'
-                }
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Timed Actions Controls */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">⏰ Timed Actions</h4>
-        <p className="text-sm text-gray-400 mb-4">
-          Mark specific timed actions as fixed to prevent the optimizer from removing or modifying them
-        </p>
-
-        {strategy.timedActions.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            No timed actions defined. Go to Strategy Builder to add some.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {strategy.timedActions.map((action, idx) => {
-              const actionId = `action-${action.day}-${action.type}-${idx}`;
-              const isFixed = constraints.fixedActions.has(actionId);
-
-              return (
-                <div
-                  key={actionId}
-                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                    isFixed
-                      ? 'bg-red-900/20 border-red-600/50'
-                      : 'bg-gray-750 border-gray-600'
-                  }`}
-                  onClick={() => toggleActionFixed(actionId)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <span className="text-sm text-white">
-                        Day {action.day}: <strong>{action.type}</strong>
-                      </span>
-                      <span className="text-xs text-gray-400 ml-2">
-                        {JSON.stringify(action).substring(0, 100)}...
-                      </span>
-                    </div>
-                    <span className="text-xl ml-4">{isFixed ? '🔒' : '🔓'}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Optimization Settings */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
         <h4 className="text-lg font-semibold text-white mb-4">⚙️ Optimization Settings</h4>
@@ -1086,6 +972,169 @@ export default function AdvancedOptimizer() {
             <div>🧬 GA Settings: Pop={gaParams.populationSize}, Gen={gaParams.generations}, Mut={gaParams.mutationRate}, Elite={gaParams.eliteCount}</div>
             <div>📊 Total Simulations: {gaParams.populationSize * gaParams.generations}</div>
           </div>
+        </div>
+      </div>
+
+      {/* Current State & Policy Controls - Values on Day {constraints.testDay} */}
+      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h4 className="text-lg font-semibold text-white">📊 Current State & Policy Controls</h4>
+            <p className="text-sm text-gray-400 mt-1">
+              Values on Day {constraints.testDay} - Lock to prevent optimizer changes
+            </p>
+          </div>
+        </div>
+
+        {/* Workforce Section */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="text-sm font-semibold text-gray-300">👷 Workforce</h5>
+            <button
+              onClick={handleLockWorkforce}
+              className={`px-3 py-1.5 rounded text-sm font-bold transition-colors ${
+                lockedWorkforce
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+              }`}
+              title={lockedWorkforce ? 'Unlock workforce (allow hiring/firing)' : 'Lock workforce (prevent hiring/firing)'}
+            >
+              {lockedWorkforce ? '🔓 Unlock All' : '🔒 Lock All'}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className={`p-4 rounded-lg border-2 ${lockedWorkforce ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <p className="text-sm text-gray-400 mb-1">Experts</p>
+              <p className="text-2xl font-bold text-white">{currentValues.experts}</p>
+            </div>
+            <div className={`p-4 rounded-lg border-2 ${lockedWorkforce ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <p className="text-sm text-gray-400 mb-1">Rookies</p>
+              <p className="text-2xl font-bold text-white">{currentValues.rookies}</p>
+            </div>
+          </div>
+          {lockedWorkforce && (
+            <div className="mt-2 text-xs bg-red-900/30 text-red-300 px-3 py-2 rounded">
+              🔒 Optimizer cannot hire or fire employees
+            </div>
+          )}
+        </div>
+
+        {/* Machines Section */}
+        <div className="mb-6">
+          <h5 className="text-sm font-semibold text-gray-300 mb-3">🏭 Machines</h5>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <div className={`p-4 rounded-lg border-2 ${lockedMachines.MCE ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+                <p className="text-sm text-gray-400 mb-1">MCE</p>
+                <p className="text-2xl font-bold text-white">{currentValues.machines.MCE}</p>
+              </div>
+              <button
+                onClick={() => handleLockMachine('MCE')}
+                className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  lockedMachines.MCE
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedMachines.MCE ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+            <div>
+              <div className={`p-4 rounded-lg border-2 ${lockedMachines.WMA ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+                <p className="text-sm text-gray-400 mb-1">WMA</p>
+                <p className="text-2xl font-bold text-white">{currentValues.machines.WMA}</p>
+              </div>
+              <button
+                onClick={() => handleLockMachine('WMA')}
+                className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  lockedMachines.WMA
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedMachines.WMA ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+            <div>
+              <div className={`p-4 rounded-lg border-2 ${lockedMachines.PUC ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+                <p className="text-sm text-gray-400 mb-1">PUC</p>
+                <p className="text-2xl font-bold text-white">{currentValues.machines.PUC}</p>
+              </div>
+              <button
+                onClick={() => handleLockMachine('PUC')}
+                className={`mt-2 w-full px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  lockedMachines.PUC
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedMachines.PUC ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Policy Settings Section */}
+        <div>
+          <h5 className="text-sm font-semibold text-gray-300 mb-3">⚙️ Policy Settings</h5>
+          <div className="space-y-3">
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.batchSize ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div>
+                <p className="text-sm font-medium text-white">Standard Batch Size</p>
+                <p className="text-2xl font-bold text-white">{currentValues.standardBatchSize || 60}</p>
+              </div>
+              <button
+                onClick={() => handleLockPolicy('batchSize')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  lockedPolicies.batchSize
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedPolicies.batchSize ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.price ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div>
+                <p className="text-sm font-medium text-white">Standard Price</p>
+                <p className="text-2xl font-bold text-white">${currentValues.standardPrice || 225}</p>
+              </div>
+              <button
+                onClick={() => handleLockPolicy('price')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  lockedPolicies.price
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedPolicies.price ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${lockedPolicies.mceAllocation ? 'bg-red-900/20 border-red-600/50' : 'bg-gray-700 border-gray-600'}`}>
+              <div>
+                <p className="text-sm font-medium text-white">MCE Allocation (Custom)</p>
+                <p className="text-2xl font-bold text-white">{(currentValues.mceAllocationCustom * 100).toFixed(0)}%</p>
+              </div>
+              <button
+                onClick={() => handleLockPolicy('mceAllocation')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  lockedPolicies.mceAllocation
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                {lockedPolicies.mceAllocation ? '🔓 Unlock' : '🔒 Lock'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg">
+          <p className="text-xs text-blue-300">
+            ℹ️ Locked values prevent the optimizer from making changes. Values shown reflect Day {constraints.testDay} state.
+          </p>
         </div>
       </div>
 
