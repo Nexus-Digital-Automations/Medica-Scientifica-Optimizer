@@ -206,7 +206,7 @@ export default function RecommendationSelector({ recommendations }: Recommendati
                               <div className="space-y-1">
                                 {rec.actions.map((action, idx) => (
                                   <div key={idx} className="text-sm text-gray-300">
-                                    • {action.type.replace(/_/g, ' ')}: {action.parameter} → {action.targetValue.toFixed(1)}
+                                    • {action.type.replace(/_/g, ' ')}: {action.parameter} ({action.currentValue.toFixed(1)} → {action.targetValue.toFixed(1)})
                                   </div>
                                 ))}
                               </div>

@@ -2,7 +2,7 @@ import type { SimulationResult } from '../types/ui.types';
 import type { BottleneckAnalysis } from './bottleneckAnalysis';
 
 export interface RecommendationAction {
-  type: 'hire_expert' | 'hire_rookie' | 'purchase_machine' | 'adjust_inventory' | 'adjust_pricing' | 'adjust_allocation' | 'adjust_batch_size';
+  type: 'hire_rookie' | 'purchase_machine' | 'adjust_inventory' | 'adjust_pricing' | 'adjust_allocation' | 'adjust_batch_size';
   parameter: string;
   currentValue: number;
   targetValue: number;
@@ -98,17 +98,10 @@ export function generateComprehensiveRecommendations(
       actions: [
         {
           type: 'hire_rookie',
-          parameter: 'workforce',
+          parameter: 'rookies',
           currentValue: finalRookies,
           targetValue: finalRookies + rookiesToHire,
-          day: 51, // Hire immediately
-        },
-        {
-          type: 'hire_expert',
-          parameter: 'workforce',
-          currentValue: finalExperts,
-          targetValue: finalExperts + expertsToHire,
-          day: 51,
+          day: 51, // Hire immediately - they will train to become experts
         },
       ],
     });

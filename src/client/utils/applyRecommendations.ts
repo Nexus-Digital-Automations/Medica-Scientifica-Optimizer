@@ -28,23 +28,6 @@ export function applyRecommendations(
   // Process each action type
   actionsByType.forEach((actions, type) => {
     switch (type) {
-      case 'hire_expert': {
-        // Sum all expert hiring actions
-        const totalExperts = actions.reduce((sum, action) =>
-          sum + (action.targetValue - action.currentValue), 0
-        );
-        if (totalExperts > 0) {
-          // Add timed action to hire experts on specified day
-          const day = actions[0].day || 51;
-          newStrategy.timedActions.push({
-            day,
-            type: 'HIRE_ROOKIE', // Note: No HIRE_EXPERT action type exists, experts must be hired as rookies
-            count: Math.round(totalExperts),
-          });
-        }
-        break;
-      }
-
       case 'hire_rookie': {
         // Sum all rookie hiring actions
         const totalRookies = actions.reduce((sum, action) =>
