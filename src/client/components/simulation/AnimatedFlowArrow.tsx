@@ -54,11 +54,11 @@ export default function AnimatedFlowArrow({
   const isShortage = gap < 0; // Not enough supply to meet demand
   const hasExcess = gap > 0; // Supply exceeds demand
 
-  // Calculate tapering for visual metaphor
-  // Shortage: thin top (little supply) → thick bottom (lots of demand)
-  // Excess: thick top (lots of supply) → thin bottom (less demand)
-  const topWidth = isShortage ? 8 : hasExcess ? 20 : 12;
-  const bottomWidth = isShortage ? 20 : hasExcess ? 8 : 12;
+  // Calculate tapering for visual metaphor with exaggerated widths
+  // Shortage: very thin top (little supply) → very thick bottom (lots of demand)
+  // Excess: very thick top (lots of supply) → very thin bottom (less demand)
+  const topWidth = isShortage ? 4 : hasExcess ? 24 : 12;
+  const bottomWidth = isShortage ? 24 : hasExcess ? 4 : 12;
 
   return (
     <div className="flex flex-col items-center my-4 relative">
