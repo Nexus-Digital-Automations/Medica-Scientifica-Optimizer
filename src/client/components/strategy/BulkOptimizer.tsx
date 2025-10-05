@@ -21,7 +21,7 @@ interface OptimizerResults {
 
 export default function BulkOptimizer() {
   const { strategy } = useStrategyStore();
-  const [testDay, setTestDay] = useState<number>(75);
+  const [testDay, setTestDay] = useState<number>(51);
 
   // Version check - log when component loads
   React.useEffect(() => {

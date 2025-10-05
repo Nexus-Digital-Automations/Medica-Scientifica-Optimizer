@@ -7,10 +7,10 @@ import SimulationRunner from './components/simulation/SimulationRunner';
 import ResultsDashboard from './components/simulation/ResultsDashboard';
 import SaveStrategyButton from './components/strategy/SaveStrategyButton';
 import StrategyLibrary from './components/strategy/StrategyLibrary';
-import AdvancedOptimizer from './components/strategy/AdvancedOptimizer';
+import OptimizerPage from './components/optimizer/OptimizerPage';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'builder' | 'results' | 'library'>('builder');
+  const [activeTab, setActiveTab] = useState<'builder' | 'optimizer' | 'results' | 'library'>('builder');
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
@@ -34,8 +34,20 @@ function App() {
               <TimelineEditor />
               <StrategyVisualization />
               <SimulationRunner />
-              <AdvancedOptimizer />
             </div>
+          </div>
+        )}
+        {activeTab === 'optimizer' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Optimizer
+              </h2>
+              <p className="text-sm text-gray-600">
+                Two-phase optimization: broad exploration followed by focused refinement
+              </p>
+            </div>
+            <OptimizerPage />
           </div>
         )}
         {activeTab === 'results' && (
