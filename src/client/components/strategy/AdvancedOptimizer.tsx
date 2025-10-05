@@ -573,20 +573,20 @@ export default function AdvancedOptimizer() {
       return;
     }
 
-    const historicalData = historicalDataImport as any;
+    const historicalData = historicalDataImport as Record<string, { headers: string[]; data: Record<string, unknown>[] }>;
 
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
 
     // ==================== SHEET 1: DAILY HISTORY (Days 1-500) ====================
-    const dailyHistoryData: any[] = [];
+    const dailyHistoryData: (string | number)[][] = [];
 
     // Collect all simulation metrics from the candidate
     const simulationHistory = candidate.fullState.state?.history || {};
     const simulationMetrics = Object.keys(simulationHistory).filter(key => Array.isArray(simulationHistory[key]));
 
     // Create header row with all available metrics
-    const headerRow = ['Day', 'Data Source'];
+    const headerRow: string[] = ['Day', 'Data Source'];
 
     // Add simulation metrics (these will be populated for days 51+)
     simulationMetrics.forEach(metric => {
@@ -600,7 +600,7 @@ export default function AdvancedOptimizer() {
 
     // Generate rows for days 1-500
     for (let day = 1; day <= 500; day++) {
-      const row: any[] = [day];
+      const row: (string | number)[] = [day];
 
       // Indicate data source
       if (day <= 50) {
@@ -639,7 +639,7 @@ export default function AdvancedOptimizer() {
     XLSX.utils.book_append_sheet(workbook, dailyHistorySheet, 'Daily History');
 
     // ==================== SHEET 2: SUMMARY & METADATA ====================
-    const summaryData: any[] = [];
+    const summaryData: (string | number)[][] = [];
 
     // Section 1: Simulation Summary
     summaryData.push(['=== SIMULATION SUMMARY ===']);
@@ -738,7 +738,7 @@ export default function AdvancedOptimizer() {
     // ==================== SHEET 3: HISTORICAL DATA REFERENCE ====================
     // Add historical data as a reference sheet
     if (historicalData && historicalData.Standard && historicalData.Standard.data) {
-      const historicalSheetData: any[] = [];
+      const historicalSheetData: (string | number | unknown)[][] = [];
 
       // Add header
       historicalSheetData.push(['Historical Data (Days 0-50)']);
@@ -746,7 +746,7 @@ export default function AdvancedOptimizer() {
       historicalSheetData.push(historicalData.Standard.headers);
 
       // Add data rows
-      historicalData.Standard.data.forEach((row: any) => {
+      historicalData.Standard.data.forEach((row: Record<string, unknown>) => {
         const rowData = historicalData.Standard.headers.map((header: string) => row[header] !== undefined ? row[header] : '');
         historicalSheetData.push(rowData);
       });
