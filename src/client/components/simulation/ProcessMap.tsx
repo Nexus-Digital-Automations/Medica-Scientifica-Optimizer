@@ -333,6 +333,52 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         <div className="text-6xl text-blue-400">↓</div>
       </div>
 
+      {/* Unified MCE Station */}
+      <div className="flex justify-center mb-12">
+        <div className="bg-gradient-to-r from-purple-700 via-gray-700 to-blue-700 border-3 border-gray-500 rounded-3xl p-8 min-w-[600px] shadow-2xl">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white mb-3">⚙️ STATION 3 - MCE (SHARED)</div>
+            <div className="text-lg text-gray-200 mb-4">Material Consumption & Forming</div>
+
+            {/* Allocation Visual */}
+            <div className="bg-gray-800 rounded-xl p-4 mb-4">
+              <div className="text-sm text-gray-300 mb-2">Capacity Allocation</div>
+              <div className="flex h-8 rounded-lg overflow-hidden">
+                <div
+                  className="bg-purple-500 flex items-center justify-center text-white text-xs font-bold"
+                  style={{ width: `${((displayResult?.strategy?.mceAllocationCustom ?? 0.5) * 100)}%` }}
+                >
+                  Custom ({((displayResult?.strategy?.mceAllocationCustom ?? 0.5) * 100).toFixed(0)}%)
+                </div>
+                <div
+                  className="bg-blue-500 flex items-center justify-center text-white text-xs font-bold"
+                  style={{ width: `${((1 - (displayResult?.strategy?.mceAllocationCustom ?? 0.5)) * 100)}%` }}
+                >
+                  Standard ({((1 - (displayResult?.strategy?.mceAllocationCustom ?? 0.5)) * 100).toFixed(0)}%)
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-purple-900/50 rounded-lg p-3">
+                <div className="text-purple-300 font-semibold">Custom Line</div>
+                <div className="text-white">1 part per order</div>
+              </div>
+              <div className="bg-blue-900/50 rounded-lg p-3">
+                <div className="text-blue-300 font-semibold">Standard Line</div>
+                <div className="text-white">2 parts per unit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Arrow Down Split */}
+      <div className="flex justify-center my-8 gap-32">
+        <div className="text-6xl text-purple-400">↓</div>
+        <div className="text-6xl text-blue-400">↓</div>
+      </div>
+
       {/* Two Production Lines */}
       <div className="grid grid-cols-2 gap-12">
         {/* CUSTOM LINE - Left */}
@@ -361,50 +407,37 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               )}
             </div>
 
-            {/* Station 3 - MCE */}
-            <div className="bg-purple-700 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-purple-200 mb-2">Station 3 - MCE (Shared)</div>
-              <div className="text-base text-white font-semibold mb-2">Material Consumption & Forming</div>
-              <div className="text-sm text-purple-300">Material used: 1 part per order</div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-purple-400">↓</div>
-            </div>
-
             {/* Station 2 - WMA Pass 1 */}
-            <div className="bg-purple-700 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-purple-200 mb-2">Station 2 - WMA Pass 1</div>
+            <div className="bg-teal-700 rounded-xl p-5 mb-2 text-center">
+              <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 1</div>
               <div className="text-base text-white font-semibold mb-2">Whittling & Micro Abrasion</div>
-              <div className="text-sm text-purple-300">Processing time: 2 days</div>
-              <div className="text-sm text-purple-300">Max throughput: 6 orders/day</div>
+              <div className="text-sm text-teal-300">Processing time: 2 days</div>
+              <div className="text-sm text-teal-300">Max throughput: 6 orders/day</div>
             </div>
 
             {/* Arrow */}
             <div className="flex justify-center my-3">
-              <div className="text-4xl text-purple-400">↓</div>
+              <div className="text-4xl text-teal-400">↓</div>
             </div>
 
             {/* Station 4 - PUC */}
-            <div className="bg-purple-700 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-purple-200 mb-2">Station 4 - PUC</div>
+            <div className="bg-pink-700 rounded-xl p-5 mb-2 text-center">
+              <div className="text-sm font-bold text-pink-200 mb-2">Station 4 - PUC</div>
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
-              <div className="text-sm text-purple-300">Processing time: 1 day</div>
+              <div className="text-sm text-pink-300">Processing time: 1 day</div>
             </div>
 
             {/* Arrow */}
             <div className="flex justify-center my-3">
-              <div className="text-4xl text-purple-400">↓</div>
+              <div className="text-4xl text-pink-400">↓</div>
             </div>
 
             {/* Station 2 - WMA Pass 2 */}
-            <div className="bg-purple-700 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-purple-200 mb-2">Station 2 - WMA Pass 2</div>
-              <div className="text-base text-white font-semibold mb-2">Final Adjustments (AGAIN!)</div>
-              <div className="text-sm text-purple-300 mb-2">Processing time: 2 days</div>
-              <div className="text-sm text-purple-300 mb-2">Shares capacity with Pass 1</div>
-              <div className="text-sm text-amber-300">⚠️ Goes through WMA TWICE</div>
+            <div className="bg-teal-700 rounded-xl p-5 mb-2 text-center">
+              <div className="text-sm font-bold text-teal-200 mb-2">Station 2 - WMA Pass 2</div>
+              <div className="text-base text-white font-semibold mb-2">Final Adjustments</div>
+              <div className="text-sm text-teal-300 mb-2">Processing time: 2 days</div>
+              <div className="text-sm text-teal-300 mb-2">Shares capacity with Pass 1</div>
             </div>
 
             {/* Arrow */}
@@ -459,18 +492,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               )}
             </div>
 
-            {/* Station 3 - MCE */}
-            <div className="bg-blue-700 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-blue-200 mb-2">Station 3 - MCE (Shared)</div>
-              <div className="text-base text-white font-semibold mb-2">Material Consumption & Forming</div>
-              <div className="text-sm text-blue-300">Material used: 2 parts per unit</div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex justify-center my-3">
-              <div className="text-4xl text-blue-400">↓</div>
-            </div>
-
             {/* Batching Queue */}
             <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
               <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCHING QUEUE</div>
@@ -481,16 +502,16 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
             {/* Arrow */}
             <div className="flex justify-center my-3">
-              <div className="text-4xl text-blue-400">↓</div>
+              <div className="text-4xl text-amber-400">↓</div>
             </div>
 
             {/* Station 6 - ARCP Manual */}
-            <div className={`bg-blue-700 rounded-xl p-5 mb-2 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
-              <div className="text-sm font-bold text-blue-200 mb-2">Station 6 - ARCP (Manual)</div>
+            <div className={`bg-orange-700 rounded-xl p-5 mb-2 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="text-sm font-bold text-orange-200 mb-2">Station 6 - ARCP (Manual)</div>
               <div className="text-base text-white font-semibold mb-3">Assembly & Quality Control</div>
-              <div className="text-sm text-blue-300 mb-1">Current workforce: {finalExperts} experts + {finalRookies} rookies</div>
-              <div className="text-sm text-blue-300 mb-1">Daily capacity: {arcpCapacity.toFixed(1)} units</div>
-              <div className="text-sm text-amber-300">Expert rate: 3 units/day • Rookie: 40% efficiency</div>
+              <div className="text-sm text-orange-300 mb-1">Current workforce: {finalExperts} experts + {finalRookies} rookies</div>
+              <div className="text-sm text-orange-300 mb-1">Daily capacity: {arcpCapacity.toFixed(1)} units</div>
+              <div className="text-sm text-orange-300">Expert rate: 3 units/day • Rookie: 40% efficiency</div>
               {isARCPBottleneck && (
                 <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                   ⚠️ LABOR CAPACITY BOTTLENECK
@@ -500,12 +521,12 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
             {/* Arrow */}
             <div className="flex justify-center my-3">
-              <div className="text-4xl text-blue-400">↓</div>
+              <div className="text-4xl text-orange-400">↓</div>
             </div>
 
             {/* Second Batching */}
             <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-2 text-center">
-              <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCH AGAIN!</div>
+              <div className="text-sm font-bold text-amber-200 mb-2">⏳ SECOND BATCHING</div>
               <div className="text-base text-white font-semibold mb-2">Final Batching</div>
               <div className="text-sm text-amber-300">Wait time: 1 day</div>
               <div className="text-sm text-amber-300">Batch target: 12 units</div>
@@ -513,7 +534,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
             {/* Arrow */}
             <div className="flex justify-center my-3">
-              <div className="text-4xl text-green-400">↓</div>
+              <div className="text-4xl text-amber-400">↓</div>
             </div>
 
             {/* Finished Goods Inventory */}
@@ -549,60 +570,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       </div>
 
-      {/* Key Insights */}
-      <div className="grid grid-cols-3 gap-8 mt-12">
-        <div className="bg-purple-900 border-2 border-purple-500 rounded-2xl p-6 text-center">
-          <div className="text-xl font-bold text-purple-300 mb-4">🎨 Custom Line Flow</div>
-          <ul className="text-sm text-gray-300 space-y-2 text-left">
-            <li>• Fast flow (10-12 days)</li>
-            <li>• Goes through WMA TWICE</li>
-            <li>• Ships immediately (no inventory)</li>
-            <li>• Limited to 360 orders max</li>
-          </ul>
-        </div>
-
-        <div className="bg-blue-900 border-2 border-blue-500 rounded-2xl p-6 text-center">
-          <div className="text-xl font-bold text-blue-300 mb-4">💎 Standard Line Flow</div>
-          <ul className="text-sm text-gray-300 space-y-2 text-left">
-            <li>• Slower (4-6 days + batching)</li>
-            <li>• TWO batching delays (5 days waiting)</li>
-            <li>• Manual ARCP bottleneck (1 worker)</li>
-            <li>• Builds finished goods inventory</li>
-          </ul>
-        </div>
-
-        <div className="bg-red-900 border-2 border-red-500 rounded-2xl p-6 text-center">
-          <div className="text-xl font-bold text-red-300 mb-4">⚠️ Bottleneck Detection</div>
-          <ul className="text-sm text-gray-300 space-y-2 text-left">
-            <li className={isStandardBottleneck ? 'text-red-300 font-semibold' : ''}>
-              • Standard WIP: {isStandardBottleneck ? '🚨 HIGH' : '✓ Normal'}
-            </li>
-            <li className={isCustomBottleneck ? 'text-red-300 font-semibold' : ''}>
-              • Custom WIP: {isCustomBottleneck ? '🚨 HIGH' : '✓ Normal'}
-            </li>
-            <li className={isARCPBottleneck ? 'text-red-300 font-semibold' : ''}>
-              • ARCP Capacity: {isARCPBottleneck ? '🚨 LOW' : '✓ Adequate'}
-            </li>
-            <li className={isRawMaterialBottleneck ? 'text-red-300 font-semibold' : ''}>
-              • Raw Materials: {isRawMaterialBottleneck ? '🚨 LOW' : '✓ Sufficient'}
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Competition for MCE */}
-      <div className="bg-gradient-to-r from-amber-900 to-red-900 border-3 border-amber-600 rounded-2xl p-8 mt-12">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-amber-300 mb-4">⚔️ CRITICAL: Both Lines Compete for MCE Capacity!</div>
-          <p className="text-base text-gray-300 leading-relaxed max-w-4xl mx-auto">
-            The MCE station (Station 3) is SHARED between both production lines. Management must decide daily how to allocate
-            MCE capacity between Custom (1 part/order, first priority) and Standard (2 parts/unit, second priority).
-          </p>
-          <p className="text-sm text-amber-400 mt-4">
-            This is controlled by the "MCE Allocation - % to Custom Line" parameter in strategy settings.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
