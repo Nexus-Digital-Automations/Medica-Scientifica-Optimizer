@@ -2,11 +2,8 @@ import { useMemo, useState, useEffect } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
-import { generateComprehensiveRecommendations } from '../../utils/recommendationEngine';
 import ProcessMapSelector, { type DataSource } from './ProcessMapSelector';
 import InfoPopup from './InfoPopup';
-import RecommendationsPopup from './RecommendationsPopup';
-import RecommendationSelector from './RecommendationSelector';
 import AnimatedFlowArrow from './AnimatedFlowArrow';
 import {
   LineChart,
@@ -72,10 +69,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   // Perform comprehensive bottleneck analysis
   const bottleneckAnalysis = useMemo(() => analyzeBottlenecks(displayResult), [displayResult]);
-  const recommendations = useMemo(
-    () => generateComprehensiveRecommendations(displayResult, bottleneckAnalysis),
-    [displayResult, bottleneckAnalysis]
-  );
   const [showStatistics, setShowStatistics] = useState(true);
   const [showTrends, setShowTrends] = useState(false);
 
@@ -333,19 +326,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Intelligent Recommendations Buttons */}
-      {recommendations.length > 0 && (
-        <div className="flex justify-center gap-4">
-          <RecommendationsPopup
-            recommendations={recommendations}
-            overallHealth={bottleneckAnalysis.overallHealth}
-          />
-          <RecommendationSelector
-            recommendations={recommendations}
-          />
         </div>
       )}
 
