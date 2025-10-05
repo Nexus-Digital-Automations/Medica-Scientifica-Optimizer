@@ -19,6 +19,7 @@ import {
 import ProcessMap from './ProcessMap';
 import SavedResultsManager from './SavedResultsManager';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
+import { loadHistoricalData } from '../../utils/historicalDataLoader';
 
 interface ResultsDashboardProps {
   onEditStrategy?: () => void;
@@ -34,12 +35,13 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   // Get the result being viewed (current or saved)
   const viewingResult = getViewingResult();
 
-  // If no current viewing but have saved results, use most recent
-  const displayResult = viewingResult || getMostRecentSavedResult()?.result;
+  // Fallback chain: current viewing -> most recent saved -> historical data
+  const displayResult = viewingResult || getMostRecentSavedResult()?.result || loadHistoricalData();
 
   // Always show at least the Process Map tab (it handles its own empty state)
   // Only show full dashboard when we have data
   const hasData = displayResult !== null && displayResult !== undefined;
+  const isHistoricalData = !viewingResult && !getMostRecentSavedResult();
 
   const state = displayResult?.state;
   const finalNetWorth = displayResult?.finalNetWorth || 0;
@@ -256,8 +258,23 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
+      {/* Historical Data Indicator */}
+      {isHistoricalData && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-600 text-lg">📊</span>
+            <div>
+              <p className="text-amber-900 text-sm font-semibold">Historical Reference Data</p>
+              <p className="text-amber-700 text-xs">
+                Showing baseline factory performance across all analytics. Run a simulation to see your custom strategy results.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Validation Report */}
-      {hasData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
+      {hasData && !isHistoricalData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <div className="border-b border-gray-200 pb-4 mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
@@ -410,7 +427,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           >
             📁 {showResultsPanel ? 'Hide' : 'Show'} Saved Results ({savedResults.length})
           </button>
-          {hasData && onEditStrategy && (
+          {hasData && !isHistoricalData && onEditStrategy && (
             <button
               onClick={onEditStrategy}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -420,7 +437,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           )}
         </div>
         <div className="flex gap-3">
-          {hasData && simulationResult && isViewingCurrent && (
+          {hasData && simulationResult && isViewingCurrent && !isHistoricalData && (
             <button
               onClick={() => setShowSaveModal(true)}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -428,7 +445,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
               💾 Save Result
             </button>
           )}
-          {hasData && (
+          {hasData && !isHistoricalData && (
           <button
             onClick={handleExportCSV}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
