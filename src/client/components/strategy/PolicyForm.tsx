@@ -35,7 +35,7 @@ export default function PolicyForm() {
             {/* Standard Price */}
             <div>
               <label htmlFor="standard-price" className="block text-sm font-medium text-gray-700 mb-2">
-                💎 Standard Price ($/unit)
+                💎 Standard Line - Price ($/unit)
               </label>
               <input
                 id="standard-price"
@@ -55,7 +55,7 @@ export default function PolicyForm() {
             {/* Custom Base Price */}
             <div>
               <label htmlFor="custom-base-price" className="block text-sm font-medium text-gray-700 mb-2">
-                🎨 Custom Base Price ($)
+                🎨 Custom Line - Base Price ($)
               </label>
               <input
                 id="custom-base-price"
@@ -75,7 +75,7 @@ export default function PolicyForm() {
             {/* Custom Penalty */}
             <div>
               <label htmlFor="custom-penalty-per-day" className="block text-sm font-medium text-gray-700 mb-2">
-                ⚠️ Custom Penalty ($/day late)
+                ⚠️ Custom Line - Penalty ($/day late)
               </label>
               <input
                 id="custom-penalty-per-day"
@@ -95,7 +95,7 @@ export default function PolicyForm() {
             {/* Custom Target Delivery */}
             <div>
               <label htmlFor="custom-target-delivery-days" className="block text-sm font-medium text-gray-700 mb-2">
-                ⏱️ Custom Target Delivery (days)
+                ⏱️ Custom Line - Target Delivery (days)
               </label>
               <input
                 id="custom-target-delivery-days"
@@ -128,7 +128,7 @@ export default function PolicyForm() {
             {/* Daily Overtime */}
             <div>
               <label htmlFor="daily-overtime-hours" className="block text-sm font-medium text-gray-700 mb-2">
-                ⏰ Daily Overtime (hours)
+                ⏰ Daily Overtime - Both Lines (hours)
               </label>
               <input
                 id="daily-overtime-hours"
@@ -148,7 +148,7 @@ export default function PolicyForm() {
             {/* Overtime Trigger */}
             <div>
               <label htmlFor="overtime-trigger-days" className="block text-sm font-medium text-gray-700 mb-2">
-                📅 Overtime Trigger (days)
+                📅 Overtime Trigger - Both Lines (days)
               </label>
               <input
                 id="overtime-trigger-days"
@@ -168,7 +168,7 @@ export default function PolicyForm() {
             {/* Daily Quit Probability */}
             <div>
               <label htmlFor="daily-quit-probability" className="block text-sm font-medium text-gray-700 mb-2">
-                🚨 Daily Quit Probability
+                🚨 Daily Quit Probability - Both Lines
               </label>
               <input
                 id="daily-quit-probability"
@@ -205,7 +205,7 @@ export default function PolicyForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="custom-demand-mean-1" className="block text-base font-semibold text-gray-900 mb-3">
-                  Phase 1 Mean (orders/day)
+                  Custom Line - Phase 1 Mean (orders/day)
                 </label>
                 <input
                   id="custom-demand-mean-1"
@@ -222,7 +222,7 @@ export default function PolicyForm() {
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="custom-demand-std-dev-1" className="block text-base font-semibold text-gray-900 mb-3">
-                  Phase 1 Std Dev
+                  Custom Line - Phase 1 Std Dev
                 </label>
                 <input
                   id="custom-demand-std-dev-1"
@@ -238,7 +238,7 @@ export default function PolicyForm() {
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="custom-demand-mean-2" className="block text-base font-semibold text-gray-900 mb-3">
-                  Phase 2 Mean (orders/day)
+                  Custom Line - Phase 2 Mean (orders/day)
                 </label>
                 <input
                   id="custom-demand-mean-2"
@@ -255,7 +255,7 @@ export default function PolicyForm() {
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="custom-demand-std-dev-2" className="block text-base font-semibold text-gray-900 mb-3">
-                  Phase 2 Std Dev
+                  Custom Line - Phase 2 Std Dev
                 </label>
                 <input
                   id="custom-demand-std-dev-2"
@@ -279,7 +279,7 @@ export default function PolicyForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="standard-demand-intercept" className="block text-base font-semibold text-gray-900 mb-3">
-                  Demand Intercept
+                  Standard Line - Demand Intercept
                 </label>
                 <input
                   id="standard-demand-intercept"
@@ -296,7 +296,7 @@ export default function PolicyForm() {
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <label htmlFor="standard-demand-slope" className="block text-base font-semibold text-gray-900 mb-3">
-                  Demand Slope
+                  Standard Line - Demand Slope
                 </label>
                 <input
                   id="standard-demand-slope"
