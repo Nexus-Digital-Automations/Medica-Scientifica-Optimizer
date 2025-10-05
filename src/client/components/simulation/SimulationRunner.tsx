@@ -3,7 +3,7 @@ import { useStrategyStore } from '../../stores/strategyStore';
 import { useSimulation } from '../../hooks/useSimulation';
 
 export default function SimulationRunner() {
-  const { strategy, isSimulating, simulationError } = useStrategyStore();
+  const { isSimulating, simulationError } = useStrategyStore();
   const { runSimulation } = useSimulation();
   const [lastRun, setLastRun] = useState<Date | null>(null);
 
@@ -11,8 +11,6 @@ export default function SimulationRunner() {
     await runSimulation();
     setLastRun(new Date());
   };
-
-  const hasActions = strategy.timedActions.length > 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -34,41 +32,6 @@ export default function SimulationRunner() {
       </div>
 
       <div className="p-8 space-y-6">
-        {/* Strategy Summary */}
-        <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-300">
-          <p className="text-sm text-emerald-700 font-black mb-5 tracking-widest uppercase">Strategy Summary</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            <div className="bg-white rounded-xl p-5 border-2 border-gray-300 shadow-md">
-              <p className="text-xs text-gray-600 mb-2 font-bold">MCE Allocation</p>
-              <p className="text-gray-900 font-black text-2xl">{(strategy.mceAllocationCustom * 100).toFixed(0)}% Custom</p>
-            </div>
-            <div className="bg-white rounded-xl p-5 border-2 border-gray-300 shadow-md">
-              <p className="text-xs text-gray-600 mb-2 font-bold">Standard Price</p>
-              <p className="text-gray-900 font-black text-2xl">${strategy.standardPrice}</p>
-            </div>
-            <div className="bg-white rounded-xl p-5 border-2 border-gray-300 shadow-md">
-              <p className="text-xs text-gray-600 mb-2 font-bold">Overtime</p>
-              <p className="text-gray-900 font-black text-2xl">{strategy.dailyOvertimeHours}h/day</p>
-            </div>
-            <div className="bg-white rounded-xl p-5 border-2 border-gray-300 shadow-md">
-              <p className="text-xs text-gray-600 mb-2 font-bold">Timed Actions</p>
-              <p className="text-gray-900 font-black text-2xl">{strategy.timedActions.length}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Warning if no actions */}
-        {!hasActions && (
-          <div className="bg-yellow-100 border-4 border-yellow-500 rounded-2xl p-6 shadow-lg">
-            <p className="text-gray-900 text-lg flex items-start gap-3">
-              <span className="text-3xl">⚠️</span>
-              <span>
-                <strong className="font-black">Tip:</strong> Add some timed actions (loans, hiring, material orders) to prevent cash flow issues!
-              </span>
-            </p>
-          </div>
-        )}
-
         {/* Error Display */}
         {simulationError && (
           <div className="bg-red-100 border-4 border-red-500 rounded-2xl p-6 shadow-lg">
