@@ -9,6 +9,8 @@ export interface OptimizationCandidate {
   error?: string; // Error message if simulation failed
   // Daily net worth history for graphing
   history?: Array<{ day: number; value: number }>;
+  // Full simulation state for comprehensive CSV export
+  fullState?: any; // Contains complete simulation results
   // Strategy parameter overrides
   strategyParams?: {
     reorderPoint?: number;

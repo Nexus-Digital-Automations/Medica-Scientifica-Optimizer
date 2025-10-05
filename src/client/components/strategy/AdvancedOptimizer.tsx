@@ -315,6 +315,9 @@ export default function AdvancedOptimizer() {
 
             const result = data.result;
 
+            // Store full simulation state for comprehensive CSV export
+            candidate.fullState = result;
+
             // Find peak net worth after test day
             let peakNetWorth = result.finalNetWorth; // Default to final net worth
 
@@ -560,6 +563,161 @@ export default function AdvancedOptimizer() {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  };
+
+  const downloadComprehensiveCSV = (candidate: OptimizationCandidate, idx: number) => {
+    if (!candidate.fullState) {
+      alert('No simulation data available for this result');
+      return;
+    }
+
+    const csv: string[] = [];
+
+    // Section 1: Summary Information
+    csv.push('=== SIMULATION SUMMARY ===');
+    csv.push('');
+    csv.push('Metric,Value');
+    csv.push(`Strategy ID,${candidate.id}`);
+    csv.push(`Rank,#${idx + 1}`);
+    csv.push(`Peak Net Worth,$${candidate.netWorth.toLocaleString()}`);
+    csv.push(`Final Net Worth,$${candidate.fullState.finalNetWorth?.toLocaleString() || 'N/A'}`);
+    csv.push(`Test Day,${constraints.testDay}`);
+    csv.push(`End Day,${constraints.endDay}`);
+    csv.push('');
+
+    // Section 2: Strategy Parameters
+    csv.push('=== STRATEGY PARAMETERS ===');
+    csv.push('');
+    csv.push('Parameter,Value');
+    if (candidate.strategyParams) {
+      if (candidate.strategyParams.reorderPoint !== undefined) {
+        csv.push(`Reorder Point,${candidate.strategyParams.reorderPoint} units`);
+      }
+      if (candidate.strategyParams.orderQuantity !== undefined) {
+        csv.push(`Order Quantity,${candidate.strategyParams.orderQuantity} units`);
+      }
+      if (candidate.strategyParams.standardPrice !== undefined) {
+        csv.push(`Standard Price,$${candidate.strategyParams.standardPrice}`);
+      }
+      if (candidate.strategyParams.standardBatchSize !== undefined) {
+        csv.push(`Standard Batch Size,${candidate.strategyParams.standardBatchSize} units`);
+      }
+      if (candidate.strategyParams.mceAllocationCustom !== undefined) {
+        csv.push(`MCE Custom Allocation,${(candidate.strategyParams.mceAllocationCustom * 100).toFixed(1)}%`);
+      }
+      if (candidate.strategyParams.dailyOvertimeHours !== undefined) {
+        csv.push(`Daily Overtime Hours,${candidate.strategyParams.dailyOvertimeHours}h`);
+      }
+    }
+    csv.push('');
+
+    // Section 3: Timed Actions
+    csv.push('=== TIMED ACTIONS ===');
+    csv.push('');
+    csv.push('Day,Action Type,Details');
+    candidate.actions.forEach(action => {
+      let details = '';
+      if ('newReorderPoint' in action) details = `New Reorder Point: ${action.newReorderPoint} units`;
+      else if ('newOrderQuantity' in action) details = `New Order Quantity: ${action.newOrderQuantity} units`;
+      else if ('newPrice' in action) details = `New Price: $${action.newPrice}`;
+      else if ('newSize' in action) details = `New Batch Size: ${action.newSize} units`;
+      else if ('newAllocation' in action) details = `New MCE Allocation: ${(action.newAllocation * 100).toFixed(1)}%`;
+      else if ('count' in action) details = `Count: ${action.count}`;
+      else if ('amount' in action) details = `Amount: $${action.amount}`;
+      else if ('machineType' in action) details = `Machine Type: ${action.machineType}`;
+      else if ('productType' in action) details = `Product Type: ${action.productType}`;
+
+      csv.push(`${action.day},${action.type},"${details}"`);
+    });
+    csv.push('');
+
+    // Section 4: Daily History
+    if (candidate.fullState.state?.history) {
+      const history = candidate.fullState.state.history;
+
+      // Get all available metrics
+      const metrics = Object.keys(history).filter(key => Array.isArray(history[key]));
+
+      if (metrics.length > 0) {
+        csv.push('=== DAILY HISTORY ===');
+        csv.push('');
+
+        // Create header row with all metrics
+        const headerRow = ['Day'];
+        metrics.forEach(metric => {
+          // Convert camelCase to Title Case with spaces
+          const formatted = metric.replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .replace(/daily /i, '');
+          headerRow.push(formatted);
+        });
+        csv.push(headerRow.join(','));
+
+        // Find the length of the longest array (should all be same length)
+        const maxLength = Math.max(...metrics.map(m => history[m]?.length || 0));
+
+        // Create data rows
+        for (let i = 0; i < maxLength; i++) {
+          const row = [String(i + 1)]; // Day number
+
+          metrics.forEach(metric => {
+            const dataPoint = history[metric][i];
+            if (dataPoint && typeof dataPoint === 'object' && 'value' in dataPoint) {
+              row.push(String(dataPoint.value));
+            } else if (typeof dataPoint === 'number') {
+              row.push(String(dataPoint));
+            } else {
+              row.push('');
+            }
+          });
+
+          csv.push(row.join(','));
+        }
+        csv.push('');
+      }
+    }
+
+    // Section 5: Final State
+    if (candidate.fullState.state) {
+      csv.push('=== FINAL STATE ===');
+      csv.push('');
+      csv.push('Metric,Value');
+
+      const state = candidate.fullState.state;
+      if (state.cash !== undefined) csv.push(`Cash,$${state.cash.toLocaleString()}`);
+      if (state.debt !== undefined) csv.push(`Debt,$${state.debt.toLocaleString()}`);
+      if (state.inventory !== undefined) csv.push(`Inventory,${state.inventory} units`);
+      if (state.backlog !== undefined) csv.push(`Backlog,${state.backlog} orders`);
+      if (state.totalRevenue !== undefined) csv.push(`Total Revenue,$${state.totalRevenue.toLocaleString()}`);
+      if (state.totalCosts !== undefined) csv.push(`Total Costs,$${state.totalCosts.toLocaleString()}`);
+      if (state.profit !== undefined) csv.push(`Profit,$${state.profit.toLocaleString()}`);
+
+      // Machines
+      if (state.machines) {
+        csv.push(`MCE Machines,${state.machines.MCE || 0}`);
+        csv.push(`WMA Machines,${state.machines.WMA || 0}`);
+        csv.push(`PUC Machines,${state.machines.PUC || 0}`);
+      }
+
+      // Employees
+      if (state.employees) {
+        csv.push(`Expert Employees,${state.employees.experts || 0}`);
+        csv.push(`Rookie Employees,${state.employees.rookies || 0}`);
+        csv.push(`Rookies in Training,${state.employees.rookiesInTraining || 0}`);
+      }
+
+      csv.push('');
+    }
+
+    // Create CSV file and download
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `simulation-strategy-${idx + 1}-${candidate.id}-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -926,6 +1084,12 @@ export default function AdvancedOptimizer() {
                     >
                       Export
                     </button>
+                    <button
+                      onClick={() => downloadComprehensiveCSV(result, idx)}
+                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded"
+                    >
+                      📊 CSV
+                    </button>
                   </div>
                 </div>
 
@@ -947,6 +1111,16 @@ export default function AdvancedOptimizer() {
                           actionText = `Adjust Standard Price → $${action.newPrice}`;
                         } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
                           actionText = `Adjust MCE Custom Allocation → ${(action.newAllocation * 100).toFixed(0)}%`;
+                        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+                          actionText = `Hire Rookie Workers → ${action.count} workers`;
+                        } else if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
+                          actionText = `Buy Machine → ${action.count}x ${action.machineType}`;
+                        } else if (action.type === 'FIRE_EMPLOYEE' && 'employeeType' in action && 'count' in action) {
+                          actionText = `Fire Employee → ${action.count}x ${action.employeeType}`;
+                        } else if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
+                          actionText = `Sell Machine → ${action.count}x ${action.machineType}`;
+                        } else if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+                          actionText = `Take Loan → $${action.amount.toLocaleString()}`;
                         } else {
                           actionText = action.type;
                         }
