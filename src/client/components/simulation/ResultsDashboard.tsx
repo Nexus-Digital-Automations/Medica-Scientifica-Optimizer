@@ -90,8 +90,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     if (!hasData || !state) return [];
     return state.history.dailyCash
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyCash.length - 1)
-      .map((cashData, idx) => {
-        const actualIdx = idx * 10;
+      .map((cashData) => {
+        const actualIdx = cashData.day - 1; // Convert day number to array index
         return {
           day: cashData.day,
           cash: Math.round(cashData.value),
@@ -107,8 +107,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     if (!hasData || !state) return [];
     return state.history.dailyStandardProduction
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardProduction.length - 1)
-      .map((prodData, idx) => {
-        const actualIdx = idx * 10;
+      .map((prodData) => {
+        const actualIdx = prodData.day - 1; // Convert day number to array index
         return {
           day: prodData.day,
           standardProduced: Math.round(prodData.value),
@@ -125,8 +125,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     if (!hasData || !state) return [];
     return state.history.dailyExperts
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyExperts.length - 1)
-      .map((expertData, idx) => {
-        const actualIdx = idx * 10;
+      .map((expertData) => {
+        const actualIdx = expertData.day - 1; // Convert day number to array index
         return {
           day: expertData.day,
           experts: Math.round(expertData.value),
@@ -141,8 +141,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     if (!hasData || !state) return [];
     return state.history.dailyRawMaterial
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyRawMaterial.length - 1)
-      .map((inventoryData, idx) => {
-        const actualIdx = idx * 10;
+      .map((inventoryData) => {
+        const actualIdx = inventoryData.day - 1; // Convert day number to array index
         return {
           day: inventoryData.day,
           rawMaterial: Math.round(inventoryData.value),
@@ -156,8 +156,8 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     if (!hasData || !state) return [];
     return state.history.dailyStandardPrice
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardPrice.length - 1)
-      .map((priceData, idx) => {
-        const actualIdx = idx * 10;
+      .map((priceData) => {
+        const actualIdx = priceData.day - 1; // Convert day number to array index
         return {
           day: priceData.day,
           standardPrice: Math.round(priceData.value),
