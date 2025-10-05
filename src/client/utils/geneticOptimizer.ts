@@ -1,6 +1,30 @@
 import type { Strategy, StrategyAction } from '../types/ui.types';
 import { calculateEOQ, calculateROP, calculateEPQ, calculateNPV, calculateQueueMetrics, calculateOptimalPrice } from './formulaCalculations';
 
+export interface SimulationState {
+  finalNetWorth?: number;
+  state?: {
+    cash?: number;
+    debt?: number;
+    inventory?: number;
+    backlog?: number;
+    totalRevenue?: number;
+    totalCosts?: number;
+    profit?: number;
+    machines?: {
+      MCE?: number;
+      WMA?: number;
+      PUC?: number;
+    };
+    employees?: {
+      experts?: number;
+      rookies?: number;
+      rookiesInTraining?: number;
+    };
+    history?: Record<string, Array<{ day: number; value: number } | number>>;
+  };
+}
+
 export interface OptimizationCandidate {
   id: string;
   actions: StrategyAction[];
@@ -10,7 +34,7 @@ export interface OptimizationCandidate {
   // Daily net worth history for graphing
   history?: Array<{ day: number; value: number }>;
   // Full simulation state for comprehensive CSV export
-  fullState?: any; // Contains complete simulation results
+  fullState?: SimulationState; // Contains complete simulation results
   // Strategy parameter overrides
   strategyParams?: {
     reorderPoint?: number;
