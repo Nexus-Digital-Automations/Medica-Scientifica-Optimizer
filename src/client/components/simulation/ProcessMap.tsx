@@ -542,7 +542,114 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
           <div className="bg-purple-900 border-3 border-purple-500 rounded-2xl p-8">
-            <div className="text-center mb-8">
+            <div className="relative text-center mb-8">
+              <div className="absolute top-0 right-0">
+                <InfoPopup
+                  title="🎨 Custom Line - Complete Overview"
+                  buttonClassName="bg-purple-600 hover:bg-purple-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Production Model</h4>
+                        <p className="text-gray-300 text-sm">
+                          Make-to-Order (MTO): Each customer order is manufactured individually and shipped directly upon completion. No finished goods inventory is maintained.
+                        </p>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-600 rounded-xl p-4">
+                        <h4 className="text-xl font-bold text-white text-center mb-3">Total Processing Time</h4>
+                        <div className="text-4xl font-bold text-white text-center mb-3">~10-12 days</div>
+                        <div className="text-sm text-purple-200 text-center">
+                          MCE → WMA(2d) → PUC(1d) → WMA(2d) → Ship
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Pipeline Stages</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">1. MCE (Material Consumption):</span>
+                            <span className="text-white font-bold">Day 0</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">2. WMA Pass 1:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">3. PUC (Precision Cutting):</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">4. WMA Pass 2:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">5. ARCP (Assembly):</span>
+                            <span className="text-white font-bold">Variable</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">6. Direct Ship:</span>
+                            <span className="text-white font-bold">Immediate</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Material Consumption</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Raw Material per Order:</span>
+                            <span className="text-white font-bold">1 part</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">MCE Priority:</span>
+                            <span className="text-white font-bold">FIRST (before Standard)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">Current Performance</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Current WIP:</span>
+                            <span className="text-white font-bold">{Math.round(finalCustomWIP)} orders</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Maximum Capacity:</span>
+                            <span className="text-white font-bold">360 orders</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Capacity Utilization:</span>
+                            <span className="text-white font-bold">{((finalCustomWIP / 360) * 100).toFixed(1)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Daily Output:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Critical Constraints</h4>
+                        <ul className="text-sm text-gray-300 space-y-1 list-disc list-inside">
+                          <li>WMA Pass 1 & 2 share same 6 units/day machine capacity</li>
+                          <li>ARCP workforce bottleneck affects completion rate</li>
+                          <li>High WIP (&gt;50 orders) indicates processing bottleneck</li>
+                          <li>Delivery time increases with WIP backlog</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">💡 Strategic Insights</h4>
+                        <p className="text-gray-300 text-sm">
+                          Custom line pricing is based on delivery time - faster delivery commands premium pricing. Managing WIP and workforce capacity directly impacts profitability through delivery time reduction.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-3xl font-bold text-purple-300 mb-2">🎨 CUSTOM LINE</div>
               <div className="text-lg text-purple-200 mb-2">(Make-to-Order)</div>
               <div className="text-sm text-gray-300 mt-2">1 part/unit • FIRST priority on MCE</div>
@@ -848,7 +955,144 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         {/* STANDARD LINE - Right */}
         <div className="space-y-6">
           <div className="bg-blue-900 border-3 border-blue-500 rounded-2xl p-8">
-            <div className="text-center mb-8">
+            <div className="relative text-center mb-8">
+              <div className="absolute top-0 right-0">
+                <InfoPopup
+                  title="💎 Standard Line - Complete Overview"
+                  buttonClassName="bg-blue-600 hover:bg-blue-700"
+                  content={
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Production Model</h4>
+                        <p className="text-gray-300 text-sm">
+                          Make-to-Stock (MTS): Units are manufactured in batches and added to finished goods inventory. Customer orders are fulfilled from inventory stock, not directly from production.
+                        </p>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-blue-900 to-blue-800 border-2 border-blue-600 rounded-xl p-4">
+                        <h4 className="text-xl font-bold text-white text-center mb-3">Total Processing Time</h4>
+                        <div className="text-4xl font-bold text-white text-center mb-3">~9-11 days</div>
+                        <div className="text-sm text-blue-200 text-center">
+                          MCE → Batch(4d) → ARCP → Batch(1d) → Inventory
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Pipeline Stages</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">1. MCE (Material Consumption):</span>
+                            <span className="text-white font-bold">Day 0</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">2. First Batching Queue:</span>
+                            <span className="text-white font-bold">4 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">3. ARCP (Assembly):</span>
+                            <span className="text-white font-bold">Variable</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">4. Second Batching Queue:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">5. Finished Goods Inventory:</span>
+                            <span className="text-white font-bold">Ready to Ship</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">6. Ship to Customer:</span>
+                            <span className="text-white font-bold">From Inventory</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Material Consumption</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Raw Material per Unit:</span>
+                            <span className="text-white font-bold">2 parts</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">MCE Priority:</span>
+                            <span className="text-white font-bold">SECOND (after Custom)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Production Order Fee:</span>
+                            <span className="text-white font-bold">$100</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Batching Parameters</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">First Batch Wait:</span>
+                            <span className="text-white font-bold">4 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">First Batch Target:</span>
+                            <span className="text-white font-bold">60 units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Second Batch Wait:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Second Batch Target:</span>
+                            <span className="text-white font-bold">12 units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Total Batching Delay:</span>
+                            <span className="text-white font-bold">5 days baseline</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Current Performance</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Current WIP:</span>
+                            <span className="text-white font-bold">{Math.round(finalStandardWIP)} units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Finished Goods:</span>
+                            <span className="text-white font-bold">{Math.round(finalFinishedStandard)} units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Daily Output:</span>
+                            <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Daily Demand:</span>
+                            <span className="text-white font-bold">21 units/day max</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-yellow-300 mb-2">⚠️ Critical Constraints</h4>
+                        <ul className="text-sm text-gray-300 space-y-1 list-disc list-inside">
+                          <li>5-day batching delay adds significant lead time</li>
+                          <li>ARCP workforce bottleneck limits completion rate</li>
+                          <li>High WIP (&gt;100 units) indicates capacity constraint</li>
+                          <li>MCE allocation determines production volume</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">💡 Strategic Insights</h4>
+                        <p className="text-gray-300 text-sm">
+                          Standard line profitability depends on maintaining inventory levels to meet demand while minimizing WIP and batching delays. Balance MCE allocation with ARCP capacity to optimize throughput without excessive inventory buildup.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
               <div className="text-3xl font-bold text-blue-300 mb-2">💎 STANDARD LINE</div>
               <div className="text-lg text-blue-200 mb-2">(Make-to-Stock)</div>
               <div className="text-sm text-gray-300 mt-2">2 parts/unit • Second priority on MCE</div>
