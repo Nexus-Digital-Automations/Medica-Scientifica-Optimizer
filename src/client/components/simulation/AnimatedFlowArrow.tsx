@@ -49,70 +49,105 @@ export default function AnimatedFlowArrow({
   // Animation speed based on flow rate (higher flow = faster animation)
   const animationDuration = Math.max(1, 5 - (flowRate / 10)); // 1-5 seconds
 
-  // Determine if shortage or surplus
+  // Determine flow characteristics
   const gap = flowRate - demandRate;
-  const isShortage = gap < 0;
-  const isSurplus = gap > 0;
+  const isShortage = gap < 0; // Not enough supply to meet demand
+
+  // Calculate tapering for visual metaphor
+  // Shortage: thin top (little supply) → thick bottom (lots of demand)
+  // Bottleneck: thick top (lots of supply) → thin bottom (little demand/processing)
+  const topWidth = isShortage ? 8 : isBottleneck ? 20 : 12;
+  const bottomWidth = isShortage ? 20 : isBottleneck ? 8 : 12;
 
   return (
-    <div className="flex flex-col items-center my-3 relative">
-      {/* Arrow with animation */}
+    <div className="flex flex-col items-center my-4 relative">
+      {/* Arrow with tapering effect */}
       <div
-        className={`relative ${vertical ? 'h-20 w-8' : 'w-20 h-8'} flex ${vertical ? 'flex-col' : 'flex-row'} items-center justify-center cursor-pointer group`}
+        className="relative cursor-pointer group"
+        style={{
+          width: vertical ? `${Math.max(topWidth, bottomWidth) + 8}px` : '80px',
+          height: vertical ? '80px' : `${Math.max(topWidth, bottomWidth) + 8}px`
+        }}
         onClick={() => setShowPopup(!showPopup)}
       >
-        {/* Background arrow line - thick and very visible */}
-        <div
-          className={`absolute ${vertical ? 'w-3 h-full' : 'h-3 w-full'} rounded-sm transition-all group-hover:scale-110`}
-          style={{ backgroundColor: arrowColorHex, opacity: 0.95 }}
-        />
+        {/* SVG Arrow with Tapering */}
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={vertical ? "0 0 32 80" : "0 0 80 32"}
+          className="overflow-visible"
+        >
+          {vertical ? (
+            <>
+              {/* Tapered arrow body */}
+              <polygon
+                points={`${16 - topWidth/2},0 ${16 + topWidth/2},0 ${16 + bottomWidth/2},60 ${16 - bottomWidth/2},60`}
+                fill={arrowColorHex}
+                opacity="0.95"
+                className="transition-all group-hover:opacity-100"
+              />
+              {/* Arrow head (triangle) */}
+              <polygon
+                points="16,80 4,60 28,60"
+                fill={arrowColorHex}
+                opacity="0.95"
+                className="transition-all group-hover:opacity-100"
+              />
+            </>
+          ) : (
+            <>
+              {/* Tapered arrow body (horizontal) */}
+              <polygon
+                points={`0,${16 - topWidth/2} 60,${16 - bottomWidth/2} 60,${16 + bottomWidth/2} 0,${16 + topWidth/2}`}
+                fill={arrowColorHex}
+                opacity="0.95"
+                className="transition-all group-hover:opacity-100"
+              />
+              {/* Arrow head (triangle) */}
+              <polygon
+                points="80,16 60,4 60,28"
+                fill={arrowColorHex}
+                opacity="0.95"
+                className="transition-all group-hover:opacity-100"
+              />
+            </>
+          )}
+        </svg>
 
         {/* Animated flow particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className={`absolute ${vertical ? 'w-4 h-4 left-1/2 -translate-x-1/2' : 'h-4 w-4 top-1/2 -translate-y-1/2'} rounded-full`}
+              className={`absolute ${vertical ? 'w-3 h-3 left-1/2 -translate-x-1/2' : 'h-3 w-3 top-1/2 -translate-y-1/2'} rounded-full`}
               style={{
                 backgroundColor: '#ffffff',
                 animation: vertical
                   ? `flowDown ${animationDuration}s linear infinite`
                   : `flowRight ${animationDuration}s linear infinite`,
                 animationDelay: `${i * (animationDuration / 3)}s`,
-                opacity: flowRate > 0 ? 0.9 : 0,
+                opacity: flowRate > 0 ? 0.85 : 0,
               }}
             />
           ))}
         </div>
 
-        {/* Arrow head - large triangle */}
-        <div
-          className={`absolute ${vertical ? 'bottom-0 left-1/2 -translate-x-1/2' : 'right-0 top-1/2 -translate-y-1/2'} w-0 h-0`}
-          style={{
-            borderLeft: vertical ? '12px solid transparent' : '20px solid',
-            borderRight: vertical ? '12px solid transparent' : 'none',
-            borderTop: vertical ? '20px solid' : '12px solid transparent',
-            borderBottom: vertical ? 'none' : '12px solid transparent',
-            borderColor: arrowColorHex,
-          }}
-        />
-
-        {/* Shortage/Surplus indicator icon */}
-        <div className={`absolute ${vertical ? 'left-full ml-2' : 'top-full mt-2'} flex items-center justify-center`}>
+        {/* Shortage/Bottleneck label */}
+        <div className={`absolute ${vertical ? 'left-full ml-3' : 'top-full mt-3'} flex items-center justify-center`}>
           {isShortage && (
-            <div className="w-7 h-7 rounded-full bg-red-600 border-2 border-red-400 flex items-center justify-center shadow-lg">
-              <span className="text-white text-sm font-bold">▼</span>
+            <div className="px-2 py-1 rounded bg-red-600 border border-red-400 shadow-md">
+              <span className="text-white text-xs font-bold">SHORTAGE</span>
             </div>
           )}
-          {isSurplus && !isBottleneck && (
-            <div className="w-7 h-7 rounded-full bg-green-600 border-2 border-green-400 flex items-center justify-center shadow-lg">
-              <span className="text-white text-sm font-bold">▲</span>
+          {isBottleneck && (
+            <div className="px-2 py-1 rounded bg-orange-600 border border-orange-400 shadow-md">
+              <span className="text-white text-xs font-bold">BOTTLENECK</span>
             </div>
           )}
         </div>
 
         {/* Info icon on hover */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
           ℹ️
         </div>
       </div>
