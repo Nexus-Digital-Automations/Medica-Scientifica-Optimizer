@@ -5,7 +5,6 @@ interface AnimatedFlowArrowProps {
   toStation: string;
   flowRate: number; // Actual flow rate (units/day)
   demandRate: number; // What the next station needs (units/day)
-  color?: string;
   vertical?: boolean;
 }
 
@@ -14,22 +13,26 @@ export default function AnimatedFlowArrow({
   toStation,
   flowRate,
   demandRate,
-  color = 'blue',
   vertical = true,
 }: AnimatedFlowArrowProps) {
   const [showPopup, setShowPopup] = useState(false);
 
-  // Calculate bottleneck severity
+  // Calculate bottleneck severity for popup display
   const bottleneckRatio = demandRate > 0 ? flowRate / demandRate : 1;
   const isBottleneck = bottleneckRatio < 0.8; // Flow is less than 80% of demand
   const isCriticalBottleneck = bottleneckRatio < 0.5; // Flow is less than 50% of demand
 
-  // Determine arrow color based on bottleneck status
+  // Determine flow characteristics
+  const gap = flowRate - demandRate;
+  const isShortage = gap < 0; // Not enough supply to meet demand
+  const hasExcess = gap > 0; // Supply exceeds demand
+
+  // Determine arrow color to match legend: red (shortage), blue (balanced), green (excess)
   const arrowColor = useMemo(() => {
-    if (isCriticalBottleneck) return 'red';
-    if (isBottleneck) return 'orange';
-    return color;
-  }, [isCriticalBottleneck, isBottleneck, color]);
+    if (isShortage) return 'red';
+    if (hasExcess) return 'green';
+    return 'blue';
+  }, [isShortage, hasExcess]);
 
   const colorMap = {
     red: '#ef4444',
@@ -48,11 +51,6 @@ export default function AnimatedFlowArrow({
 
   // Animation speed based on flow rate (higher flow = faster animation)
   const animationDuration = Math.max(1, 5 - (flowRate / 10)); // 1-5 seconds
-
-  // Determine flow characteristics
-  const gap = flowRate - demandRate;
-  const isShortage = gap < 0; // Not enough supply to meet demand
-  const hasExcess = gap > 0; // Supply exceeds demand
 
   // Calculate tapering for visual metaphor with exaggerated widths
   // Shortage: very thin top (little supply) → very thick bottom (lots of demand)

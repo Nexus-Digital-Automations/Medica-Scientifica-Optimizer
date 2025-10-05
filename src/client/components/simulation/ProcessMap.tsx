@@ -454,7 +454,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         toStation="MCE Station"
         flowRate={rawMaterialFlowRate}
         demandRate={rawMaterialDemandRate}
-        color="amber"
         vertical={true}
       />
 
@@ -593,7 +592,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           toStation="Custom Line"
           flowRate={mceToCustomFlowRate}
           demandRate={mceToCustomDemandRate}
-          color="purple"
           vertical={true}
         />
         <AnimatedFlowArrow
@@ -601,7 +599,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           toStation="Standard Line"
           flowRate={mceToStandardFlowRate}
           demandRate={mceToStandardDemandRate}
-          color="blue"
           vertical={true}
         />
       </div>
@@ -856,7 +853,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="PUC"
               flowRate={wmapass1ToPUCFlowRate}
               demandRate={wmapass1ToPUCDemandRate}
-              color="teal"
               vertical={true}
             />
 
@@ -923,7 +919,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="WMA Pass 2"
               flowRate={pucToWMApass2FlowRate}
               demandRate={pucToWMApass2DemandRate}
-              color="pink"
               vertical={true}
             />
 
@@ -989,7 +984,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP → Ship"
               flowRate={customToARCPFlowRate}
               demandRate={customToARCPDemandRate}
-              color="green"
               vertical={true}
             />
 
@@ -1281,7 +1275,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP"
               flowRate={standardToARCPFlowRate}
               demandRate={standardToARCPDemandRate}
-              color="amber"
               vertical={true}
             />
 
@@ -1397,7 +1390,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Second Batching"
               flowRate={arcpToStandardBatch2FlowRate}
               demandRate={arcpToStandardBatch2DemandRate}
-              color="orange"
               vertical={true}
             />
 
@@ -1457,7 +1449,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Finished Goods"
               flowRate={batch2ToFinishedFlowRate}
               demandRate={batch2ToFinishedDemandRate}
-              color="amber"
               vertical={true}
             />
 
@@ -1519,7 +1510,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Ship to Customer"
               flowRate={finishedToCustomerFlowRate}
               demandRate={finishedToCustomerDemandRate}
-              color="green"
               vertical={true}
             />
 
