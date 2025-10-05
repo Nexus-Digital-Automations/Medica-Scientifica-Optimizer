@@ -1,7 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { exportSimulationToCSV } from '../../../utils/csvExporter';
 import { validateSimulationResults, type ValidationIssue } from '../../../utils/simulationValidator';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface ResultsDashboardProps {
   onEditStrategy?: () => void;
@@ -9,6 +23,7 @@ interface ResultsDashboardProps {
 
 export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardProps) {
   const { simulationResult } = useStrategyStore();
+  const [selectedTab, setSelectedTab] = useState<'financial' | 'production' | 'workforce' | 'inventory' | 'market'>('financial');
 
   if (!simulationResult) {
     return (
@@ -51,6 +66,83 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   const finalDay = state.history.dailyCash[state.history.dailyCash.length - 1];
   const finalCash = finalDay?.value || 0;
   const finalDebt = state.history.dailyDebt[state.history.dailyDebt.length - 1]?.value || 0;
+
+  // Prepare chart data - sample every 10 days to keep charts readable
+  const financialChartData = useMemo(() => {
+    return state.history.dailyCash
+      .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyCash.length - 1)
+      .map((cashData, idx) => {
+        const actualIdx = idx * 10;
+        return {
+          day: cashData.day,
+          cash: Math.round(cashData.value),
+          debt: Math.round(state.history.dailyDebt[actualIdx]?.value || 0),
+          netWorth: Math.round(state.history.dailyNetWorth[actualIdx]?.value || 0),
+          revenue: Math.round(state.history.dailyRevenue[actualIdx]?.value || 0),
+          expenses: Math.round(state.history.dailyExpenses[actualIdx]?.value || 0),
+        };
+      });
+  }, [state.history]);
+
+  const productionChartData = useMemo(() => {
+    return state.history.dailyStandardProduction
+      .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardProduction.length - 1)
+      .map((prodData, idx) => {
+        const actualIdx = idx * 10;
+        return {
+          day: prodData.day,
+          standardProduced: Math.round(prodData.value),
+          customProduced: Math.round(state.history.dailyCustomProduction[actualIdx]?.value || 0),
+          standardWIP: Math.round(state.history.dailyStandardWIP[actualIdx]?.value || 0),
+          customWIP: Math.round(state.history.dailyCustomWIP[actualIdx]?.value || 0),
+          finishedStandard: Math.round(state.history.dailyFinishedStandard[actualIdx]?.value || 0),
+          finishedCustom: Math.round(state.history.dailyFinishedCustom[actualIdx]?.value || 0),
+        };
+      });
+  }, [state.history]);
+
+  const workforceChartData = useMemo(() => {
+    return state.history.dailyExperts
+      .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyExperts.length - 1)
+      .map((expertData, idx) => {
+        const actualIdx = idx * 10;
+        return {
+          day: expertData.day,
+          experts: Math.round(expertData.value),
+          rookies: Math.round(state.history.dailyRookies[actualIdx]?.value || 0),
+          inTraining: Math.round(state.history.dailyRookiesInTraining[actualIdx]?.value || 0),
+          salaryCost: Math.round(state.history.dailySalaryCost[actualIdx]?.value || 0),
+        };
+      });
+  }, [state.history]);
+
+  const inventoryChartData = useMemo(() => {
+    return state.history.dailyRawMaterial
+      .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyRawMaterial.length - 1)
+      .map((inventoryData, idx) => {
+        const actualIdx = idx * 10;
+        return {
+          day: inventoryData.day,
+          rawMaterial: Math.round(inventoryData.value),
+          ordersArrived: Math.round(state.history.dailyRawMaterialOrders[actualIdx]?.value || 0),
+          ordersPlaced: Math.round(state.history.dailyRawMaterialOrdersPlaced[actualIdx]?.value || 0),
+        };
+      });
+  }, [state.history]);
+
+  const marketChartData = useMemo(() => {
+    return state.history.dailyStandardPrice
+      .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardPrice.length - 1)
+      .map((priceData, idx) => {
+        const actualIdx = idx * 10;
+        return {
+          day: priceData.day,
+          standardPrice: Math.round(priceData.value),
+          customPrice: Math.round(state.history.dailyCustomPrice[actualIdx]?.value || 0),
+          deliveryTime: Math.round(state.history.dailyCustomDeliveryTime[actualIdx]?.value || 0),
+        };
+      });
+  }, [state.history]);
 
   const renderValidationIssue = (issue: ValidationIssue, index: number) => {
     const severityConfig = {
@@ -269,12 +361,267 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         </button>
       </div>
 
-      {/* Placeholder for Charts */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">📈 Performance Charts</h4>
-        <p className="text-gray-400 text-center py-8">
-          Interactive charts coming in Phase 6...
-        </p>
+      {/* Comprehensive Dashboard Tabs */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 bg-gray-50">
+          <div className="flex overflow-x-auto">
+            <button
+              onClick={() => setSelectedTab('financial')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'financial'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              💰 Financial Performance
+            </button>
+            <button
+              onClick={() => setSelectedTab('production')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'production'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              🏭 Production Metrics
+            </button>
+            <button
+              onClick={() => setSelectedTab('workforce')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'workforce'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              👥 Workforce Analytics
+            </button>
+            <button
+              onClick={() => setSelectedTab('inventory')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'inventory'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              📦 Inventory Management
+            </button>
+            <button
+              onClick={() => setSelectedTab('market')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                selectedTab === 'market'
+                  ? 'border-blue-600 text-blue-600 bg-white'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              📊 Market Performance
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-8">
+          {/* Financial Performance Tab */}
+          {selectedTab === 'financial' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Cash Flow Analysis</h3>
+                <p className="text-sm text-gray-600 mb-4">Track cash, debt, and net worth over time</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={financialChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`} />
+                    <Tooltip
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="cash" stroke="#10b981" strokeWidth={2} name="Cash" dot={false} />
+                    <Line type="monotone" dataKey="debt" stroke="#ef4444" strokeWidth={2} name="Debt" dot={false} />
+                    <Line type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} name="Net Worth" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Revenue vs Expenses</h3>
+                <p className="text-sm text-gray-600 mb-4">Daily revenue and expenses comparison</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={financialChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`} />
+                    <Tooltip
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Area type="monotone" dataKey="revenue" stackId="1" stroke="#10b981" fill="#10b98150" name="Revenue" />
+                    <Area type="monotone" dataKey="expenses" stackId="2" stroke="#ef4444" fill="#ef444450" name="Expenses" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Production Metrics Tab */}
+          {selectedTab === 'production' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Daily Production Output</h3>
+                <p className="text-sm text-gray-600 mb-4">Standard and custom units produced per day</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={productionChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                    <Legend />
+                    <Bar dataKey="standardProduced" fill="#3b82f6" name="Standard Units" />
+                    <Bar dataKey="customProduced" fill="#8b5cf6" name="Custom Orders" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Work-in-Progress (WIP) Levels</h3>
+                <p className="text-sm text-gray-600 mb-4">Units in production and finished goods inventory</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={productionChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                    <Legend />
+                    <Line type="monotone" dataKey="standardWIP" stroke="#3b82f6" strokeWidth={2} name="Standard WIP" dot={false} />
+                    <Line type="monotone" dataKey="customWIP" stroke="#8b5cf6" strokeWidth={2} name="Custom WIP" dot={false} />
+                    <Line type="monotone" dataKey="finishedStandard" stroke="#10b981" strokeWidth={2} name="Finished Standard" dot={false} />
+                    <Line type="monotone" dataKey="finishedCustom" stroke="#f59e0b" strokeWidth={2} name="Finished Custom" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Workforce Analytics Tab */}
+          {selectedTab === 'workforce' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Workforce Composition</h3>
+                <p className="text-sm text-gray-600 mb-4">Experts, rookies, and employees in training</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={workforceChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                    <Legend />
+                    <Area type="monotone" dataKey="experts" stackId="1" stroke="#10b981" fill="#10b98180" name="Experts" />
+                    <Area type="monotone" dataKey="rookies" stackId="1" stroke="#3b82f6" fill="#3b82f680" name="Rookies" />
+                    <Area type="monotone" dataKey="inTraining" stackId="1" stroke="#f59e0b" fill="#f59e0b80" name="In Training" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Daily Salary Costs</h3>
+                <p className="text-sm text-gray-600 mb-4">Total workforce compensation over time</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={workforceChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`} />
+                    <Tooltip
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="salaryCost" stroke="#ef4444" strokeWidth={2} name="Daily Salary Cost" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Inventory Management Tab */}
+          {selectedTab === 'inventory' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Raw Material Inventory</h3>
+                <p className="text-sm text-gray-600 mb-4">Track inventory levels over time</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={inventoryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                    <Legend />
+                    <Area type="monotone" dataKey="rawMaterial" stroke="#3b82f6" fill="#3b82f680" name="Raw Material Inventory" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Material Orders</h3>
+                <p className="text-sm text-gray-600 mb-4">Orders placed vs orders arrived (4-day lead time)</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={inventoryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                    <Legend />
+                    <Line type="monotone" dataKey="ordersPlaced" stroke="#8b5cf6" strokeWidth={2} name="Orders Placed" dot={false} />
+                    <Line type="monotone" dataKey="ordersArrived" stroke="#10b981" strokeWidth={2} name="Orders Arrived" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Market Performance Tab */}
+          {selectedTab === 'market' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Product Pricing Trends</h3>
+                <p className="text-sm text-gray-600 mb-4">Standard and custom product prices over time</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={marketChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" tickFormatter={(value) => `$${value}`} />
+                    <Tooltip
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="standardPrice" stroke="#3b82f6" strokeWidth={2} name="Standard Price" dot={false} />
+                    <Line type="monotone" dataKey="customPrice" stroke="#8b5cf6" strokeWidth={2} name="Custom Price" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Custom Order Delivery Time</h3>
+                <p className="text-sm text-gray-600 mb-4">Average delivery time for custom orders</p>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={marketChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="day" stroke="#6b7280" label={{ value: 'Day', position: 'insideBottom', offset: -5 }} />
+                    <YAxis stroke="#6b7280" label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip
+                      formatter={(value: number) => `${value} days`}
+                      contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="deliveryTime" stroke="#f59e0b" strokeWidth={2} name="Delivery Time (days)" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
