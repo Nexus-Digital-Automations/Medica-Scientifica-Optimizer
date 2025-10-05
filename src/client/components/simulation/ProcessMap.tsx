@@ -312,14 +312,15 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Raw Material Inventory - Top */}
-      <div className="flex justify-center">
-        <div className={`relative bg-gradient-to-br ${isRawMaterialBottleneck ? 'from-red-900 to-red-800 border-red-500' : 'from-amber-900 to-amber-800 border-amber-500'} border-2 rounded-2xl p-6 min-w-[300px] shadow-lg`}>
+      <div className="flex justify-center mb-12">
+        <div className={`relative bg-gradient-to-br ${isRawMaterialBottleneck ? 'from-red-900 to-red-800 border-red-500' : 'from-amber-900 to-amber-800 border-amber-500'} border-3 rounded-3xl p-8 min-w-[400px] shadow-2xl`}>
           <div className="text-center">
-            <div className="text-sm font-semibold text-amber-300 mb-2">📦 RAW MATERIAL INVENTORY</div>
-            <div className="text-3xl font-bold text-white mb-1">{Math.round(finalRawMaterial)} parts</div>
-            <div className="text-xs text-gray-300">$50/part • $1,000/order • 4-day lead time</div>
+            <div className="text-lg font-bold text-amber-300 mb-3">📦 RAW MATERIAL INVENTORY</div>
+            <div className="text-5xl font-bold text-white mb-3">{Math.round(finalRawMaterial)}</div>
+            <div className="text-sm text-amber-200 mb-1">parts available</div>
+            <div className="text-sm text-gray-300 mt-4">$50/part • $1,000/order • 4-day lead time</div>
             {isRawMaterialBottleneck && (
-              <div className="mt-2 px-3 py-1 bg-red-600 border border-red-500 rounded-lg text-xs text-white font-semibold">
+              <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                 ⚠️ LOW INVENTORY BOTTLENECK
               </div>
             )}
@@ -328,167 +329,172 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Arrow Down */}
-      <div className="flex justify-center">
-        <div className="text-4xl text-blue-400">↓</div>
+      <div className="flex justify-center my-8">
+        <div className="text-6xl text-blue-400">↓</div>
       </div>
 
       {/* Two Production Lines */}
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-2 gap-12">
         {/* CUSTOM LINE - Left */}
-        <div className="space-y-4">
-          <div className="bg-purple-900 border-2 border-purple-500 rounded-xl p-4">
-            <div className="text-center mb-4">
-              <div className="text-xl font-bold text-purple-300">🎨 CUSTOM LINE</div>
-              <div className="text-sm text-purple-200">(Make-to-Order)</div>
-              <div className="text-xs text-gray-400 mt-1">1 part/unit • FIRST priority on MCE</div>
+        <div className="space-y-6">
+          <div className="bg-purple-900 border-3 border-purple-500 rounded-2xl p-8">
+            <div className="text-center mb-8">
+              <div className="text-3xl font-bold text-purple-300 mb-2">🎨 CUSTOM LINE</div>
+              <div className="text-lg text-purple-200 mb-2">(Make-to-Order)</div>
+              <div className="text-sm text-gray-300 mt-2">1 part/unit • FIRST priority on MCE</div>
             </div>
 
             {/* Custom Line Stats */}
-            <div className={`bg-purple-800 rounded-lg p-3 mb-3 ${isCustomBottleneck ? 'border-2 border-red-500' : ''}`}>
-              <div className="text-sm font-semibold text-purple-200 mb-1">Total WIP</div>
-              <div className="text-2xl font-bold text-white">{Math.round(finalCustomWIP)} orders</div>
-              <div className="text-xs text-purple-300 mt-1">Avg Output: {avgCustomProduction.toFixed(1)}/day</div>
+            <div className={`bg-purple-800 rounded-xl p-6 mb-6 text-center ${isCustomBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="text-base font-semibold text-purple-200 mb-3">Total WIP</div>
+              <div className="text-4xl font-bold text-white mb-2">{Math.round(finalCustomWIP)}</div>
+              <div className="text-sm text-purple-300">orders in progress</div>
+              <div className="text-sm text-purple-300 mt-3">Avg Output: {avgCustomProduction.toFixed(1)}/day</div>
               {isCustomBottleneck && (
-                <div className="mt-2 px-2 py-1 bg-red-600 border border-red-500 rounded text-xs text-white font-semibold">
+                <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                   🚨 HIGH WIP - BOTTLENECK
                 </div>
               )}
             </div>
 
             {/* Station 3 - MCE */}
-            <div className="bg-purple-700 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-purple-200">Station 3 - MCE (Shared)</div>
-              <div className="text-sm text-white">Material Consumption & Forming</div>
-              <div className="text-xs text-purple-300 mt-1">Consumes 1 part/order</div>
+            <div className="bg-purple-700 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-purple-200 mb-2">Station 3 - MCE (Shared)</div>
+              <div className="text-base text-white font-semibold mb-2">Material Consumption & Forming</div>
+              <div className="text-sm text-purple-300">Consumes 1 part/order</div>
             </div>
 
             {/* Station 2 - WMA Pass 1 */}
-            <div className="bg-purple-700 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-purple-200">Station 2 - WMA Pass 1</div>
-              <div className="text-sm text-white">Whittling & Micro Abrasion</div>
-              <div className="text-xs text-purple-300 mt-1">2 days processing • 6 units/day capacity</div>
+            <div className="bg-purple-700 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-purple-200 mb-2">Station 2 - WMA Pass 1</div>
+              <div className="text-base text-white font-semibold mb-2">Whittling & Micro Abrasion</div>
+              <div className="text-sm text-purple-300">2 days • 6 units/day capacity</div>
             </div>
 
             {/* Station 4 - PUC */}
-            <div className="bg-purple-700 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-purple-200">Station 4 - PUC</div>
-              <div className="text-sm text-white">Precision Ultra-fine Cutting</div>
-              <div className="text-xs text-purple-300 mt-1">1 day processing</div>
+            <div className="bg-purple-700 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-purple-200 mb-2">Station 4 - PUC</div>
+              <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
+              <div className="text-sm text-purple-300">1 day processing</div>
             </div>
 
             {/* Station 2 - WMA Pass 2 */}
-            <div className="bg-purple-700 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-purple-200">Station 2 - WMA Pass 2</div>
-              <div className="text-sm text-white">Final Adjustments (AGAIN!)</div>
-              <div className="text-xs text-purple-300 mt-1">2 days processing • Shares capacity</div>
-              <div className="text-xs text-amber-300 mt-1">⚠️ Goes through WMA TWICE</div>
+            <div className="bg-purple-700 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-purple-200 mb-2">Station 2 - WMA Pass 2</div>
+              <div className="text-base text-white font-semibold mb-2">Final Adjustments (AGAIN!)</div>
+              <div className="text-sm text-purple-300 mb-2">2 days • Shares capacity</div>
+              <div className="text-sm text-amber-300">⚠️ Goes through WMA TWICE</div>
             </div>
 
             {/* Ship Direct */}
-            <div className="bg-green-700 border border-green-500 rounded-lg p-3">
-              <div className="text-xs font-semibold text-green-200">✈️ SHIP TO CUSTOMER</div>
-              <div className="text-sm text-white">No Inventory (Direct Ship)</div>
-              <div className="text-xs text-green-300 mt-1">Max: 360 orders WIP capacity</div>
-              <div className="text-lg font-bold text-white mt-2">{Math.round(finalCustomProduction)} shipped today</div>
+            <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
+              <div className="text-base font-bold text-green-200 mb-2">✈️ SHIP TO CUSTOMER</div>
+              <div className="text-sm text-white mb-3">No Inventory (Direct Ship)</div>
+              <div className="text-3xl font-bold text-white mb-2">{Math.round(finalCustomProduction)}</div>
+              <div className="text-sm text-green-300">shipped today</div>
+              <div className="text-xs text-green-400 mt-3">Max: 360 orders WIP capacity</div>
             </div>
 
             {/* Processing Time */}
-            <div className="mt-3 bg-purple-900 rounded-lg p-3 border border-purple-600">
-              <div className="text-xs font-semibold text-purple-200 mb-1">Total Processing Time</div>
-              <div className="text-xl font-bold text-white">~10-12 days</div>
-              <div className="text-xs text-purple-300">MCE → WMA(2d) → PUC(1d) → WMA(2d) → Ship</div>
+            <div className="mt-6 bg-purple-900 rounded-xl p-5 border-2 border-purple-600 text-center">
+              <div className="text-sm font-bold text-purple-200 mb-3">Total Processing Time</div>
+              <div className="text-3xl font-bold text-white mb-3">~10-12 days</div>
+              <div className="text-sm text-purple-300">MCE → WMA(2d) → PUC(1d) → WMA(2d) → Ship</div>
             </div>
           </div>
         </div>
 
         {/* STANDARD LINE - Right */}
-        <div className="space-y-4">
-          <div className="bg-blue-900 border-2 border-blue-500 rounded-xl p-4">
-            <div className="text-center mb-4">
-              <div className="text-xl font-bold text-blue-300">💎 STANDARD LINE</div>
-              <div className="text-sm text-blue-200">(Make-to-Stock)</div>
-              <div className="text-xs text-gray-400 mt-1">2 parts/unit • Second priority on MCE</div>
+        <div className="space-y-6">
+          <div className="bg-blue-900 border-3 border-blue-500 rounded-2xl p-8">
+            <div className="text-center mb-8">
+              <div className="text-3xl font-bold text-blue-300 mb-2">💎 STANDARD LINE</div>
+              <div className="text-lg text-blue-200 mb-2">(Make-to-Stock)</div>
+              <div className="text-sm text-gray-300 mt-2">2 parts/unit • Second priority on MCE</div>
             </div>
 
             {/* Standard Line Stats */}
-            <div className={`bg-blue-800 rounded-lg p-3 mb-3 ${isStandardBottleneck ? 'border-2 border-red-500' : ''}`}>
-              <div className="text-sm font-semibold text-blue-200 mb-1">Total WIP</div>
-              <div className="text-2xl font-bold text-white">{Math.round(finalStandardWIP)} units</div>
-              <div className="text-xs text-blue-300 mt-1">Avg Output: {avgStandardProduction.toFixed(1)}/day</div>
+            <div className={`bg-blue-800 rounded-xl p-6 mb-6 text-center ${isStandardBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="text-base font-semibold text-blue-200 mb-3">Total WIP</div>
+              <div className="text-4xl font-bold text-white mb-2">{Math.round(finalStandardWIP)}</div>
+              <div className="text-sm text-blue-300">units in progress</div>
+              <div className="text-sm text-blue-300 mt-3">Avg Output: {avgStandardProduction.toFixed(1)}/day</div>
               {isStandardBottleneck && (
-                <div className="mt-2 px-2 py-1 bg-red-600 border border-red-500 rounded text-xs text-white font-semibold">
+                <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                   🚨 HIGH WIP - BOTTLENECK
                 </div>
               )}
             </div>
 
             {/* Station 3 - MCE */}
-            <div className="bg-blue-700 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-blue-200">Station 3 - MCE (Shared)</div>
-              <div className="text-sm text-white">Material Consumption & Forming</div>
-              <div className="text-xs text-blue-300 mt-1">Consumes 2 parts/unit</div>
+            <div className="bg-blue-700 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-blue-200 mb-2">Station 3 - MCE (Shared)</div>
+              <div className="text-base text-white font-semibold mb-2">Material Consumption & Forming</div>
+              <div className="text-sm text-blue-300">Consumes 2 parts/unit</div>
             </div>
 
             {/* Batching Queue */}
-            <div className="bg-amber-700 border border-amber-500 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-amber-200">⏳ BATCHING QUEUE</div>
-              <div className="text-sm text-white">Wait for Batch Size</div>
-              <div className="text-xs text-amber-300 mt-1">4 days initial batching time</div>
-              <div className="text-xs text-amber-300">Batch size: 60 units</div>
+            <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCHING QUEUE</div>
+              <div className="text-base text-white font-semibold mb-2">Wait for Batch Size</div>
+              <div className="text-sm text-amber-300">4 days initial batching</div>
+              <div className="text-sm text-amber-300">Batch size: 60 units</div>
             </div>
 
             {/* Station 6 - ARCP Manual */}
-            <div className={`bg-blue-700 rounded-lg p-3 mb-2 ${isARCPBottleneck ? 'border-2 border-red-500' : ''}`}>
-              <div className="text-xs font-semibold text-blue-200">Station 6 - ARCP (Manual)</div>
-              <div className="text-sm text-white">Assembly & Quality Control</div>
-              <div className="text-xs text-blue-300 mt-1">Workforce: {finalExperts} experts + {finalRookies} rookies</div>
-              <div className="text-xs text-blue-300">Capacity: {arcpCapacity.toFixed(1)} units/day</div>
-              <div className="text-xs text-amber-300 mt-1">Expert: 3 units/day • Rookie: 40% productivity</div>
+            <div className={`bg-blue-700 rounded-xl p-5 mb-4 text-center ${isARCPBottleneck ? 'border-3 border-red-500' : ''}`}>
+              <div className="text-sm font-bold text-blue-200 mb-2">Station 6 - ARCP (Manual)</div>
+              <div className="text-base text-white font-semibold mb-3">Assembly & Quality Control</div>
+              <div className="text-sm text-blue-300 mb-1">Workforce: {finalExperts} experts + {finalRookies} rookies</div>
+              <div className="text-sm text-blue-300 mb-1">Capacity: {arcpCapacity.toFixed(1)} units/day</div>
+              <div className="text-sm text-amber-300">Expert: 3 units/day • Rookie: 40%</div>
               {isARCPBottleneck && (
-                <div className="mt-2 px-2 py-1 bg-red-600 border border-red-500 rounded text-xs text-white font-semibold">
+                <div className="mt-4 px-4 py-2 bg-red-600 border-2 border-red-400 rounded-lg text-sm text-white font-bold">
                   ⚠️ LABOR CAPACITY BOTTLENECK
                 </div>
               )}
             </div>
 
             {/* Second Batching */}
-            <div className="bg-amber-700 border border-amber-500 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-amber-200">⏳ BATCH AGAIN!</div>
-              <div className="text-sm text-white">Final Batching</div>
-              <div className="text-xs text-amber-300 mt-1">1 day batching time</div>
-              <div className="text-xs text-amber-300">Batch size: 12 units</div>
+            <div className="bg-amber-700 border-2 border-amber-500 rounded-xl p-5 mb-4 text-center">
+              <div className="text-sm font-bold text-amber-200 mb-2">⏳ BATCH AGAIN!</div>
+              <div className="text-base text-white font-semibold mb-2">Final Batching</div>
+              <div className="text-sm text-amber-300">1 day batching</div>
+              <div className="text-sm text-amber-300">Batch size: 12 units</div>
             </div>
 
             {/* Finished Goods Inventory */}
-            <div className="bg-green-700 border border-green-500 rounded-lg p-3 mb-2">
-              <div className="text-xs font-semibold text-green-200">📦 FINISHED GOODS INVENTORY</div>
-              <div className="text-sm text-white">Ready to Ship</div>
-              <div className="text-2xl font-bold text-white mt-1">{Math.round(finalFinishedStandard)} units</div>
+            <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 mb-4 text-center">
+              <div className="text-base font-bold text-green-200 mb-3">📦 FINISHED GOODS INVENTORY</div>
+              <div className="text-sm text-white mb-2">Ready to Ship</div>
+              <div className="text-4xl font-bold text-white mb-1">{Math.round(finalFinishedStandard)}</div>
+              <div className="text-sm text-green-300">units available</div>
             </div>
 
             {/* Ship */}
-            <div className="bg-green-700 border border-green-500 rounded-lg p-3">
-              <div className="text-xs font-semibold text-green-200">✈️ SHIP TO CUSTOMER</div>
-              <div className="text-sm text-white">From Finished Goods</div>
-              <div className="text-lg font-bold text-white mt-2">{Math.round(finalStandardProduction)} shipped today</div>
+            <div className="bg-green-700 border-2 border-green-500 rounded-xl p-6 text-center">
+              <div className="text-base font-bold text-green-200 mb-2">✈️ SHIP TO CUSTOMER</div>
+              <div className="text-sm text-white mb-3">From Finished Goods</div>
+              <div className="text-3xl font-bold text-white mb-2">{Math.round(finalStandardProduction)}</div>
+              <div className="text-sm text-green-300">shipped today</div>
             </div>
 
             {/* Processing Time */}
-            <div className="mt-3 bg-blue-900 rounded-lg p-3 border border-blue-600">
-              <div className="text-xs font-semibold text-blue-200 mb-1">Total Processing Time</div>
-              <div className="text-xl font-bold text-white">~4-6 days + delays</div>
-              <div className="text-xs text-blue-300">MCE → Batch(4d) → ARCP → Batch(1d) → FG → Ship</div>
-              <div className="text-xs text-red-300 mt-1">⚠️ TWO batching delays (5 days total)</div>
+            <div className="mt-6 bg-blue-900 rounded-xl p-5 border-2 border-blue-600 text-center">
+              <div className="text-sm font-bold text-blue-200 mb-3">Total Processing Time</div>
+              <div className="text-3xl font-bold text-white mb-3">~4-6 days + delays</div>
+              <div className="text-sm text-blue-300 mb-2">MCE → Batch(4d) → ARCP → Batch(1d) → FG → Ship</div>
+              <div className="text-sm text-red-300">⚠️ TWO batching delays (5 days total)</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Key Insights */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-purple-900 border border-purple-500 rounded-lg p-4">
-          <div className="text-sm font-semibold text-purple-300 mb-2">🎨 Custom Line Flow</div>
-          <ul className="text-xs text-gray-300 space-y-1">
+      <div className="grid grid-cols-3 gap-8 mt-12">
+        <div className="bg-purple-900 border-2 border-purple-500 rounded-2xl p-6 text-center">
+          <div className="text-xl font-bold text-purple-300 mb-4">🎨 Custom Line Flow</div>
+          <ul className="text-sm text-gray-300 space-y-2 text-left">
             <li>• Fast flow (10-12 days)</li>
             <li>• Goes through WMA TWICE</li>
             <li>• Ships immediately (no inventory)</li>
@@ -496,9 +502,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           </ul>
         </div>
 
-        <div className="bg-blue-900 border border-blue-500 rounded-lg p-4">
-          <div className="text-sm font-semibold text-blue-300 mb-2">💎 Standard Line Flow</div>
-          <ul className="text-xs text-gray-300 space-y-1">
+        <div className="bg-blue-900 border-2 border-blue-500 rounded-2xl p-6 text-center">
+          <div className="text-xl font-bold text-blue-300 mb-4">💎 Standard Line Flow</div>
+          <ul className="text-sm text-gray-300 space-y-2 text-left">
             <li>• Slower (4-6 days + batching)</li>
             <li>• TWO batching delays (5 days waiting)</li>
             <li>• Manual ARCP bottleneck (1 worker)</li>
@@ -506,9 +512,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           </ul>
         </div>
 
-        <div className="bg-red-900 border border-red-500 rounded-lg p-4">
-          <div className="text-sm font-semibold text-red-300 mb-2">⚠️ Bottleneck Detection</div>
-          <ul className="text-xs text-gray-300 space-y-1">
+        <div className="bg-red-900 border-2 border-red-500 rounded-2xl p-6 text-center">
+          <div className="text-xl font-bold text-red-300 mb-4">⚠️ Bottleneck Detection</div>
+          <ul className="text-sm text-gray-300 space-y-2 text-left">
             <li className={isStandardBottleneck ? 'text-red-300 font-semibold' : ''}>
               • Standard WIP: {isStandardBottleneck ? '🚨 HIGH' : '✓ Normal'}
             </li>
@@ -526,14 +532,14 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Competition for MCE */}
-      <div className="bg-gradient-to-r from-amber-900 to-red-900 border border-amber-600 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-amber-900 to-red-900 border-3 border-amber-600 rounded-2xl p-8 mt-12">
         <div className="text-center">
-          <div className="text-lg font-bold text-amber-300 mb-2">⚔️ CRITICAL: Both Lines Compete for MCE Capacity!</div>
-          <p className="text-sm text-gray-300">
+          <div className="text-2xl font-bold text-amber-300 mb-4">⚔️ CRITICAL: Both Lines Compete for MCE Capacity!</div>
+          <p className="text-base text-gray-300 leading-relaxed max-w-4xl mx-auto">
             The MCE station (Station 3) is SHARED between both production lines. Management must decide daily how to allocate
             MCE capacity between Custom (1 part/order, first priority) and Standard (2 parts/unit, second priority).
           </p>
-          <p className="text-xs text-amber-400 mt-2">
+          <p className="text-sm text-amber-400 mt-4">
             This is controlled by the "MCE Allocation - % to Custom Line" parameter in strategy settings.
           </p>
         </div>
