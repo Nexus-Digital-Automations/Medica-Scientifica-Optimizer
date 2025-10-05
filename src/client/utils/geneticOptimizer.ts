@@ -31,7 +31,6 @@ export interface OptimizationCandidate {
   fitness: number;
   netWorth: number;
   growthRate?: number; // $/day growth rate over evaluation window
-  peakGrowth?: number; // Total $ gain from testDay to peak before decline
   error?: string; // Error message if simulation failed
   // Daily net worth history for graphing
   history?: Array<{ day: number; value: number }>;
@@ -566,3 +565,167 @@ export function generateInitialPopulation(
 
   return population;
 }
+
+// ==================== PHASE 2 REFINEMENT FUNCTIONS ====================
+
+/**
+ * Generate local variations around a candidate's actions
+ * Used for refinement with smaller mutation ranges
+ * @param actions - Original actions from Phase 1
+ * @param range - Mutation range (0.1 = ±10%, 0.15 = ±15%)
+ */
+export function generateLocalVariations(
+  actions: StrategyAction[],
+  range: number
+): StrategyAction[] {
+  return actions.map(action => {
+    const mutated = { ...action };
+
+    // Smaller mutations for refinement (±5-15% typical)
+    if ('count' in mutated && mutated.count !== undefined) {
+      const change = Math.floor(mutated.count * range * (Math.random() * 2 - 1));
+      mutated.count = Math.max(1, Math.min(10, mutated.count + change));
+    }
+    if ('newOrderQuantity' in mutated && mutated.newOrderQuantity !== undefined) {
+      const change = Math.floor(mutated.newOrderQuantity * range * (Math.random() * 2 - 1));
+      mutated.newOrderQuantity = Math.max(100, Math.min(2000, mutated.newOrderQuantity + change));
+    }
+    if ('newReorderPoint' in mutated && mutated.newReorderPoint !== undefined) {
+      const change = Math.floor(mutated.newReorderPoint * range * (Math.random() * 2 - 1));
+      mutated.newReorderPoint = Math.max(200, Math.min(1000, mutated.newReorderPoint + change));
+    }
+    if ('newSize' in mutated && mutated.newSize !== undefined) {
+      const change = Math.floor(mutated.newSize * range * (Math.random() * 2 - 1));
+      mutated.newSize = Math.max(50, Math.min(500, mutated.newSize + change));
+    }
+    if ('newPrice' in mutated && mutated.newPrice !== undefined) {
+      const change = Math.floor(mutated.newPrice * range * (Math.random() * 2 - 1));
+      mutated.newPrice = Math.max(400, Math.min(1200, mutated.newPrice + change));
+    }
+    if ('newAllocation' in mutated && mutated.newAllocation !== undefined) {
+      const change = mutated.newAllocation * range * (Math.random() * 2 - 1);
+      mutated.newAllocation = Math.max(0.2, Math.min(0.8, mutated.newAllocation + change));
+    }
+
+    return mutated;
+  });
+}
+
+/**
+ * Refinement mutation for strategy parameters (smaller changes than Phase 1)
+ * @param params - Strategy parameters to mutate
+ * @param intensity - Mutation intensity (0.05-0.15 recommended for refinement)
+ * @param constraints - Optional constraints to respect fixed policies
+ */
+export function mutateRefinement(
+  params: OptimizationCandidate['strategyParams'],
+  intensity: number,
+  constraints?: OptimizationConstraints
+): OptimizationCandidate['strategyParams'] {
+  if (!params) return params;
+
+  const mutated = { ...params };
+
+  // Only mutate if not fixed in constraints
+  if (mutated.reorderPoint !== undefined && (!constraints || !constraints.fixedPolicies.reorderPoint)) {
+    const change = Math.floor(mutated.reorderPoint * intensity * (Math.random() * 2 - 1));
+    mutated.reorderPoint = Math.max(200, Math.min(1000, mutated.reorderPoint + change));
+  }
+
+  if (mutated.orderQuantity !== undefined && (!constraints || !constraints.fixedPolicies.orderQuantity)) {
+    const change = Math.floor(mutated.orderQuantity * intensity * (Math.random() * 2 - 1));
+    mutated.orderQuantity = Math.max(200, Math.min(2000, mutated.orderQuantity + change));
+  }
+
+  if (mutated.standardPrice !== undefined && (!constraints || !constraints.fixedPolicies.standardPrice)) {
+    const change = Math.floor(mutated.standardPrice * intensity * (Math.random() * 2 - 1));
+    mutated.standardPrice = Math.max(400, Math.min(1200, mutated.standardPrice + change));
+  }
+
+  if (mutated.standardBatchSize !== undefined && (!constraints || !constraints.fixedPolicies.standardBatchSize)) {
+    const change = Math.floor(mutated.standardBatchSize * intensity * (Math.random() * 2 - 1));
+    mutated.standardBatchSize = Math.max(50, Math.min(500, mutated.standardBatchSize + change));
+  }
+
+  if (mutated.mceAllocationCustom !== undefined && (!constraints || !constraints.fixedPolicies.mceAllocationCustom)) {
+    const change = mutated.mceAllocationCustom * intensity * (Math.random() * 2 - 1);
+    mutated.mceAllocationCustom = Math.max(0.2, Math.min(0.8, mutated.mceAllocationCustom + change));
+  }
+
+  if (mutated.dailyOvertimeHours !== undefined && (!constraints || !constraints.fixedPolicies.dailyOvertimeHours)) {
+    // For overtime, use discrete small changes
+    if (Math.random() < intensity) {
+      const change = Math.random() < 0.5 ? -1 : 1;
+      mutated.dailyOvertimeHours = Math.max(0, Math.min(3, mutated.dailyOvertimeHours + change));
+    }
+  }
+
+  return mutated;
+}
+
+/**
+ * Generate seeded population from Phase 1 results for Phase 2 refinement
+ * @param seedCandidates - Top candidates from Phase 1 (sorted by growth rate)
+ * @param populationSize - Total population size for Phase 2
+ * @param refinementIntensity - Mutation intensity (0.05-0.15)
+ * @param constraints - Optional constraints to respect fixed policies
+ * @returns Seeded population with guided variations
+ */
+export function generateSeededPopulation(
+  seedCandidates: OptimizationCandidate[],
+  populationSize: number,
+  refinementIntensity: number,
+  constraints?: OptimizationConstraints
+): OptimizationCandidate[] {
+  const population: OptimizationCandidate[] = [];
+
+  // Use top candidates from Phase 1
+  const uniqueSeeds = seedCandidates.slice(0, Math.min(10, seedCandidates.length));
+
+  if (uniqueSeeds.length === 0) {
+    console.warn('[Phase2] No seed results provided, generating random population');
+    return [];
+  }
+
+  console.log(`[Phase2] Seeding population with ${uniqueSeeds.length} candidates from Phase 1`);
+
+  // Keep top 3 elite unchanged
+  const eliteCount = Math.min(3, uniqueSeeds.length);
+  for (let i = 0; i < eliteCount; i++) {
+    population.push({
+      ...uniqueSeeds[i],
+      id: `phase2-elite-${i}`,
+      fitness: 0, // Will be re-evaluated
+      netWorth: 0,
+    });
+  }
+
+  // Generate variations around each seed
+  const remainingSlots = populationSize - eliteCount;
+  const variationsPerSeed = Math.floor(remainingSlots / uniqueSeeds.length);
+  const extraVariations = remainingSlots % uniqueSeeds.length;
+
+  uniqueSeeds.forEach((seed, seedIdx) => {
+    const numVariations = variationsPerSeed + (seedIdx < extraVariations ? 1 : 0);
+
+    for (let i = 0; i < numVariations; i++) {
+      // Create variation with local mutations
+      const variedActions = generateLocalVariations(seed.actions, refinementIntensity);
+      const variedParams = seed.strategyParams
+        ? mutateRefinement(seed.strategyParams, refinementIntensity, constraints)
+        : undefined;
+
+      population.push({
+        id: `phase2-seed${seedIdx}-var${i}`,
+        actions: variedActions,
+        fitness: 0,
+        netWorth: 0,
+        strategyParams: variedParams,
+      });
+    }
+  });
+
+  console.log(`[Phase2] Generated ${population.length} candidates (${eliteCount} elite + ${population.length - eliteCount} variations)`);
+  return population;
+}
+

@@ -9,10 +9,7 @@ import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
 
 interface AdvancedOptimizerProps {
-  onResultsReady?: (results: {
-    byGrowthRate: OptimizationCandidate[];
-    byPeakGrowth: OptimizationCandidate[];
-  }) => void;
+  onResultsReady?: (results: OptimizationCandidate[]) => void;
 }
 
 interface OptimizationConstraints {
@@ -134,10 +131,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
   // Optimization state
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizationResults, setOptimizationResults] = useState<{
-    byGrowthRate: OptimizationCandidate[];
-    byPeakGrowth: OptimizationCandidate[];
-  }>({ byGrowthRate: [], byPeakGrowth: [] });
+  const [optimizationResults, setOptimizationResults] = useState<OptimizationCandidate[]>([]);
   const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
 
   // Convert strategy parameters to policy decision actions for a specific day
@@ -318,7 +312,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
-    setOptimizationResults({ byGrowthRate: [], byPeakGrowth: [] });
+    setOptimizationResults([]);
 
     // Start debug logging (overwrites previous logs)
     debugLogger.start();
@@ -428,7 +422,6 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
             // Calculate dual fitness metrics: Growth Rate + Peak Growth
             let growthRate = 0;
-            let peakGrowth = 0;
             let endNetWorth = result.finalNetWorth;
 
             if (result.state?.history?.dailyNetWorth) {
@@ -439,57 +432,19 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
               // Get net worth at start (testDay)
               const startNetWorth = dailyNetWorth.find((d: { day: number; value: number }) => d.day === startDay)?.value || 0;
 
-              // METRIC 1: Growth Rate ($/day over evaluation window)
+              // Growth Rate ($/day over evaluation window)
               const endDayData = dailyNetWorth.find((d: { day: number; value: number }) => d.day === evaluationEndDay);
               endNetWorth = endDayData?.value || result.finalNetWorth;
               growthRate = (endNetWorth - startNetWorth) / constraints.evaluationWindow;
-
-              // METRIC 2: Peak Growth (total $ gain from testDay to peak BEFORE downturn)
-              const netWorthAfterTestDay = dailyNetWorth.filter(
-                (d: { day: number; value: number }) =>
-                  d.day >= startDay && d.day <= constraints.endDay
-              );
-
-              if (netWorthAfterTestDay.length > 0) {
-                // Find the peak before any sustained downturn (3+ consecutive days of decline)
-                let peakNetWorth = startNetWorth;
-                let peakDay = startDay;
-
-                for (let i = 0; i < netWorthAfterTestDay.length; i++) {
-                  const currentValue = netWorthAfterTestDay[i].value;
-
-                  // Track the peak value
-                  if (currentValue > peakNetWorth) {
-                    peakNetWorth = currentValue;
-                    peakDay = netWorthAfterTestDay[i].day;
-                  }
-
-                  // Check for sustained downturn (3+ consecutive days of decline)
-                  if (i >= 3) {
-                    const last4Values = netWorthAfterTestDay.slice(i - 3, i + 1).map((d: { value: number }) => d.value);
-                    const isDownturn =
-                      last4Values[3] < last4Values[2] &&
-                      last4Values[2] < last4Values[1] &&
-                      last4Values[1] < last4Values[0];
-
-                    if (isDownturn && netWorthAfterTestDay[i - 3].day > peakDay) {
-                      console.log(`[Phase1] Downturn detected for ${candidate.id} at day ${netWorthAfterTestDay[i].day}, peak was at day ${peakDay}`);
-                      break; // Stop evaluation at first sustained downturn after peak
-                    }
-                  }
-                }
-
-                peakGrowth = peakNetWorth - startNetWorth;
-              }
 
               // Store complete history for graphing
               candidate.history = dailyNetWorth;
             }
 
-            // Debug logging with dual metrics
+            // Debug logging
             console.log(`Candidate ${candidate.id}:`, {
               growthRate: `$${growthRate.toFixed(0)}/day`,
-              peakGrowth: `+$${peakGrowth.toLocaleString()}`,
+              totalGain: `+$${(growthRate * constraints.evaluationWindow).toLocaleString()}`,
               endNetWorth: endNetWorth.toLocaleString(),
               evaluationWindow: constraints.evaluationWindow,
               testDay: constraints.testDay,
@@ -498,7 +453,6 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
             candidate.netWorth = endNetWorth;
             candidate.growthRate = growthRate;
-            candidate.peakGrowth = peakGrowth;
             candidate.fitness = growthRate; // Primary fitness for GA selection
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
@@ -586,49 +540,43 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         population = newPopulation;
       }
 
-      // Create dual rankings: Top 5 by growth rate, Top 5 by peak growth
-      const topByGrowthRate = [...population]
+      // Rank by growth rate and take top 5
+      const topResults = [...population]
         .sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0))
         .slice(0, 5);
 
-      const topByPeakGrowth = [...population]
-        .sort((a, b) => (b.peakGrowth || 0) - (a.peakGrowth || 0))
-        .slice(0, 5);
-
-      setOptimizationResults({ byGrowthRate: topByGrowthRate, byPeakGrowth: topByPeakGrowth });
+      setOptimizationResults(topResults);
       console.log('✅ Optimization complete!');
-      console.log('🚀 Top 5 by Growth Rate:', topByGrowthRate);
-      console.log('📈 Top 5 by Peak Growth:', topByPeakGrowth);
+      console.log('🚀 Top 5 by Growth Rate:', topResults);
 
       // Notify parent component (OptimizerPage) that Phase 1 results are ready
       if (onResultsReady) {
-        onResultsReady({ byGrowthRate: topByGrowthRate, byPeakGrowth: topByPeakGrowth });
+        onResultsReady(topResults);
         console.log('📤 Phase 1 results sent to OptimizerPage for Phase 2');
       }
 
       // Debug: Check if all have same history reference (shallow copy issue)
-      const firstHistory = topByGrowthRate[0]?.history;
-      const allSameHistory = topByGrowthRate.every(c => c.history === firstHistory);
+      const firstHistory = topResults[0]?.history;
+      const allSameHistory = topResults.every(c => c.history === firstHistory);
       if (allSameHistory) {
         console.error('🐛 BUG FOUND: All candidates share the SAME history array reference! This is a shallow copy issue.');
       }
 
       // Debug: Critical check - are the actions actually different?
-      console.log('🔍 ACTIONS COMPARISON (Top by Growth Rate):');
-      topByGrowthRate.forEach((candidate, idx) => {
+      console.log('🔍 ACTIONS COMPARISON:');
+      topResults.forEach((candidate, idx) => {
         const priceAction = candidate.actions.find(a => a.type === 'ADJUST_PRICE');
         const ropAction = candidate.actions.find(a => a.type === 'SET_REORDER_POINT');
         console.log(`Candidate ${idx} (${candidate.id}):`, {
           price: priceAction && 'newPrice' in priceAction ? priceAction.newPrice : 'N/A',
           reorderPoint: ropAction && 'newReorderPoint' in ropAction ? ropAction.newReorderPoint : 'N/A',
           growthRate: candidate.growthRate,
-          peakGrowth: candidate.peakGrowth,
           actionCount: candidate.actions.length
         });
       });
 
       // Check if all growth rates are identical
-      const uniqueGrowthRates = new Set(topByGrowthRate.map(c => c.growthRate));
+      const uniqueGrowthRates = new Set(topResults.map(c => c.growthRate));
       if (uniqueGrowthRates.size === 1) {
         console.error('🐛 CRITICAL BUG: All top 5 candidates have IDENTICAL growth rate despite different parameters!');
         console.error('This suggests the backend is either:');
@@ -1357,26 +1305,16 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         </p>
       </div>
 
-      {/* Optimization Results - Dual Rankings */}
-      {(optimizationResults.byGrowthRate.length > 0 || optimizationResults.byPeakGrowth.length > 0) && (
+      {/* Optimization Results */}
+      {optimizationResults.length > 0 && (
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-          <h4 className="text-lg font-semibold text-white mb-4">🎯 Dual Optimization Results</h4>
+          <h4 className="text-lg font-semibold text-white mb-4">🎯 Optimization Results</h4>
           <p className="text-sm text-gray-400 mb-4">
-            Rolling horizon strategy: Comparing growth rate (speed) vs. peak growth (magnitude) from day {constraints.testDay} over {constraints.evaluationWindow} days
+            Top 5 strategies ranked by growth rate from day {constraints.testDay} over {constraints.evaluationWindow} days
           </p>
 
-          {/* Two-panel layout: Growth Rate vs. Peak Growth */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Panel 1: Top 5 by Growth Rate */}
-            <div>
-              <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 p-3 rounded-t-lg border-b border-purple-500/30">
-                <h5 className="text-md font-semibold text-white flex items-center gap-2">
-                  🚀 Top 5 by Growth Rate ($/day)
-                </h5>
-                <p className="text-xs text-gray-400 mt-1">Fastest rate of net worth improvement</p>
-              </div>
-              <div className="space-y-3 mt-3">
-                {optimizationResults.byGrowthRate.map((result, idx) => (
+          <div className="space-y-4">
+            {optimizationResults.map((result, idx) => (
                   <div
                     key={result.id}
                     className="p-4 bg-gradient-to-r from-gray-750 to-gray-800 border border-gray-600 rounded-lg"
@@ -1501,143 +1439,6 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
               </div>
             ))}
               </div>
-            </div>
-
-            {/* Panel 2: Top 5 by Peak Growth */}
-            <div>
-              <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 p-3 rounded-t-lg border-b border-green-500/30">
-                <h5 className="text-md font-semibold text-white flex items-center gap-2">
-                  📈 Top 5 by Peak Growth (Total $)
-                </h5>
-                <p className="text-xs text-gray-400 mt-1">Maximum total gain before decline starts</p>
-              </div>
-              <div className="space-y-3 mt-3">
-                {optimizationResults.byPeakGrowth.map((result, idx) => (
-                  <div
-                    key={result.id}
-                    className="p-4 bg-gradient-to-r from-gray-750 to-gray-800 border border-gray-600 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '⭐'}</span>
-                          <h6 className="text-white font-semibold">Strategy #{idx + 1}</h6>
-                        </div>
-                        <p className="text-lg text-emerald-400 font-bold mt-1">
-                          Peak Growth: +${result.peakGrowth?.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          Growth rate: ${result.growthRate?.toFixed(0)}/day over {constraints.evaluationWindow} days
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
-                            const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
-
-                            loadStrategy({
-                              ...strategy,
-                              timedActions: [
-                                ...actionsBeforeTestDay,
-                                ...result.actions,
-                                ...actionsAfterTestDay,
-                              ].sort((a, b) => a.day - b.day),
-                            });
-                          }}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
-                        >
-                          Add to Current Strategy
-                        </button>
-                        <button
-                          onClick={() => {
-                            const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
-                            const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
-
-                            exportStrategy({
-                              ...strategy,
-                              timedActions: [
-                                ...actionsBeforeTestDay,
-                                ...result.actions,
-                                ...actionsAfterTestDay,
-                              ].sort((a, b) => a.day - b.day),
-                            });
-                          }}
-                          className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
-                        >
-                          Export
-                        </button>
-                        <button
-                          onClick={() => downloadComprehensiveXLSX(result, idx)}
-                          className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded"
-                        >
-                          📊 Excel
-                        </button>
-                      </div>
-                    </div>
-
-                    {result.actions && result.actions.length > 0 && (
-                      <div className="mt-3 p-3 bg-gray-900/50 rounded">
-                        <div className="text-xs text-gray-400 mb-2 font-semibold">
-                          📋 Policy Actions on Day {constraints.testDay}:
-                        </div>
-                        <div className="space-y-1">
-                          {getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
-                            <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
-                              <span className="text-blue-400">•</span>
-                              {actionText}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Net Worth Over Time Graph */}
-                    {result.history && result.history.length > 0 && (
-                      <div className="mt-4 p-3 bg-gray-900/50 rounded">
-                        <div className="text-xs text-gray-400 mb-3 font-semibold">
-                          📈 Net Worth Over Time
-                        </div>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <LineChart data={result.history}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis
-                              dataKey="day"
-                              stroke="#9CA3AF"
-                              style={{ fontSize: '10px' }}
-                              label={{ value: 'Day', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
-                            />
-                            <YAxis
-                              stroke="#9CA3AF"
-                              style={{ fontSize: '10px' }}
-                              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: '#1F2937',
-                                border: '1px solid #374151',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                              }}
-                              formatter={(value: number) => [`$${value.toLocaleString()}`, 'Net Worth']}
-                              labelFormatter={(label) => `Day ${label}`}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="value"
-                              stroke={idx === 0 ? '#10B981' : idx === 1 ? '#3B82F6' : '#8B5CF6'}
-                              strokeWidth={2}
-                              dot={false}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
