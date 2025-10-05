@@ -1,15 +1,7 @@
 {
   "project": "Medica Scientifica Optimizer",
   "features": [],
-  "agents": {
-    "agent-1759678981": {
-      "lastHeartbeat": "2025-10-05T15:43:02.210Z",
-      "status": "active",
-      "reinitialized": "2025-10-05T15:43:02.210Z",
-      "sessionId": "ee4f8dafc74d78dc",
-      "previousSessions": []
-    }
-  },
+  "agents": {},
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
