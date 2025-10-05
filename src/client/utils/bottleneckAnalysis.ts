@@ -1,5 +1,12 @@
 import type { SimulationResult } from '../types/ui.types';
 
+export interface RemedyHint {
+  category: 'Inventory Policy' | 'Workforce Expansion' | 'Capital Equipment' | 'Resource Rebalancing';
+  action: string;
+  complexity: 'Quick Fix' | 'Capital Investment' | 'Strategic';
+  icon: string;
+}
+
 export interface BottleneckMetrics {
   station: string;
   severity: 'critical' | 'warning' | 'optimal';
@@ -11,6 +18,7 @@ export interface BottleneckMetrics {
   totalDays: number;
   trend: 'increasing' | 'decreasing' | 'stable';
   utilizationRate: number;
+  remedyHint?: RemedyHint;
 }
 
 export interface BottleneckProblem {
@@ -115,6 +123,43 @@ export function analyzeBottlenecks(simulationResult: SimulationResult): Bottlene
 }
 
 /**
+ * Generate remedy hint based on station type and severity
+ */
+function generateRemedyHint(stationName: string, severity: 'critical' | 'warning' | 'optimal'): RemedyHint | undefined {
+  if (severity === 'optimal') return undefined;
+
+  switch (stationName) {
+    case 'Standard Line':
+    case 'Custom Line':
+      return {
+        category: 'Resource Rebalancing',
+        action: 'Adjust MCE allocation between product lines or reduce batch sizes',
+        complexity: 'Quick Fix',
+        icon: '⚖️',
+      };
+
+    case 'Raw Materials':
+      return {
+        category: 'Inventory Policy',
+        action: 'Increase reorder levels and order quantities',
+        complexity: 'Quick Fix',
+        icon: '📦',
+      };
+
+    case 'ARCP Workforce':
+      return {
+        category: 'Workforce Expansion',
+        action: 'Hire additional workers (rookies + experts)',
+        complexity: 'Strategic',
+        icon: '👷',
+      };
+
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Analyze WIP levels for a station
  */
 function analyzeStationWIP(
@@ -165,6 +210,7 @@ function analyzeStationWIP(
     totalDays,
     trend,
     utilizationRate,
+    remedyHint: generateRemedyHint(stationName, severity),
   };
 }
 
@@ -214,6 +260,7 @@ function analyzeInventoryLevel(
     totalDays,
     trend,
     utilizationRate,
+    remedyHint: generateRemedyHint(stationName, severity),
   };
 }
 
@@ -271,6 +318,7 @@ function analyzeARCPCapacity(
     totalDays,
     trend,
     utilizationRate,
+    remedyHint: generateRemedyHint(stationName, severity),
   };
 }
 

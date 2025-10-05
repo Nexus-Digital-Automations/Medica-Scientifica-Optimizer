@@ -322,6 +322,24 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                     {metric.trend === 'increasing' ? '📈 Worsening' : metric.trend === 'decreasing' ? '📉 Improving' : '➡️ Stable'}
                   </span></div>
                   <div>Health Score: <span className="text-white font-semibold">{metric.utilizationRate.toFixed(0)}%</span></div>
+                  {metric.remedyHint && (
+                    <div className="mt-3 pt-3 border-t border-gray-600">
+                      <div className="text-xs font-semibold text-blue-300 mb-1">{metric.remedyHint.icon} Remedy Hint</div>
+                      <div className="text-xs text-gray-300 mb-1">
+                        <span className="font-semibold text-white">{metric.remedyHint.category}</span>
+                      </div>
+                      <div className="text-xs text-gray-300 mb-1">→ {metric.remedyHint.action}</div>
+                      <div className="text-xs">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
+                          metric.remedyHint.complexity === 'Quick Fix' ? 'bg-green-600 text-white' :
+                          metric.remedyHint.complexity === 'Capital Investment' ? 'bg-yellow-600 text-white' :
+                          'bg-red-600 text-white'
+                        }`}>
+                          {metric.remedyHint.complexity === 'Quick Fix' ? '🟢' : metric.remedyHint.complexity === 'Capital Investment' ? '🟡' : '🔴'} {metric.remedyHint.complexity}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

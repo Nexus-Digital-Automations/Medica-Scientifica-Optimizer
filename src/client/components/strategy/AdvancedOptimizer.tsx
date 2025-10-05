@@ -253,29 +253,71 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         });
       }
 
+      // Get current values for policy constraint checking
+      const currentValues = getValuesOnDay(day);
+
+      // Batch Size - respect lock state (minimum = can only increase, maximum = can only decrease)
       if (!constraints.fixedPolicies.standardBatchSize && params.standardBatchSize !== undefined && !hasLockedBatchSizeAction) {
-        actions.push({
-          day,
-          type: 'ADJUST_BATCH_SIZE',
-          newSize: params.standardBatchSize,
-        });
+        const lockState = policyLockStates.batchSize;
+        const currentBatchSize = currentValues.standardBatchSize;
+        let newBatchSize = params.standardBatchSize;
+
+        if (lockState === 'minimum' && newBatchSize < currentBatchSize) {
+          newBatchSize = currentBatchSize; // Can only increase
+        } else if (lockState === 'maximum' && newBatchSize > currentBatchSize) {
+          newBatchSize = currentBatchSize; // Can only decrease
+        }
+
+        if (newBatchSize !== currentBatchSize) {
+          actions.push({
+            day,
+            type: 'ADJUST_BATCH_SIZE',
+            newSize: newBatchSize,
+          });
+        }
       }
 
+      // Standard Price - respect lock state
       if (!constraints.fixedPolicies.standardPrice && params.standardPrice !== undefined && !hasLockedPriceAction) {
-        actions.push({
-          day,
-          type: 'ADJUST_PRICE',
-          productType: 'standard',
-          newPrice: params.standardPrice,
-        });
+        const lockState = policyLockStates.price;
+        const currentPrice = currentValues.standardPrice;
+        let newPrice = params.standardPrice;
+
+        if (lockState === 'minimum' && newPrice < currentPrice) {
+          newPrice = currentPrice; // Can only increase
+        } else if (lockState === 'maximum' && newPrice > currentPrice) {
+          newPrice = currentPrice; // Can only decrease
+        }
+
+        if (newPrice !== currentPrice) {
+          actions.push({
+            day,
+            type: 'ADJUST_PRICE',
+            productType: 'standard',
+            newPrice: newPrice,
+          });
+        }
       }
 
+      // MCE Allocation - respect lock state
       if (!constraints.fixedPolicies.mceAllocationCustom && params.mceAllocationCustom !== undefined && !hasLockedMCEAllocationAction) {
-        actions.push({
-          day,
-          type: 'ADJUST_MCE_ALLOCATION',
-          newAllocation: params.mceAllocationCustom,
-        });
+        const lockState = policyLockStates.mceAllocation;
+        const currentAllocation = currentValues.mceAllocationCustom;
+        let newAllocation = params.mceAllocationCustom;
+
+        if (lockState === 'minimum' && newAllocation < currentAllocation) {
+          newAllocation = currentAllocation; // Can only increase
+        } else if (lockState === 'maximum' && newAllocation > currentAllocation) {
+          newAllocation = currentAllocation; // Can only decrease
+        }
+
+        if (Math.abs(newAllocation - currentAllocation) > 0.001) { // Use small threshold for float comparison
+          actions.push({
+            day,
+            type: 'ADJUST_MCE_ALLOCATION',
+            newAllocation: newAllocation,
+          });
+        }
       }
 
       // Note: dailyOvertimeHours is not a policy action, it's a strategy parameter
