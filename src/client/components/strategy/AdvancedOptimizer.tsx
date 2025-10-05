@@ -26,7 +26,7 @@ interface OptimizationConstraints {
 }
 
 export default function AdvancedOptimizer() {
-  const { strategy, loadStrategy, saveStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
+  const { strategy, loadStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
     fixedPolicies: {
@@ -474,32 +474,6 @@ export default function AdvancedOptimizer() {
       debugLogger.download('optimizer-debug.log');
       console.log('📥 Debug log file downloaded');
     }
-  };
-
-  const saveRecommendedStrategy = (candidate: OptimizationCandidate) => {
-    const name = prompt('Enter a name for this strategy:');
-    if (!name) return;
-
-    // Merge candidate actions with existing strategy actions
-    const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
-    const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
-
-    const strategyToSave: Strategy = {
-      ...strategy,
-      timedActions: [
-        ...actionsBeforeTestDay,
-        ...candidate.actions, // Actions on test day
-        ...actionsAfterTestDay,
-      ].sort((a, b) => a.day - b.day),
-    };
-
-    // Load the strategy into current state first
-    loadStrategy(strategyToSave);
-
-    // Then save it to the global library (persists to localStorage)
-    saveStrategy(name);
-
-    alert(`Strategy "${name}" saved to library successfully!`);
   };
 
   const togglePolicyFixed = (policy: keyof OptimizationConstraints['fixedPolicies']) => {
@@ -1091,13 +1065,7 @@ export default function AdvancedOptimizer() {
                       }}
                       className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
                     >
-                      Load
-                    </button>
-                    <button
-                      onClick={() => saveRecommendedStrategy(result)}
-                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded"
-                    >
-                      Save
+                      Add to Current Strategy
                     </button>
                     <button
                       onClick={() => {
@@ -1244,6 +1212,16 @@ export default function AdvancedOptimizer() {
                       className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
                     >
                       Export
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete strategy "${saved.name}"?`)) {
+                          deleteSavedStrategy(saved.id);
+                        }
+                      }}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
+                    >
+                      Delete
                     </button>
                   </div>
                 </div>

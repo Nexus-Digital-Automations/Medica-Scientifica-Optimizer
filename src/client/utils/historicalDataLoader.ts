@@ -1,177 +1,214 @@
 import type { SimulationResult } from '../types/ui.types';
 import type { SimulationHistory } from '../../simulation/types.js';
 import { DEFAULT_STRATEGY } from '../../simulation/constants.js';
+import historicalDataJson from '../data/historicalData.json';
 
 /**
- * Load historical simulation data from embedded source
- * This provides a default dataset when no simulation has been run
+ * Load historical simulation data from Excel-sourced JSON
+ * This provides REAL baseline historical data from the Excel file
  */
 export function loadHistoricalData(): SimulationResult | null {
-  // For now, return a mock historical dataset based on the provided Excel file
-  // This creates a realistic 415-day simulation result for demonstration
+  try {
+    // Extract data from JSON sheets
+    const standardData = historicalDataJson.Standard.data;
+    const customData = historicalDataJson.Custom.data;
+    const financialData = historicalDataJson.Financial.data;
+    const inventoryData = historicalDataJson.Inventory.data;
+    const workforceData = historicalDataJson.WorkForce.data;
 
-  const days = 415;
-  const history: SimulationHistory = {
-    dailyCash: [],
-    dailyDebt: [],
-    dailyNetWorth: [],
-    dailyRevenue: [],
-    dailyExpenses: [],
-    dailyInterestPaid: [],
-    dailyInterestEarned: [],
-    dailyStandardProduction: [],
-    dailyCustomProduction: [],
-    dailyStandardWIP: [],
-    dailyCustomWIP: [],
-    dailyFinishedStandard: [],
-    dailyFinishedCustom: [],
-    dailyRawMaterial: [],
-    dailyRawMaterialOrders: [],
-    dailyRawMaterialOrdersPlaced: [],
-    dailyRawMaterialCost: [],
-    dailyExperts: [],
-    dailyRookies: [],
-    dailyRookiesInTraining: [],
-    dailySalaryCost: [],
-    dailyMCECount: [],
-    dailyWMACount: [],
-    dailyPUCCount: [],
-    dailyStandardPrice: [],
-    dailyCustomPrice: [],
-    dailyCustomDeliveryTime: [],
-    dailyReorderPoint: [],
-    dailyOrderQuantity: [],
-    dailyStandardBatchSize: [],
-    actionsPerformed: [],
-    policyChanges: [],
-  };
+    const days = standardData.length;
 
-  // Generate realistic historical data based on Day 51 initial conditions
-  // Source: Reference Guide.md - Initial Conditions (Start of Day 51)
-  let cash = 8206.12;
-  const debt = 70000;
-  let rawMaterial = 0;
-  let standardWIP = 120;
-  let customWIP = 295;
-  let finishedStandard = 0;
-  let finishedCustom = 0;
-  const experts = 1; // CRITICAL: Only 1 expert creates severe ARCP bottleneck
-  const rookies = 0;
-  const inTraining = 0;
+    const history: SimulationHistory = {
+      dailyCash: [],
+      dailyDebt: [],
+      dailyNetWorth: [],
+      dailyRevenue: [],
+      dailyExpenses: [],
+      dailyInterestPaid: [],
+      dailyInterestEarned: [],
+      dailyStandardProduction: [],
+      dailyCustomProduction: [],
+      dailyStandardWIP: [],
+      dailyCustomWIP: [],
+      dailyFinishedStandard: [],
+      dailyFinishedCustom: [],
+      dailyRawMaterial: [],
+      dailyRawMaterialOrders: [],
+      dailyRawMaterialOrdersPlaced: [],
+      dailyRawMaterialCost: [],
+      dailyExperts: [],
+      dailyRookies: [],
+      dailyRookiesInTraining: [],
+      dailySalaryCost: [],
+      dailyMCECount: [],
+      dailyWMACount: [],
+      dailyPUCCount: [],
+      dailyStandardPrice: [],
+      dailyCustomPrice: [],
+      dailyCustomDeliveryTime: [],
+      dailyReorderPoint: [],
+      dailyOrderQuantity: [],
+      dailyStandardBatchSize: [],
+      actionsPerformed: [],
+      policyChanges: [],
+    };
 
-  for (let day = 1; day <= days; day++) {
-    // Add some variance to make it realistic
-    const variance = Math.sin(day / 50) * 0.2;
+    // Process each day of historical data
+    for (let i = 0; i < days; i++) {
+      const day = standardData[i].Day;
+      const stdDay = standardData[i];
+      const custDay = customData[i];
+      const finDay = financialData[i];
+      const invDay = inventoryData[i];
+      const wfDay = workforceData[i];
 
-    // Daily production - SEVERELY limited by 1 expert ARCP bottleneck
-    // 1 expert = 3 units/day total ARCP capacity shared between both lines
-    // Assuming ~70% to standard, ~30% to custom allocation
-    const standardProduction = Math.max(0, Math.floor(2 + variance * 0.5)); // ~2 units/day
-    const customProduction = Math.max(0, Math.floor(1 + variance * 0.3)); // ~1 order/day
+      // Financial data
+      const cash = finDay['Finance-Cash On Hand'] || 0;
+      const debt = finDay['Finance-Debt'] || 0;
+      const interestEarned = i > 0
+        ? (finDay['Finance-Interest Earned *To Date'] || 0) - (financialData[i-1]['Finance-Interest Earned *To Date'] || 0)
+        : (finDay['Finance-Interest Earned *To Date'] || 0);
 
-    // Revenue and expenses with accurate salaries
-    // Expert: $150/day, Rookie: $85/day (from Reference Guide)
-    const revenue = (standardProduction * 750) + (customProduction * 1100); // Realistic prices
-    const expenses = (experts * 150) + (rookies * 85) + 500; // Salaries + overhead
+      // Calculate daily revenue from cumulative sales
+      const standardSales = i > 0
+        ? (finDay['Finance-Sales Standard *To Date'] || 0) - (financialData[i-1]['Finance-Sales Standard *To Date'] || 0)
+        : (finDay['Finance-Sales Standard *To Date'] || 0);
+      const customSales = i > 0
+        ? (finDay['Finance-Sales Custom *To Date'] || 0) - (financialData[i-1]['Finance-Sales Custom *To Date'] || 0)
+        : (finDay['Finance-Sales Custom *To Date'] || 0);
+      const revenue = standardSales + customSales;
 
-    // Update cash
-    cash += revenue - expenses;
+      // Calculate daily expenses from cumulative salaries
+      const dailySalary = i > 0
+        ? (finDay['Finance-Salaries *To Date'] || 0) - (financialData[i-1]['Finance-Salaries *To Date'] || 0)
+        : (finDay['Finance-Salaries *To Date'] || 0);
 
-    // Update WIP - MASSIVE buildup due to ARCP bottleneck
-    // WIP grows because MCE can process much more than ARCP can complete
-    standardWIP = Math.max(120, Math.min(550, Math.floor(standardWIP + 15 - standardProduction)));
-    customWIP = Math.max(295, Math.min(360, Math.floor(customWIP + 5 - customProduction)));
+      // Production outputs
+      const standardProduction = stdDay['Standard Deliveries-Deliveries'] || 0;
+      const customProduction = custDay['Custom Deliveries-Deliveries'] || 0;
 
-    // Finished goods - stockout conditions (demand >> production)
-    finishedStandard = 0; // All units sell immediately
-    finishedCustom = 0; // Custom ships direct (no inventory)
+      // WIP calculations - Sum all queue levels for total WIP
+      const standardWIP =
+        (stdDay['Standard Queue 1-Level'] || 0) +
+        (stdDay['Standard Queue 2-Level'] || 0) +
+        (stdDay['Standard Queue 3-Level'] || 0) +
+        (stdDay['Standard Queue 4-Level'] || 0) +
+        (stdDay['Standard Queue 5-Level'] || 0);
 
-    // Raw materials - frequent stockouts with minimal inventory
-    const materialUsed = (standardProduction * 2 + customProduction * 1);
-    rawMaterial -= materialUsed;
-    let materialOrdered = 0;
-    if (rawMaterial < 50 && day % 10 === 0) { // Periodic reordering
-      materialOrdered = 200;
-      rawMaterial += materialOrdered; // Assumes 4-day lead time already passed
+      const customWIP =
+        (custDay['Custom Queue 1-Level'] || 0) +
+        (custDay['Custom Queue 2-Level First Pass'] || 0) +
+        (custDay['Custom Queue 3-Level'] || 0) +
+        (custDay['Custom Queue 2-Level Second Pass'] || 0);
+
+      // Raw materials
+      const rawMaterial = invDay['Inventory-Level'] || 0;
+      const rawMaterialOrdered = invDay['Inventory-Dispatches'] || 0;
+
+      // Workforce
+      const experts = wfDay['WorkForce-Experts'] || 0;
+      const rookies = wfDay['WorkForce-Rookies'] || 0;
+
+      // Machine counts from Excel data
+      const mceCount = stdDay['Standard Station 1-Number of Machines'] || 1;
+      const wmaCount = custDay['Custom Station 2-Number of Machines'] || 2;
+      const pucCount = custDay['Custom Station 3-Number of Machines'] || 2;
+
+      // Prices
+      const standardPrice = stdDay['Standard Deliveries-Market Price'] || 200;
+      const customPrice = custDay['Custom Deliveries-Actual Price'] || 100;
+      const customLeadTime = custDay['Custom Deliveries-Average Lead Time'] || 5;
+
+      // Push to history arrays
+      history.dailyCash.push({ day, value: Math.round(cash) });
+      history.dailyDebt.push({ day, value: Math.round(debt) });
+      history.dailyNetWorth.push({ day, value: Math.round(cash - debt) });
+      history.dailyRevenue.push({ day, value: Math.round(revenue) });
+      history.dailyExpenses.push({ day, value: Math.round(dailySalary) });
+      history.dailyInterestPaid.push({ day, value: 0 });
+      history.dailyInterestEarned.push({ day, value: Math.round(interestEarned) });
+      history.dailyStandardProduction.push({ day, value: Math.round(standardProduction) });
+      history.dailyCustomProduction.push({ day, value: Math.round(customProduction) });
+      history.dailyStandardWIP.push({ day, value: Math.round(standardWIP) });
+      history.dailyCustomWIP.push({ day, value: Math.round(customWIP) });
+      history.dailyFinishedStandard.push({ day, value: Math.round(stdDay['Standard Queue 5-Level'] || 0) });
+      history.dailyFinishedCustom.push({ day, value: 0 }); // Custom ships direct
+      history.dailyRawMaterial.push({ day, value: Math.round(rawMaterial) });
+      history.dailyRawMaterialOrders.push({ day, value: Math.round(rawMaterialOrdered) });
+      history.dailyRawMaterialOrdersPlaced.push({ day, value: Math.round(rawMaterialOrdered) });
+      history.dailyRawMaterialCost.push({ day, value: rawMaterialOrdered > 0 ? 10000 : 0 });
+      history.dailyExperts.push({ day, value: experts });
+      history.dailyRookies.push({ day, value: rookies });
+      history.dailyRookiesInTraining.push({ day, value: 0 });
+      history.dailySalaryCost.push({ day, value: Math.round(dailySalary) });
+      history.dailyMCECount.push({ day, value: mceCount });
+      history.dailyWMACount.push({ day, value: wmaCount });
+      history.dailyPUCCount.push({ day, value: pucCount });
+      history.dailyStandardPrice.push({ day, value: Math.round(standardPrice) });
+      history.dailyCustomPrice.push({ day, value: Math.round(customPrice) });
+      history.dailyCustomDeliveryTime.push({ day, value: Math.round(customLeadTime) });
+      history.dailyReorderPoint.push({ day, value: 50 });
+      history.dailyOrderQuantity.push({ day, value: 200 });
+      history.dailyStandardBatchSize.push({ day, value: 60 });
     }
-    // Realistic low inventory with frequent stockouts
-    rawMaterial = Math.max(0, rawMaterial);
 
-    // Push to history
-    history.dailyCash.push({ day, value: Math.floor(cash) });
-    history.dailyDebt.push({ day, value: debt });
-    history.dailyNetWorth.push({ day, value: Math.floor(cash - debt + 50000) }); // Assets included
-    history.dailyRevenue.push({ day, value: revenue });
-    history.dailyExpenses.push({ day, value: expenses });
-    history.dailyInterestPaid.push({ day, value: 0 });
-    history.dailyInterestEarned.push({ day, value: cash > 0 ? Math.floor(cash * 0.0001) : 0 });
-    history.dailyStandardProduction.push({ day, value: standardProduction });
-    history.dailyCustomProduction.push({ day, value: customProduction });
-    history.dailyStandardWIP.push({ day, value: Math.floor(standardWIP) });
-    history.dailyCustomWIP.push({ day, value: Math.floor(customWIP) });
-    history.dailyFinishedStandard.push({ day, value: Math.floor(finishedStandard) });
-    history.dailyFinishedCustom.push({ day, value: Math.floor(finishedCustom) });
-    history.dailyRawMaterial.push({ day, value: Math.floor(rawMaterial) });
-    history.dailyRawMaterialOrders.push({ day, value: materialOrdered });
-    history.dailyRawMaterialOrdersPlaced.push({ day, value: materialOrdered });
-    history.dailyRawMaterialCost.push({ day, value: materialOrdered > 0 ? 10000 : 0 });
-    history.dailyExperts.push({ day, value: experts });
-    history.dailyRookies.push({ day, value: rookies });
-    history.dailyRookiesInTraining.push({ day, value: inTraining });
-    history.dailySalaryCost.push({ day, value: (experts * 150) + (rookies * 85) }); // Accurate salaries
-    history.dailyMCECount.push({ day, value: 1 }); // Minimal machine setup
-    history.dailyWMACount.push({ day, value: 1 });
-    history.dailyPUCCount.push({ day, value: 1 });
-    history.dailyStandardPrice.push({ day, value: 750 }); // Realistic pricing
-    history.dailyCustomPrice.push({ day, value: 1100 });
-    history.dailyCustomDeliveryTime.push({ day, value: 45 }); // Very long due to backlog
-    history.dailyReorderPoint.push({ day, value: 50 });
-    history.dailyOrderQuantity.push({ day, value: 200 });
-    history.dailyStandardBatchSize.push({ day, value: 60 });
+    // Final day values
+    const finalDay = days - 1;
+    const finalCash = Math.round(financialData[finalDay]['Finance-Cash On Hand'] || 0);
+    const finalDebt = Math.round(financialData[finalDay]['Finance-Debt'] || 0);
+    const finalNetWorth = finalCash - finalDebt;
+    const finalRawMaterial = Math.round(inventoryData[finalDay]['Inventory-Level'] || 0);
+    const finalStandardQueue5 = Math.round(standardData[finalDay]['Standard Queue 5-Level'] || 0);
+    const finalExperts = workforceData[finalDay]['WorkForce-Experts'] || 0;
+    const finalRookies = workforceData[finalDay]['WorkForce-Rookies'] || 0;
+    const finalMCE = standardData[finalDay]['Standard Station 1-Number of Machines'] || 1;
+    const finalWMA = customData[finalDay]['Custom Station 2-Number of Machines'] || 2;
+    const finalPUC = customData[finalDay]['Custom Station 3-Number of Machines'] || 2;
+
+    return {
+      finalCash,
+      finalDebt,
+      finalNetWorth,
+      fitnessScore: finalNetWorth,
+      strategy: DEFAULT_STRATEGY,
+      state: {
+        currentDay: days - 1,
+        cash: finalCash,
+        debt: finalDebt,
+        rawMaterialInventory: finalRawMaterial,
+        standardLineWIP: {
+          preStation1: [],
+          station1: [],
+          station2: [],
+          station3: [],
+        },
+        customLineWIP: {
+          orders: [],
+        },
+        finishedGoods: {
+          standard: finalStandardQueue5,
+          custom: 0,
+        },
+        workforce: {
+          experts: finalExperts,
+          rookies: finalRookies,
+          rookiesInTraining: [],
+          employeeOvertimeTracking: [],
+        },
+        machines: {
+          MCE: finalMCE,
+          WMA: finalWMA,
+          PUC: finalPUC,
+        },
+        pendingRawMaterialOrders: [],
+        rejectedMaterialOrders: 0,
+        stockoutDays: 0,
+        lostProductionDays: 0,
+        history,
+      },
+    };
+  } catch (error) {
+    console.error('Error loading historical data:', error);
+    return null;
   }
-
-  const finalNetWorth = Math.floor(cash - debt + 50000);
-
-  return {
-    finalCash: Math.floor(cash),
-    finalDebt: debt,
-    finalNetWorth,
-    fitnessScore: finalNetWorth,
-    strategy: DEFAULT_STRATEGY,
-    state: {
-      currentDay: days,
-      cash: Math.floor(cash),
-      debt,
-      rawMaterialInventory: Math.floor(rawMaterial),
-      standardLineWIP: {
-        preStation1: [],
-        station1: [],
-        station2: [],
-        station3: [],
-      },
-      customLineWIP: {
-        orders: [],
-      },
-      finishedGoods: {
-        standard: Math.floor(finishedStandard),
-        custom: Math.floor(finishedCustom),
-      },
-      workforce: {
-        experts,
-        rookies,
-        rookiesInTraining: [],
-        employeeOvertimeTracking: [],
-      },
-      machines: {
-        MCE: 1, // Minimal machine setup at Day 51
-        WMA: 1,
-        PUC: 1,
-      },
-      pendingRawMaterialOrders: [],
-      rejectedMaterialOrders: 0,
-      stockoutDays: 0,
-      lostProductionDays: 0,
-      history,
-    },
-  };
 }

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
-import { getMostRecentSavedResult } from '../../utils/savedResults';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
 import { generateComprehensiveRecommendations } from '../../utils/recommendationEngine';
+import ProcessMapSelector, { type DataSource } from './ProcessMapSelector';
 import InfoPopup from './InfoPopup';
 import RecommendationsPopup from './RecommendationsPopup';
 import RecommendationSelector from './RecommendationSelector';
@@ -24,8 +24,36 @@ interface ProcessMapProps {
 }
 
 export default function ProcessMap({ simulationResult }: ProcessMapProps) {
-  // Fallback chain: current simulation -> most recent saved -> historical data
-  const displayResult = simulationResult || getMostRecentSavedResult()?.result || loadHistoricalData();
+  // State to track selected data source and result
+  const [selectedResult, setSelectedResult] = useState<SimulationResult | null>(loadHistoricalData());
+  const [dataSource, setDataSource] = useState<DataSource>({
+    type: 'historical',
+    label: '📊 Historical Data (Excel Baseline)',
+  });
+
+  // Auto-select new simulation result when it becomes available
+  useEffect(() => {
+    if (simulationResult) {
+      setSelectedResult(simulationResult);
+      setDataSource({
+        type: 'current',
+        label: '🔬 Latest Simulation',
+        timestamp: Date.now(),
+        metadata: {
+          finalNetWorth: simulationResult.finalNetWorth,
+        },
+      });
+    }
+  }, [simulationResult]);
+
+  // Handle data source selection from selector
+  const handleSelectResult = (result: SimulationResult | null, source: DataSource) => {
+    setSelectedResult(result);
+    setDataSource(source);
+  };
+
+  // Use selected result for display
+  const displayResult = selectedResult;
 
   // If still no result (shouldn't happen with historical data), show placeholder
   if (!displayResult) {
@@ -39,9 +67,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
     );
   }
-
-  // Determine data source for display
-  const isHistoricalData = !simulationResult && !getMostRecentSavedResult();
 
   const { state } = displayResult;
 
@@ -165,34 +190,49 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
            severity === 'warning' ? '⚠️' : '✅';
   };
 
+  const getDataSourceTitle = () => {
+    switch (dataSource.type) {
+      case 'historical':
+        return 'Factory Process Map (Historical Baseline)';
+      case 'current':
+        return 'Factory Process Map (Latest Simulation)';
+      case 'saved':
+        return `Factory Process Map (${dataSource.metadata?.strategyName || 'Saved Result'})`;
+      default:
+        return 'Factory Process Map';
+    }
+  };
+
+  const getDataSourceDescription = () => {
+    switch (dataSource.type) {
+      case 'historical':
+        return 'Real Excel data showing baseline factory performance • 50 days of operation';
+      case 'current':
+        return 'Latest simulation results with comprehensive bottleneck analysis';
+      case 'saved':
+        return 'Saved simulation results with bottleneck analysis';
+      default:
+        return 'Process flow visualization with bottleneck detection';
+    }
+  };
+
   return (
     <div className="space-y-8">
-      {/* Data Source Indicator */}
-      {isHistoricalData && (
-        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-600 text-lg">📊</span>
-            <div>
-              <p className="text-amber-900 text-sm font-semibold">Historical Reference Data</p>
-              <p className="text-amber-700 text-xs">
-                Showing baseline factory performance. Run a simulation to see your custom strategy results.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Process Map Selector */}
+      <ProcessMapSelector
+        currentResult={simulationResult}
+        onSelectResult={handleSelectResult}
+      />
 
       {/* Header with Overall Health */}
       <div className={`bg-gradient-to-r from-blue-900 to-purple-900 border-2 rounded-xl p-6 ${getSeverityColor(bottleneckAnalysis.overallHealth)}`}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              🏭 {isHistoricalData ? 'Factory Process Map (Historical Data)' : 'Live Factory Process Map'}
+              🏭 {getDataSourceTitle()}
             </h2>
             <p className="text-gray-300 text-sm">
-              {isHistoricalData
-                ? 'Reference visualization showing typical factory operation'
-                : 'Real-time visualization with comprehensive bottleneck analysis'}
+              {getDataSourceDescription()}
             </p>
           </div>
           <div className="text-right">
@@ -607,7 +647,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       <div className="grid grid-cols-2 gap-12">
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
-          <div className="border-3 border-purple-500 rounded-2xl p-8">
+          <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
                 <InfoPopup
@@ -743,7 +783,41 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                             <span className="text-gray-400">Maximum WIP Capacity:</span>
                             <span className="text-white font-bold">360 orders</span>
                           </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(avgCustomProduction - mceToCustomDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(avgCustomProduction - mceToCustomDemandRate).toFixed(1)} orders/day
+                            </span>
+                          </div>
                         </div>
+                      </div>
+
+                      <div className="bg-purple-900/50 border border-purple-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-purple-300 mb-2">📊 WIP Breakdown</h4>
+                        <p className="text-gray-300 text-sm mb-3">
+                          The {Math.round(finalCustomWIP)} orders of WIP are distributed across the entire custom pipeline:
+                        </p>
+                        <div className="space-y-2 text-xs text-gray-300">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-teal-600 rounded"></div>
+                            <span>WMA Pass 1 - Whittling & Micro Abrasion (2 days)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-pink-600 rounded"></div>
+                            <span>PUC - Precision Ultra-fine Cutting (1 day)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-teal-600 rounded"></div>
+                            <span>WMA Pass 2 - Final Adjustments (2 days)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-orange-600 rounded"></div>
+                            <span>ARCP - Assembly & Quality (variable time)</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-3 italic">
+                          Total pipeline time: 5 days + ARCP processing time. All stations shown below are PART OF this total WIP.
+                        </p>
                       </div>
 
                       <div className="bg-gray-800 rounded-lg p-4">
@@ -816,6 +890,62 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                             <span className="text-gray-400">Station Type:</span>
                             <span className="text-white font-bold">Automated (Machine)</span>
                           </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Current Flow Rate:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Capacity Utilization:</span>
+                            <span className={`font-bold ${(avgCustomProduction / 6) > 0.8 ? 'text-red-400' : 'text-green-400'}`}>
+                              {((avgCustomProduction / 6) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After MCE (Day 0)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Duration:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Exit Point:</span>
+                            <span className="text-white font-bold">To PUC (Day 2)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Orders In Process:</span>
+                            <span className="text-white font-bold">~{Math.round(avgCustomProduction * 2)} orders</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow:</span>
+                            <span className="text-white font-bold">{wmapass1ToPUCFlowRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Demand from PUC:</span>
+                            <span className="text-white font-bold">{wmapass1ToPUCDemandRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(wmapass1ToPUCFlowRate - wmapass1ToPUCDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(wmapass1ToPUCFlowRate - wmapass1ToPUCDemandRate).toFixed(1)} orders/day
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -881,6 +1011,56 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                           <div className="flex justify-between">
                             <span className="text-gray-400">Station Type:</span>
                             <span className="text-white font-bold">Automated (Machine)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Current Flow Rate:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After WMA Pass 1 (Day 2)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Duration:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Exit Point:</span>
+                            <span className="text-white font-bold">To WMA Pass 2 (Day 3)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Orders In Process:</span>
+                            <span className="text-white font-bold">~{Math.round(avgCustomProduction * 1)} orders</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-pink-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{wmapass1ToPUCFlowRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow:</span>
+                            <span className="text-white font-bold">{pucToWMApass2FlowRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Demand from WMA Pass 2:</span>
+                            <span className="text-white font-bold">{pucToWMApass2DemandRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(pucToWMApass2FlowRate - pucToWMApass2DemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(pucToWMApass2FlowRate - pucToWMApass2DemandRate).toFixed(1)} orders/day
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -948,6 +1128,62 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                             <span className="text-gray-400">Station Type:</span>
                             <span className="text-white font-bold">Automated (Machine)</span>
                           </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Current Flow Rate:</span>
+                            <span className="text-white font-bold">{avgCustomProduction.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Capacity Utilization:</span>
+                            <span className={`font-bold ${(avgCustomProduction / 6) > 0.8 ? 'text-red-400' : 'text-green-400'}`}>
+                              {((avgCustomProduction / 6) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After PUC (Day 3)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Duration:</span>
+                            <span className="text-white font-bold">2 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Exit Point:</span>
+                            <span className="text-white font-bold">To ARCP (Day 5)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Orders In Process:</span>
+                            <span className="text-white font-bold">~{Math.round(avgCustomProduction * 2)} orders</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-teal-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{pucToWMApass2FlowRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow:</span>
+                            <span className="text-white font-bold">{customToARCPFlowRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Demand from ARCP:</span>
+                            <span className="text-white font-bold">{customToARCPDemandRate.toFixed(1)} orders/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(customToARCPFlowRate - customToARCPDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(customToARCPFlowRate - customToARCPDemandRate).toFixed(1)} orders/day
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -1003,7 +1239,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
         {/* STANDARD LINE - Right */}
         <div className="space-y-6">
-          <div className="border-3 border-blue-500 rounded-2xl p-8">
+          <div className="border-3 border-blue-500 rounded-2xl p-8 bg-gradient-to-br from-blue-950 to-blue-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
                 <InfoPopup
@@ -1165,7 +1401,37 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                             <span className="text-gray-400">Average Daily Output:</span>
                             <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
                           </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(avgStandardProduction - mceToStandardDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(avgStandardProduction - mceToStandardDemandRate).toFixed(1)} units/day
+                            </span>
+                          </div>
                         </div>
+                      </div>
+
+                      <div className="bg-blue-900/50 border border-blue-600 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">📊 WIP Breakdown</h4>
+                        <p className="text-gray-300 text-sm mb-3">
+                          The {Math.round(finalStandardWIP)} units of WIP are distributed across ALL pipeline stages:
+                        </p>
+                        <div className="space-y-2 text-xs text-gray-300">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-amber-600 rounded"></div>
+                            <span>First Batching Queue (4-day wait)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-orange-600 rounded"></div>
+                            <span>ARCP Assembly (variable processing time)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-amber-600 rounded"></div>
+                            <span>Second Batching Queue (1-day wait)</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-3 italic">
+                          The Batching Queue boxes shown below are PART OF this total WIP, not additional to it.
+                        </p>
                       </div>
 
                       <div className="bg-gray-800 rounded-lg p-4">
@@ -1244,6 +1510,56 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                           <div className="flex justify-between">
                             <span className="text-gray-400">Target Batch Size:</span>
                             <span className="text-white font-bold">60 units</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Current Flow Rate:</span>
+                            <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After MCE (Day 0)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Wait Duration:</span>
+                            <span className="text-white font-bold">4 days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Exit Point:</span>
+                            <span className="text-white font-bold">To ARCP (Day 4)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Units Waiting:</span>
+                            <span className="text-white font-bold">~{Math.round(avgStandardProduction * 4)} units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{mceToStandardFlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow:</span>
+                            <span className="text-white font-bold">{standardToARCPFlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Demand from ARCP:</span>
+                            <span className="text-white font-bold">{standardToARCPDemandRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(standardToARCPFlowRate - standardToARCPDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(standardToARCPFlowRate - standardToARCPDemandRate).toFixed(1)} units/day
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1364,6 +1680,66 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                       </div>
 
                       <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Custom Line Entry:</span>
+                            <span className="text-white font-bold">After WMA Pass 2 (Day 5)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Standard Line Entry:</span>
+                            <span className="text-white font-bold">After First Batching (Day 4)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Processing Duration:</span>
+                            <span className="text-white font-bold">Variable (capacity-dependent)</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Units In Process:</span>
+                            <span className="text-white font-bold">~{Math.round((avgStandardProduction + avgCustomProduction) * 0.5)} units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-purple-300 font-semibold">Custom Line Flow:</span>
+                              <span className="text-white font-bold">{customToARCPFlowRate.toFixed(1)} orders/day</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-400">Allocated Capacity:</span>
+                              <span className="text-white">{customToARCPDemandRate.toFixed(1)} units/day</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-400">Gap:</span>
+                              <span className={`font-bold ${(customToARCPFlowRate - customToARCPDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {(customToARCPFlowRate - customToARCPDemandRate).toFixed(1)} orders/day
+                              </span>
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-700 pt-2">
+                            <div className="flex justify-between mb-1">
+                              <span className="text-blue-300 font-semibold">Standard Line Flow:</span>
+                              <span className="text-white font-bold">{standardToARCPFlowRate.toFixed(1)} units/day</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-400">Allocated Capacity:</span>
+                              <span className="text-white">{standardToARCPDemandRate.toFixed(1)} units/day</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-400">Gap:</span>
+                              <span className={`font-bold ${(standardToARCPFlowRate - standardToARCPDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {(standardToARCPFlowRate - standardToARCPDemandRate).toFixed(1)} units/day
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
                         <h4 className="text-lg font-semibold text-orange-300 mb-2">Capacity Allocation</h4>
                         <p className="text-gray-300 text-sm">
                           ARCP capacity is allocated proportionally between Custom and Standard lines based on MCE allocation percentages, ensuring both lines can complete orders.
@@ -1418,6 +1794,56 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                           <div className="flex justify-between">
                             <span className="text-gray-400">Target Batch Size:</span>
                             <span className="text-white font-bold">12 units</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Current Flow Rate:</span>
+                            <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After ARCP (Day 4+)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Wait Duration:</span>
+                            <span className="text-white font-bold">1 day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Exit Point:</span>
+                            <span className="text-white font-bold">To Finished Goods</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Units Waiting:</span>
+                            <span className="text-white font-bold">~{Math.round(avgStandardProduction * 1)} units</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-amber-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{arcpToStandardBatch2FlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow:</span>
+                            <span className="text-white font-bold">{batch2ToFinishedFlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Demand from FG:</span>
+                            <span className="text-white font-bold">{batch2ToFinishedDemandRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Flow vs Demand Gap:</span>
+                            <span className={`font-bold ${(batch2ToFinishedFlowRate - batch2ToFinishedDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(batch2ToFinishedFlowRate - batch2ToFinishedDemandRate).toFixed(1)} units/day
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1477,6 +1903,58 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                           <div className="flex justify-between">
                             <span className="text-gray-400">Production Completed:</span>
                             <span className="text-white font-bold">{Math.round(finalStandardProduction)} units today</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Daily Production Rate:</span>
+                            <span className="text-white font-bold">{avgStandardProduction.toFixed(1)} units/day</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-green-300 mb-2">⏱️ Timeline Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Entry Point:</span>
+                            <span className="text-white font-bold">After Second Batching</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Storage Duration:</span>
+                            <span className="text-white font-bold">Until Customer Order</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Total Pipeline Time:</span>
+                            <span className="text-white font-bold">~5-6 days from MCE</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Days of Inventory:</span>
+                            <span className={`font-bold ${(finalFinishedStandard / Math.max(avgStandardProduction, 1)) < 1 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(finalFinishedStandard / Math.max(avgStandardProduction, 1)).toFixed(1)} days
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-green-300 mb-2">📊 Flow Metrics</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Input Flow:</span>
+                            <span className="text-white font-bold">{batch2ToFinishedFlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Output Flow (Shipments):</span>
+                            <span className="text-white font-bold">{finishedToCustomerFlowRate.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                            <span className="text-gray-400">Customer Demand:</span>
+                            <span className="text-white font-bold">{finishedToCustomerDemandRate.toFixed(1)} units/day (max)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Production vs Demand Gap:</span>
+                            <span className={`font-bold ${(finishedToCustomerFlowRate - finishedToCustomerDemandRate) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {(finishedToCustomerFlowRate - finishedToCustomerDemandRate).toFixed(1)} units/day
+                            </span>
                           </div>
                         </div>
                       </div>
