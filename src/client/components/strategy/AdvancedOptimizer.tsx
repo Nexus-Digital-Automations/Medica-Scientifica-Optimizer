@@ -455,6 +455,13 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     try {
       const { populationSize, generations, mutationRate, eliteCount } = phase1Params;
 
+      // Validate evaluation window
+      if (!constraints.evaluationWindow || constraints.evaluationWindow < 1 || constraints.evaluationWindow > 365) {
+        alert('⚠️ Invalid evaluation window! Please enter a value between 1 and 365 days.');
+        setIsOptimizing(false);
+        return;
+      }
+
       // Check if any policies can vary
       const variablePolicies = Object.values(constraints.fixedPolicies).filter(v => !v).length;
       if (variablePolicies === 0) {
@@ -1296,17 +1303,24 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                 id="evaluation-window"
                 name="evaluationWindow"
                 type="number"
-                value={constraints.evaluationWindow}
+                value={constraints.evaluationWindow || ''}
                 onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!isNaN(val) && val > 0) {
-                    setConstraints(prev => ({ ...prev, evaluationWindow: val }));
+                  const val = e.target.value;
+                  // Allow empty value temporarily
+                  if (val === '') {
+                    setConstraints(prev => ({ ...prev, evaluationWindow: 0 }));
+                  } else {
+                    const numVal = Number(val);
+                    if (!isNaN(numVal)) {
+                      setConstraints(prev => ({ ...prev, evaluationWindow: numVal }));
+                    }
                   }
                 }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="1"
                 max="365"
                 step="1"
+                placeholder="Enter days (1-365)"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Exact number of days for measuring growth rate (e.g., 30 = one full production cycle). Range: 1-365 days.
