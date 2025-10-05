@@ -143,7 +143,7 @@ public/
 ### Simulation Parameters
 
 Defined in `src/simulation/constants.ts`:
-- Simulation duration (Day 51 to Day 500)
+- Simulation duration (Day 51 to Day 415)
 - Financial rates (interest, commissions)
 - Production capacities and times
 - Machine costs

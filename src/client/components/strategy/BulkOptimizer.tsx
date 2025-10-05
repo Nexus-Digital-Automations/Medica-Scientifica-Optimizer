@@ -488,7 +488,7 @@ export default function BulkOptimizer() {
             disabled={isRunning}
             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             min="51"
-            max="450"
+            max="365"
           />
           <p className="text-xs text-gray-500 mt-1">
             Algorithm will find optimal actions to execute on this day forward (using current strategy state as context)

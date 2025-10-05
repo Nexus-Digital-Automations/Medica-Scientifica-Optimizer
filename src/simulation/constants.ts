@@ -52,7 +52,7 @@ export const CONSTANTS = {
 
   // Simulation Parameters
   SIMULATION_START_DAY: 51,
-  SIMULATION_END_DAY: 500, // Typical business simulation duration
+  SIMULATION_END_DAY: 415, // Active management period: 365 days (Day 51-415)
 } as const;
 
 /**
@@ -178,7 +178,7 @@ export const DEFAULT_STRATEGY: Strategy = {
   // Demand Model Parameters (market conditions)
   customDemandMean1: 25, // Phase 1 (days 51-172) mean demand
   customDemandStdDev1: 5, // Phase 1 standard deviation
-  customDemandMean2: 32.5, // Phase 2 (days 173-400) mean demand - 30% increase
+  customDemandMean2: 32.5, // Phase 2 (days 173-415) mean demand - 30% increase
   customDemandStdDev2: 6.5, // Phase 2 standard deviation
 
   // Standard Product Demand Curve (linear: Q = intercept + slope * P)

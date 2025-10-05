@@ -34,33 +34,16 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   // Get the result being viewed (current or saved)
   const viewingResult = getViewingResult();
 
-  // If no simulation and no saved results, show empty state
-  if (!viewingResult && savedResults.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">📊</div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">No Simulation Results Yet</h3>
-        <p className="text-gray-600">
-          Go to the Strategy Builder tab and click "Run Simulation" to see results here.
-        </p>
-      </div>
-    );
-  }
-
-  // If no current viewing but have saved results, show most recent by default
+  // If no current viewing but have saved results, use most recent
   const displayResult = viewingResult || getMostRecentSavedResult()?.result;
 
-  if (!displayResult) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">📊</div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">No Simulation Results</h3>
-        <p className="text-gray-600">Run a simulation to see results here.</p>
-      </div>
-    );
-  }
+  // Always show at least the Process Map tab (it handles its own empty state)
+  // Only show full dashboard when we have data
+  const hasData = displayResult !== null && displayResult !== undefined;
 
-  const { state, finalNetWorth, fitnessScore } = displayResult;
+  const state = displayResult?.state;
+  const finalNetWorth = displayResult?.finalNetWorth || 0;
+  const fitnessScore = displayResult?.fitnessScore || 0;
 
   const handleSaveResult = () => {
     if (saveStrategyName.trim()) {
@@ -70,12 +53,13 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     }
   };
 
-  // Validate simulation results
+  // Validate simulation results (only if we have data)
   const validationReport = useMemo(() => {
-    return validateSimulationResults(displayResult);
-  }, [displayResult]);
+    return hasData ? validateSimulationResults(displayResult!) : { errors: [], warnings: [], info: [], allPassed: true };
+  }, [displayResult, hasData]);
 
   const handleExportCSV = () => {
+    if (!displayResult) return;
     const csv = exportSimulationToCSV(displayResult);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -88,20 +72,20 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
 
   const isViewingCurrent = currentViewingResultId === null;
 
-  // Calculate totals from history
-  const totalRevenue = state.history.dailyRevenue.reduce((sum, d) => sum + d.value, 0);
-  const totalExpenses = state.history.dailyExpenses.reduce((sum, d) => sum + d.value, 0);
-  const totalInterestPaid = state.history.dailyInterestPaid.reduce((sum, d) => sum + d.value, 0);
-  const totalStandardProduced = state.history.dailyStandardProduction.reduce((sum, d) => sum + d.value, 0);
-  const totalCustomProduced = state.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0);
+  // Calculate totals from history (only if we have data)
+  const totalRevenue = hasData ? state!.history.dailyRevenue.reduce((sum, d) => sum + d.value, 0) : 0;
+  const totalExpenses = hasData ? state!.history.dailyExpenses.reduce((sum, d) => sum + d.value, 0) : 0;
+  const totalInterestPaid = hasData ? state!.history.dailyInterestPaid.reduce((sum, d) => sum + d.value, 0) : 0;
+  const totalStandardProduced = hasData ? state!.history.dailyStandardProduction.reduce((sum, d) => sum + d.value, 0) : 0;
+  const totalCustomProduced = hasData ? state!.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0) : 0;
 
   // Final day values
-  const finalDay = state.history.dailyCash[state.history.dailyCash.length - 1];
-  const finalCash = finalDay?.value || 0;
-  const finalDebt = state.history.dailyDebt[state.history.dailyDebt.length - 1]?.value || 0;
+  const finalCash = hasData ? (state!.history.dailyCash[state!.history.dailyCash.length - 1]?.value || 0) : 0;
+  const finalDebt = hasData ? (state!.history.dailyDebt[state!.history.dailyDebt.length - 1]?.value || 0) : 0;
 
   // Prepare chart data - sample every 10 days to keep charts readable
   const financialChartData = useMemo(() => {
+    if (!hasData || !state) return [];
     return state.history.dailyCash
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyCash.length - 1)
       .map((cashData, idx) => {
@@ -115,9 +99,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           expenses: Math.round(state.history.dailyExpenses[actualIdx]?.value || 0),
         };
       });
-  }, [state.history]);
+  }, [state, hasData]);
 
   const productionChartData = useMemo(() => {
+    if (!hasData || !state) return [];
     return state.history.dailyStandardProduction
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardProduction.length - 1)
       .map((prodData, idx) => {
@@ -132,9 +117,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           finishedCustom: Math.round(state.history.dailyFinishedCustom[actualIdx]?.value || 0),
         };
       });
-  }, [state.history]);
+  }, [state, hasData]);
 
   const workforceChartData = useMemo(() => {
+    if (!hasData || !state) return [];
     return state.history.dailyExperts
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyExperts.length - 1)
       .map((expertData, idx) => {
@@ -147,9 +133,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           salaryCost: Math.round(state.history.dailySalaryCost[actualIdx]?.value || 0),
         };
       });
-  }, [state.history]);
+  }, [state, hasData]);
 
   const inventoryChartData = useMemo(() => {
+    if (!hasData || !state) return [];
     return state.history.dailyRawMaterial
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyRawMaterial.length - 1)
       .map((inventoryData, idx) => {
@@ -161,9 +148,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           ordersPlaced: Math.round(state.history.dailyRawMaterialOrdersPlaced[actualIdx]?.value || 0),
         };
       });
-  }, [state.history]);
+  }, [state, hasData]);
 
   const marketChartData = useMemo(() => {
+    if (!hasData || !state) return [];
     return state.history.dailyStandardPrice
       .filter((_, idx) => idx % 10 === 0 || idx === state.history.dailyStandardPrice.length - 1)
       .map((priceData, idx) => {
@@ -175,7 +163,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           deliveryTime: Math.round(state.history.dailyCustomDeliveryTime[actualIdx]?.value || 0),
         };
       });
-  }, [state.history]);
+  }, [state, hasData]);
 
   const renderValidationIssue = (issue: ValidationIssue, index: number) => {
     const severityConfig = {
@@ -269,7 +257,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
       {/* Main Content */}
       <div className="flex-1 space-y-6">
       {/* Validation Report */}
-      {(validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
+      {hasData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <div className="border-b border-gray-200 pb-4 mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
@@ -324,6 +312,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
       )}
 
       {/* Key Metrics Grid */}
+      {hasData && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Net Worth */}
         <div className="bg-green-50 rounded-lg p-6 border border-green-200">
@@ -340,7 +329,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           <p className="text-3xl font-bold text-gray-900">
             ${finalCash.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
-          <p className="text-blue-600 text-xs mt-2">Day 500</p>
+          <p className="text-blue-600 text-xs mt-2">Day 415</p>
         </div>
 
         {/* Debt */}
@@ -352,8 +341,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           <p className="text-red-600 text-xs mt-2">Interest Paid: ${totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
         </div>
       </div>
+      )}
 
       {/* Revenue & Production */}
+      {hasData && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">💰 Financial Summary</h4>
@@ -395,9 +386,10 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           </div>
         </div>
       </div>
+      )}
 
       {/* Viewing Indicator */}
-      {!isViewingCurrent && (
+      {hasData && !isViewingCurrent && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <p className="text-purple-900 text-sm font-medium">
             📌 You are viewing a saved result. This is not your current simulation.
@@ -418,7 +410,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           >
             📁 {showResultsPanel ? 'Hide' : 'Show'} Saved Results ({savedResults.length})
           </button>
-          {onEditStrategy && (
+          {hasData && onEditStrategy && (
             <button
               onClick={onEditStrategy}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -428,7 +420,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           )}
         </div>
         <div className="flex gap-3">
-          {simulationResult && isViewingCurrent && (
+          {hasData && simulationResult && isViewingCurrent && (
             <button
               onClick={() => setShowSaveModal(true)}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -436,12 +428,14 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
               💾 Save Result
             </button>
           )}
+          {hasData && (
           <button
             onClick={handleExportCSV}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
           >
             📥 Export CSV
           </button>
+          )}
         </div>
       </div>
 
@@ -517,7 +511,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         <div className="p-8">
           {/* Process Map Tab */}
           {selectedTab === 'processMap' && (
-            <ProcessMap simulationResult={displayResult} />
+            <ProcessMap simulationResult={displayResult || null} />
           )}
 
           {/* Financial Performance Tab */}

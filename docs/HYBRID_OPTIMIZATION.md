@@ -178,7 +178,7 @@ const hybridStrategy = {
 };
 
 // Run simulation
-const finalResult = await runSimulation(hybridStrategy, 500);
+const finalResult = await runSimulation(hybridStrategy, 415);
 ```
 
 ## Testing

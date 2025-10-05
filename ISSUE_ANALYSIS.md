@@ -140,7 +140,7 @@ This rule IS correctly implemented in `src/simulation/productionModule.ts`:
 - Expected: 1 + 2 = 3 experts (after day 70)
 
 **User's Observation**:
-- Day 400+: 7 experts
+- Day 365+: 7 experts
 
 **Hypothesis**:
 1. **Hidden timed actions**: Strategy may have additional HIRE_ROOKIE or HIRE_EXPERT actions not visible in the summary

@@ -15,7 +15,7 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
               <p className="text-xs text-gray-600 font-medium">Simulation Period</p>
-              <p className="text-base font-semibold text-gray-900 mt-0.5">Day 51 - Day 500</p>
+              <p className="text-base font-semibold text-gray-900 mt-0.5">Day 51 - Day 415</p>
             </div>
           </div>
         </div>

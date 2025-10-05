@@ -33,7 +33,7 @@ Day 285: "Hire 3 rookie(s)" - Action executed
 Day 285-298: 4 experts, 3 rookies, 3 in training
 Day 299: 7 experts, 0 rookies, 0 in training (rookies promoted)
 
-Final State (Day 500): 7 experts, 0 rookies
+Final State (Day 415): 7 experts, 0 rookies
 ```
 
 **Root Cause Analysis:**

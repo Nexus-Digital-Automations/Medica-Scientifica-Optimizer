@@ -123,8 +123,8 @@ export default function DayActionSelector({ onClose }: DayActionSelectorProps) {
                 onChange={(e) => setDay(e.target.value === '' ? '' : Number(e.target.value))}
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="51"
-                max="500"
-                placeholder="Enter day number (51-500)"
+                max="365"
+                placeholder="Enter day number (51-365)"
                 required
               />
               <p className="text-xs text-gray-600 mt-2">💡 All selected actions will be scheduled for this day</p>

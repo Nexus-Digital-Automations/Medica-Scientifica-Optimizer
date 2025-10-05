@@ -39,7 +39,7 @@ export default function AdvancedOptimizer() {
     },
     fixedActions: new Set(),
     testDay: 75,
-    endDay: 500,
+    endDay: 415,
   });
 
   // Genetic algorithm parameters
@@ -903,7 +903,7 @@ export default function AdvancedOptimizer() {
                 }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 min="51"
-                max="500"
+                max="415"
               />
             </div>
           </div>

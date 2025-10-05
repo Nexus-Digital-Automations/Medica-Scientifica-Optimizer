@@ -250,7 +250,7 @@ export default function PolicyForm() {
                   max="40"
                   step="0.1"
                 />
-                <p className="text-xs text-gray-600 mt-2 bg-gray-100 px-3 py-1.5 rounded">Days 173-500 (30% growth)</p>
+                <p className="text-xs text-gray-600 mt-2 bg-gray-100 px-3 py-1.5 rounded">Days 173-415 (30% growth)</p>
               </div>
 
               <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">

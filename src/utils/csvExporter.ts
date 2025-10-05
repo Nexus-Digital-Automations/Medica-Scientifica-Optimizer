@@ -17,7 +17,7 @@ export function exportSimulationToCSV(result: SimulationResult): string {
   const header = [
     '# Medica Scientifica COMPREHENSIVE Optimization Results',
     `# Generated: ${new Date().toISOString()}`,
-    `# Period: Complete Simulation (Days 51-500)`,
+    `# Period: Complete Simulation (Days 51-415)`,
     '#',
     '# BUSINESS RULES VALIDATION:',
     `#   Status: ${businessRulesResult.valid ? '✅ PASSED' : '❌ FAILED'}`,
