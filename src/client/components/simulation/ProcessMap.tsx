@@ -3,7 +3,9 @@ import type { SimulationResult } from '../../types/ui.types';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
+import { generateComprehensiveRecommendations } from '../../utils/recommendationEngine';
 import InfoPopup from './InfoPopup';
+import RecommendationsPopup from './RecommendationsPopup';
 import {
   LineChart,
   Line,
@@ -43,8 +45,11 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   // Perform comprehensive bottleneck analysis
   const bottleneckAnalysis = useMemo(() => analyzeBottlenecks(displayResult), [displayResult]);
+  const recommendations = useMemo(
+    () => generateComprehensiveRecommendations(displayResult, bottleneckAnalysis),
+    [displayResult, bottleneckAnalysis]
+  );
   const [showStatistics, setShowStatistics] = useState(true);
-  const [showProblems, setShowProblems] = useState(true);
   const [showTrends, setShowTrends] = useState(false);
 
   // Get final day values
@@ -192,62 +197,13 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       )}
 
-      {/* Problem Analysis Panel */}
-      {showProblems && bottleneckAnalysis.problems.length > 0 && (
-        <div className="bg-gradient-to-br from-red-900/90 to-orange-900/90 border border-red-500 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-white">🔍 Detected Problems & Recommendations</h3>
-            <button
-              onClick={() => setShowProblems(false)}
-              className="text-gray-400 hover:text-white text-sm"
-            >
-              Hide
-            </button>
-          </div>
-          <div className="space-y-4">
-            {bottleneckAnalysis.problems.map((problem) => (
-              <div key={problem.id} className={`border-2 rounded-lg p-5 ${getSeverityColor(problem.severity)}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-bold text-white">{problem.title}</h4>
-                  <div className={`px-3 py-1 rounded ${getSeverityBadge(problem.severity)} text-xs font-bold`}>
-                    {problem.severity.toUpperCase()}
-                  </div>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="text-gray-400">Description:</span>
-                    <p className="text-white mt-1">{problem.description}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Root Cause:</span>
-                    <p className="text-yellow-300 mt-1">{problem.rootCause}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Impact:</span>
-                    <p className="text-red-300 mt-1">{problem.impact}</p>
-                  </div>
-                  <div className="bg-blue-900 border border-blue-500 rounded-lg p-3">
-                    <span className="text-blue-300 font-semibold">💡 Recommendation:</span>
-                    <p className="text-blue-200 mt-1">{problem.recommendation}</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-700">
-                    <div className="text-center">
-                      <div className="text-gray-400 text-xs">Peak WIP</div>
-                      <div className="text-white font-bold">{problem.metrics.peakWIP.toFixed(0)}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-400 text-xs">Health Score</div>
-                      <div className="text-white font-bold">{problem.metrics.utilizationRate.toFixed(0)}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-400 text-xs">Station</div>
-                      <div className="text-white font-bold text-xs">{problem.station}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Intelligent Recommendations Button */}
+      {recommendations.length > 0 && (
+        <div className="flex justify-center">
+          <RecommendationsPopup
+            recommendations={recommendations}
+            overallHealth={bottleneckAnalysis.overallHealth}
+          />
         </div>
       )}
 
@@ -288,14 +244,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
           >
             Show Statistics
-          </button>
-        )}
-        {!showProblems && bottleneckAnalysis.problems.length > 0 && (
-          <button
-            onClick={() => setShowProblems(true)}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
-          >
-            Show Problems ({bottleneckAnalysis.problems.length})
           </button>
         )}
         {!showTrends && (
