@@ -49,17 +49,22 @@ export default function AnimatedFlowArrow({
   // Animation speed based on flow rate (higher flow = faster animation)
   const animationDuration = Math.max(1, 5 - (flowRate / 10)); // 1-5 seconds
 
+  // Determine if shortage or surplus
+  const gap = flowRate - demandRate;
+  const isShortage = gap < 0;
+  const isSurplus = gap > 0;
+
   return (
-    <div className="flex flex-col items-center my-2 relative">
+    <div className="flex flex-col items-center my-3 relative">
       {/* Arrow with animation */}
       <div
-        className={`relative ${vertical ? 'h-16 w-4' : 'w-16 h-4'} flex ${vertical ? 'flex-col' : 'flex-row'} items-center justify-center cursor-pointer group`}
+        className={`relative ${vertical ? 'h-20 w-8' : 'w-20 h-8'} flex ${vertical ? 'flex-col' : 'flex-row'} items-center justify-center cursor-pointer group`}
         onClick={() => setShowPopup(!showPopup)}
       >
-        {/* Background arrow line - thick and visible */}
+        {/* Background arrow line - thick and very visible */}
         <div
-          className={`absolute ${vertical ? 'w-2 h-full' : 'h-2 w-full'} transition-all group-hover:scale-110`}
-          style={{ backgroundColor: arrowColorHex, opacity: 0.9 }}
+          className={`absolute ${vertical ? 'w-3 h-full' : 'h-3 w-full'} rounded-sm transition-all group-hover:scale-110`}
+          style={{ backgroundColor: arrowColorHex, opacity: 0.95 }}
         />
 
         {/* Animated flow particles */}
@@ -67,33 +72,47 @@ export default function AnimatedFlowArrow({
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className={`absolute ${vertical ? 'w-3 h-3 left-1/2 -translate-x-1/2' : 'h-3 w-3 top-1/2 -translate-y-1/2'} rounded-full`}
+              className={`absolute ${vertical ? 'w-4 h-4 left-1/2 -translate-x-1/2' : 'h-4 w-4 top-1/2 -translate-y-1/2'} rounded-full`}
               style={{
                 backgroundColor: '#ffffff',
                 animation: vertical
                   ? `flowDown ${animationDuration}s linear infinite`
                   : `flowRight ${animationDuration}s linear infinite`,
                 animationDelay: `${i * (animationDuration / 3)}s`,
-                opacity: flowRate > 0 ? 0.8 : 0,
+                opacity: flowRate > 0 ? 0.9 : 0,
               }}
             />
           ))}
         </div>
 
-        {/* Arrow head - larger and more visible */}
+        {/* Arrow head - large triangle */}
         <div
           className={`absolute ${vertical ? 'bottom-0 left-1/2 -translate-x-1/2' : 'right-0 top-1/2 -translate-y-1/2'} w-0 h-0`}
           style={{
-            borderLeft: vertical ? '10px solid transparent' : '16px solid',
-            borderRight: vertical ? '10px solid transparent' : 'none',
-            borderTop: vertical ? '16px solid' : '10px solid transparent',
-            borderBottom: vertical ? 'none' : '10px solid transparent',
+            borderLeft: vertical ? '12px solid transparent' : '20px solid',
+            borderRight: vertical ? '12px solid transparent' : 'none',
+            borderTop: vertical ? '20px solid' : '12px solid transparent',
+            borderBottom: vertical ? 'none' : '12px solid transparent',
             borderColor: arrowColorHex,
           }}
         />
 
-        {/* Info icon */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
+        {/* Shortage/Surplus indicator icon */}
+        <div className={`absolute ${vertical ? 'left-full ml-2' : 'top-full mt-2'} flex items-center justify-center`}>
+          {isShortage && (
+            <div className="w-7 h-7 rounded-full bg-red-600 border-2 border-red-400 flex items-center justify-center shadow-lg">
+              <span className="text-white text-sm font-bold">▼</span>
+            </div>
+          )}
+          {isSurplus && !isBottleneck && (
+            <div className="w-7 h-7 rounded-full bg-green-600 border-2 border-green-400 flex items-center justify-center shadow-lg">
+              <span className="text-white text-sm font-bold">▲</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info icon on hover */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
           ℹ️
         </div>
       </div>
