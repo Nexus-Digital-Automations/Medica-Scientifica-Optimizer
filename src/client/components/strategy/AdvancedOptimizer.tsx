@@ -8,6 +8,13 @@ import { debugLogger } from '../../utils/debugLogger';
 import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
 
+interface AdvancedOptimizerProps {
+  onResultsReady?: (results: {
+    byGrowthRate: OptimizationCandidate[];
+    byPeakGrowth: OptimizationCandidate[];
+  }) => void;
+}
+
 interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
   fixedPolicies: {
@@ -27,7 +34,7 @@ interface OptimizationConstraints {
   evaluationWindow: number; // Days to measure growth rate (default: 30)
 }
 
-export default function AdvancedOptimizer() {
+export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerProps = {}) {
   const { strategy, loadStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
@@ -40,7 +47,7 @@ export default function AdvancedOptimizer() {
       dailyOvertimeHours: false,
     },
     fixedActions: new Set(),
-    testDay: 75,
+    testDay: 51,
     endDay: 415,
     evaluationWindow: 30,
   });
@@ -437,14 +444,41 @@ export default function AdvancedOptimizer() {
               endNetWorth = endDayData?.value || result.finalNetWorth;
               growthRate = (endNetWorth - startNetWorth) / constraints.evaluationWindow;
 
-              // METRIC 2: Peak Growth (total $ gain from testDay to peak before decline)
+              // METRIC 2: Peak Growth (total $ gain from testDay to peak BEFORE downturn)
               const netWorthAfterTestDay = dailyNetWorth.filter(
                 (d: { day: number; value: number }) =>
                   d.day >= startDay && d.day <= constraints.endDay
               );
 
               if (netWorthAfterTestDay.length > 0) {
-                const peakNetWorth = Math.max(...netWorthAfterTestDay.map((d: { value: number }) => d.value));
+                // Find the peak before any sustained downturn (3+ consecutive days of decline)
+                let peakNetWorth = startNetWorth;
+                let peakDay = startDay;
+
+                for (let i = 0; i < netWorthAfterTestDay.length; i++) {
+                  const currentValue = netWorthAfterTestDay[i].value;
+
+                  // Track the peak value
+                  if (currentValue > peakNetWorth) {
+                    peakNetWorth = currentValue;
+                    peakDay = netWorthAfterTestDay[i].day;
+                  }
+
+                  // Check for sustained downturn (3+ consecutive days of decline)
+                  if (i >= 3) {
+                    const last4Values = netWorthAfterTestDay.slice(i - 3, i + 1).map((d: { value: number }) => d.value);
+                    const isDownturn =
+                      last4Values[3] < last4Values[2] &&
+                      last4Values[2] < last4Values[1] &&
+                      last4Values[1] < last4Values[0];
+
+                    if (isDownturn && netWorthAfterTestDay[i - 3].day > peakDay) {
+                      console.log(`[Phase1] Downturn detected for ${candidate.id} at day ${netWorthAfterTestDay[i].day}, peak was at day ${peakDay}`);
+                      break; // Stop evaluation at first sustained downturn after peak
+                    }
+                  }
+                }
+
                 peakGrowth = peakNetWorth - startNetWorth;
               }
 
@@ -566,6 +600,12 @@ export default function AdvancedOptimizer() {
       console.log('🚀 Top 5 by Growth Rate:', topByGrowthRate);
       console.log('📈 Top 5 by Peak Growth:', topByPeakGrowth);
 
+      // Notify parent component (OptimizerPage) that Phase 1 results are ready
+      if (onResultsReady) {
+        onResultsReady({ byGrowthRate: topByGrowthRate, byPeakGrowth: topByPeakGrowth });
+        console.log('📤 Phase 1 results sent to OptimizerPage for Phase 2');
+      }
+
       // Debug: Check if all have same history reference (shallow copy issue)
       const firstHistory = topByGrowthRate[0]?.history;
       const allSameHistory = topByGrowthRate.every(c => c.history === firstHistory);
@@ -636,6 +676,97 @@ export default function AdvancedOptimizer() {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  };
+
+  // Helper function to merge conflicting actions and return formatted strings
+  const getMergedActionTexts = (actions: Strategy['timedActions']): string[] => {
+    // Track net effects for mergeable action types
+    const machineNet: Record<string, number> = {}; // machineType -> net count (+ = buy, - = sell)
+    const rookieNet = { hire: 0, fire: 0 };
+    const expertNet = { hire: 0, fire: 0 };
+    let loanNet = 0;
+    const otherActions: Strategy['timedActions'] = [];
+
+    // Process all actions and calculate net effects
+    actions.forEach(action => {
+      if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
+        const key = action.machineType;
+        machineNet[key] = (machineNet[key] || 0) + action.count;
+      } else if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
+        const key = action.machineType;
+        machineNet[key] = (machineNet[key] || 0) - action.count;
+      } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+        rookieNet.hire += action.count;
+      } else if (action.type === 'FIRE_EMPLOYEE' && 'employeeType' in action && 'count' in action) {
+        if (action.employeeType === 'rookie') {
+          rookieNet.fire += action.count;
+        } else {
+          expertNet.fire += action.count;
+        }
+      } else if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+        loanNet += action.amount;
+      } else if (action.type === 'PAY_DEBT' && 'amount' in action) {
+        loanNet -= action.amount;
+      } else {
+        // Keep non-mergeable actions as-is
+        otherActions.push(action);
+      }
+    });
+
+    // Build merged action text list
+    const mergedTexts: string[] = [];
+
+    // Add policy actions first (from otherActions)
+    otherActions.forEach(action => {
+      let actionText = '';
+      if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
+        actionText = `Set Reorder Point → ${action.newReorderPoint} units`;
+      } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
+        actionText = `Set Order Quantity → ${action.newOrderQuantity} units`;
+      } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
+        actionText = `Adjust Batch Size → ${action.newSize} units`;
+      } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
+        actionText = `Adjust Standard Price → $${action.newPrice}`;
+      } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
+        const customPct = (action.newAllocation * 100).toFixed(0);
+        const standardPct = (100 - action.newAllocation * 100).toFixed(0);
+        actionText = `Adjust MCE Allocation → ${standardPct}% standard / ${customPct}% custom`;
+      } else {
+        actionText = action.type;
+      }
+      if (actionText) mergedTexts.push(actionText);
+    });
+
+    // Add merged workforce actions
+    const netRookies = rookieNet.hire - rookieNet.fire;
+    if (netRookies > 0) {
+      mergedTexts.push(`Hire Rookie Workers → ${netRookies} workers`);
+    } else if (netRookies < 0) {
+      mergedTexts.push(`Fire Employee → ${Math.abs(netRookies)}x rookie`);
+    }
+
+    if (expertNet.fire > 0) {
+      mergedTexts.push(`Fire Employee → ${expertNet.fire}x expert`);
+    }
+
+    // Add merged machine actions
+    Object.entries(machineNet).forEach(([machineType, netCount]) => {
+      if (netCount > 0) {
+        mergedTexts.push(`Buy Machine → ${netCount}x ${machineType}`);
+      } else if (netCount < 0) {
+        mergedTexts.push(`Sell Machine → ${Math.abs(netCount)}x ${machineType}`);
+      }
+      // If netCount === 0, actions cancel out - don't show anything
+    });
+
+    // Add merged loan actions
+    if (loanNet > 0) {
+      mergedTexts.push(`Take Loan → $${loanNet.toLocaleString()}`);
+    } else if (loanNet < 0) {
+      mergedTexts.push(`Pay Debt → $${Math.abs(loanNet).toLocaleString()}`);
+    }
+
+    return mergedTexts;
   };
 
   const downloadComprehensiveXLSX = async (candidate: OptimizationCandidate, idx: number) => {
@@ -1316,41 +1447,12 @@ export default function AdvancedOptimizer() {
                       📋 Policy Actions on Day {constraints.testDay}:
                     </div>
                     <div className="space-y-1">
-                      {result.actions.map((action, actionIdx) => {
-                        let actionText = '';
-                        if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
-                          actionText = `Set Reorder Point → ${action.newReorderPoint} units`;
-                        } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
-                          actionText = `Set Order Quantity → ${action.newOrderQuantity} units`;
-                        } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-                          actionText = `Adjust Batch Size → ${action.newSize} units`;
-                        } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-                          actionText = `Adjust Standard Price → $${action.newPrice}`;
-                        } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-                          const customPct = (action.newAllocation * 100).toFixed(0);
-                          const standardPct = (100 - action.newAllocation * 100).toFixed(0);
-                          actionText = `Adjust MCE Allocation → ${standardPct}% standard / ${customPct}% custom`;
-                        } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
-                          actionText = `Hire Rookie Workers → ${action.count} workers`;
-                        } else if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
-                          actionText = `Buy Machine → ${action.count}x ${action.machineType}`;
-                        } else if (action.type === 'FIRE_EMPLOYEE' && 'employeeType' in action && 'count' in action) {
-                          actionText = `Fire Employee → ${action.count}x ${action.employeeType}`;
-                        } else if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
-                          actionText = `Sell Machine → ${action.count}x ${action.machineType}`;
-                        } else if (action.type === 'TAKE_LOAN' && 'amount' in action) {
-                          actionText = `Take Loan → $${action.amount.toLocaleString()}`;
-                        } else {
-                          actionText = action.type;
-                        }
-
-                        return (
-                          <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
-                            <span className="text-blue-400">•</span>
-                            {actionText}
-                          </div>
-                        );
-                      })}
+                      {getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
+                        <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
+                          <span className="text-blue-400">•</span>
+                          {actionText}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1480,41 +1582,12 @@ export default function AdvancedOptimizer() {
                           📋 Policy Actions on Day {constraints.testDay}:
                         </div>
                         <div className="space-y-1">
-                          {result.actions.map((action, actionIdx) => {
-                            let actionText = '';
-                            if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
-                              actionText = `Set Reorder Point → ${action.newReorderPoint} units`;
-                            } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
-                              actionText = `Set Order Quantity → ${action.newOrderQuantity} units`;
-                            } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-                              actionText = `Adjust Batch Size → ${action.newSize} units`;
-                            } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-                              actionText = `Adjust Standard Price → $${action.newPrice}`;
-                            } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-                              const customPct = (action.newAllocation * 100).toFixed(0);
-                              const standardPct = (100 - action.newAllocation * 100).toFixed(0);
-                              actionText = `Adjust MCE Allocation → ${standardPct}% standard / ${customPct}% custom`;
-                            } else if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
-                              actionText = `Hire Rookie Workers → ${action.count} workers`;
-                            } else if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
-                              actionText = `Buy Machine → ${action.count}x ${action.machineType}`;
-                            } else if (action.type === 'FIRE_EMPLOYEE' && 'employeeType' in action && 'count' in action) {
-                              actionText = `Fire Employee → ${action.count}x ${action.employeeType}`;
-                            } else if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
-                              actionText = `Sell Machine → ${action.count}x ${action.machineType}`;
-                            } else if (action.type === 'TAKE_LOAN' && 'amount' in action) {
-                              actionText = `Take Loan → $${action.amount.toLocaleString()}`;
-                            } else {
-                              actionText = action.type;
-                            }
-
-                            return (
-                              <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
-                                <span className="text-blue-400">•</span>
-                                {actionText}
-                              </div>
-                            );
-                          })}
+                          {getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
+                            <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
+                              <span className="text-blue-400">•</span>
+                              {actionText}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
