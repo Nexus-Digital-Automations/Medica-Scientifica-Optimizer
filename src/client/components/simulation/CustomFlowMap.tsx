@@ -353,7 +353,8 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   // Pan handlers (mouse drag)
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     // Only start dragging on primary mouse button (left click)
-    if (e.button === 0 && !e.target.closest('button, foreignObject')) {
+    const target = e.target as Element;
+    if (e.button === 0 && !target.closest('button, foreignObject')) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
       e.preventDefault();
