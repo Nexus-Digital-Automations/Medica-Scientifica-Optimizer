@@ -36,15 +36,18 @@ interface Edge {
   getMetrics?: () => FlowMetrics;
 }
 
+// Shared Raw Materials Inventory (unified, shared between both lines) - LEFTMOST
+// Positioned at x=50 (leftmost), y=200, height=600 spans both lines
+const rawMaterialsNode: Node = { id: 'raw-materials', label: 'Raw Materials', x: 50, y: 200, color: '#f97316', icon: '📦' };
+
 // MCE Station (unified, shared between both lines) - spans vertically between custom and standard
-// Positioned at x=1050, y=200, height=500 spans both lines with horizontal color split
+// Positioned at x=1050, y=200, height=600 spans both lines with horizontal color split
 const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1050, y: 200, color: '#6b7280', icon: '⚙️' };
 
 // Custom line nodes with vertical loop pattern
 // Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Station 2 → Deliveries
 // Loop flow: Station 2 → Queue 3 (below) → Station 3 (below) → back to Station 2
 const customNodes: Node[] = [
-  { id: 'custom-raw-materials', label: 'Raw Materials', x: 50, y: 200, color: '#f97316', icon: '📦' },
   { id: 'custom-queue1', label: 'Queue 1', x: 550, y: 200, color: '#f97316', icon: '📦' },
   { id: 'custom-orders', label: 'Orders', x: 1550, y: 200, color: '#ef4444', icon: '📋' },
   { id: 'custom-queue2', label: 'Queue 2', x: 2050, y: 200, color: '#f97316', icon: '📦' },
@@ -58,7 +61,6 @@ const customNodes: Node[] = [
 // Standard line nodes (continuous single row, bottom section, 500px gaps)
 // Flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
 const standardNodes: Node[] = [
-  { id: 'std-raw-materials', label: 'Raw Materials', x: 50, y: 700, color: '#f97316', icon: '📦' },
   { id: 'std-queue1', label: 'Queue 1', x: 550, y: 700, color: '#f97316', icon: '📦' },
   { id: 'std-orders', label: 'Orders', x: 1550, y: 700, color: '#ef4444', icon: '📋' },
   { id: 'std-queue2', label: 'Queue 2', x: 2050, y: 700, color: '#f97316', icon: '📦' },
@@ -71,7 +73,7 @@ const standardNodes: Node[] = [
   { id: 'std-deliveries', label: 'Deliveries', x: 5550, y: 700, color: '#22c55e', icon: '📦' },
 ];
 
-const nodes: Node[] = [mceNode, ...customNodes, ...standardNodes];
+const nodes: Node[] = [rawMaterialsNode, mceNode, ...customNodes, ...standardNodes];
 
 function findNode(id: string): Node | undefined {
   return nodes.find((n) => n.id === id);
@@ -155,6 +157,70 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
       </text>
       {info && (
         <foreignObject x={70} y={10} width={25} height={25} style={{ zIndex: 10 }} pointerEvents="all">
+          {info}
+        </foreignObject>
+      )}
+    </g>
+  );
+}
+
+function RawMaterialsInventory({ x, y, info }: { x: number; y: number; info?: React.ReactNode }) {
+  const width = 120;
+  const height = 600; // Spans from y=200 (custom line) to y=800 (standard line)
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      {/* Gradient for raw materials */}
+      <defs>
+        <linearGradient id="raw-materials-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ea580c" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+      </defs>
+
+      {/* Border/outline */}
+      <rect
+        width={width}
+        height={height}
+        rx={12}
+        fill="url(#raw-materials-gradient)"
+        stroke="white"
+        strokeWidth={3}
+        className="drop-shadow-lg"
+      />
+
+      {/* Icon in center */}
+      <foreignObject x={10} y={height / 2 - 30} width={100} height={60}>
+        <div className="w-full h-full flex items-center justify-center">
+          <Package className="w-12 h-12 text-white" strokeWidth={2.5} />
+        </div>
+      </foreignObject>
+
+      {/* Labels showing consumption */}
+      <text
+        x={width / 2}
+        y={150}
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={600}
+        fill="white"
+      >
+        Custom: 1 part
+      </text>
+      <text
+        x={width / 2}
+        y={height - 150}
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={600}
+        fill="white"
+      >
+        Standard: 2 parts
+      </text>
+
+      {/* Info popup */}
+      {info && (
+        <foreignObject x={width - 30} y={5} width={25} height={25} pointerEvents="all">
           {info}
         </foreignObject>
       )}
@@ -502,7 +568,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   // Loop: Station 2 → Queue 3 (down) → Station 3 → back to Station 2 (animated loop)
   const customEdges: Edge[] = [
     // Main flow
-    { from: 'custom-raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
+    { from: 'raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
     { from: 'custom-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
     { from: 'mce-station', to: 'custom-orders', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
     { from: 'custom-orders', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
@@ -516,7 +582,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
   // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
   const standardEdges: Edge[] = [
-    { from: 'std-raw-materials', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
+    { from: 'raw-materials', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
     { from: 'std-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['std-queue1-station1'] },
     { from: 'mce-station', to: 'std-orders', getMetrics: () => edgeMetrics['std-station1-queue2'] },
     { from: 'std-orders', to: 'std-queue2', getMetrics: () => edgeMetrics['std-orders-queue1'] },
@@ -682,6 +748,50 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         <g>
           {nodes.map((n) => {
             let info;
+
+            // Raw Materials Inventory - special rendering
+            if (n.id === 'raw-materials') {
+              const rawMaterialsInfo = (
+                <InfoPopup
+                  title="Raw Materials Inventory (Shared Resource)"
+                  buttonClassName="bg-orange-600 hover:bg-orange-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  content={
+                    <div className="text-sm text-gray-300 space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-orange-300 mb-2">Overview</h4>
+                        <p>
+                          Shared raw materials warehouse storing generic parts assigned to both production lines as needed.
+                        </p>
+                      </div>
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <h4 className="text-md font-semibold text-orange-300 mb-2">Consumption Details</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Custom Line Usage:</span>
+                            <span className="text-purple-300 font-bold">1 part per unit</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Standard Line Usage:</span>
+                            <span className="text-blue-300 font-bold">2 parts per unit</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                            <span className="text-gray-400">Material Type:</span>
+                            <span className="text-white font-bold">Identical generic parts</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-orange-900 border border-orange-600 rounded-lg p-3">
+                        <h4 className="text-md font-semibold text-orange-300 mb-2">💡 Note</h4>
+                        <p className="text-xs">
+                          Both custom and standard devices use identical raw materials. The difference is in quantity consumed and processing method.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              );
+              return <RawMaterialsInventory key={n.id} x={n.x} y={n.y} info={rawMaterialsInfo} />;
+            }
 
             // MCE Station - special rendering
             if (n.id === 'mce-station') {
