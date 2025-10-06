@@ -72,18 +72,52 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const recentDays = 50;
   const startIdx = Math.max(0, finalDayIndex - recentDays);
 
+  // DEBUG LOGGING
+  console.log('[ProcessMap] DEBUG - Index calculations:', {
+    finalDayIndex,
+    recentDays,
+    startIdx,
+    totalDays: displayResult?.state.history.dailyCash.length,
+  });
+
   const avgStandardProduction = useMemo(() => {
     if (!displayResult) return 0;
     const elements = displayResult.state.history.dailyStandardProduction.slice(startIdx, finalDayIndex + 1);
     const sum = elements.reduce((acc, d) => acc + d.value, 0);
-    return elements.length > 0 ? sum / elements.length : 0;
+    const avg = elements.length > 0 ? sum / elements.length : 0;
+
+    console.log('[ProcessMap] DEBUG - Standard Production:', {
+      totalArrayLength: displayResult.state.history.dailyStandardProduction.length,
+      sliceStart: startIdx,
+      sliceEnd: finalDayIndex + 1,
+      elementsLength: elements.length,
+      firstElement: elements[0],
+      lastElement: elements[elements.length - 1],
+      sum,
+      avg,
+    });
+
+    return avg;
   }, [displayResult, startIdx, finalDayIndex]);
 
   const avgCustomProduction = useMemo(() => {
     if (!displayResult) return 0;
     const elements = displayResult.state.history.dailyCustomProduction.slice(startIdx, finalDayIndex + 1);
     const sum = elements.reduce((acc, d) => acc + d.value, 0);
-    return elements.length > 0 ? sum / elements.length : 0;
+    const avg = elements.length > 0 ? sum / elements.length : 0;
+
+    console.log('[ProcessMap] DEBUG - Custom Production:', {
+      totalArrayLength: displayResult.state.history.dailyCustomProduction.length,
+      sliceStart: startIdx,
+      sliceEnd: finalDayIndex + 1,
+      elementsLength: elements.length,
+      firstElement: elements[0],
+      lastElement: elements[elements.length - 1],
+      sum,
+      avg,
+    });
+
+    return avg;
   }, [displayResult, startIdx, finalDayIndex]);
 
   // Prepare trend chart data (with null safety)
