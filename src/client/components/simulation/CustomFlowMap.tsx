@@ -135,6 +135,63 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
   );
 }
 
+function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAllocation: number; info?: React.ReactNode }) {
+  const width = 500;
+  const height = 120;
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      {/* Gradient background box */}
+      <defs>
+        <linearGradient id="mce-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#9333ea" />
+          <stop offset="50%" stopColor="#6b7280" />
+          <stop offset="100%" stopColor="#2563eb" />
+        </linearGradient>
+      </defs>
+
+      <rect
+        width={width}
+        height={height}
+        rx={20}
+        fill="url(#mce-gradient)"
+        stroke="#9ca3af"
+        strokeWidth={3}
+        className="drop-shadow-2xl"
+      />
+
+      {/* Title */}
+      <text x={width / 2} y={30} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">
+        ⚙️ STATION 3 - MCE (SHARED)
+      </text>
+      <text x={width / 2} y={50} textAnchor="middle" fontSize={14} fill="#e5e7eb">
+        Material Consumption & Forming
+      </text>
+
+      {/* Allocation bar */}
+      <g transform="translate(60, 65)">
+        <rect width={380} height={30} rx={15} fill="#374151" />
+        <rect width={380 * mceAllocation} height={30} rx={15} fill="#a855f7" />
+        <rect x={380 * mceAllocation} width={380 * (1 - mceAllocation)} height={30} rx={15} fill="#3b82f6" />
+
+        <text x={190 * mceAllocation} y={20} textAnchor="middle" fontSize={12} fontWeight={700} fill="white">
+          {(mceAllocation * 100).toFixed(0)}%
+        </text>
+        <text x={380 * mceAllocation + 190 * (1 - mceAllocation)} y={20} textAnchor="middle" fontSize={12} fontWeight={700} fill="white">
+          {((1 - mceAllocation) * 100).toFixed(0)}%
+        </text>
+      </g>
+
+      {/* Info popup */}
+      {info && (
+        <foreignObject x={width - 35} y={10} width={25} height={25}>
+          {info}
+        </foreignObject>
+      )}
+    </g>
+  );
+}
+
 function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
@@ -158,6 +215,7 @@ function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupTogg
         strokeLinecap="round"
         strokeDasharray={edge.isDotted ? '8 4' : edge.isLoop ? '12 8' : '0'}
         markerEnd="url(#arrow)"
+        filter={edge.isDotted ? undefined : "url(#arrow-shadow)"}
         animate={edge.isLoop ? { strokeDashoffset: [0, -40] } : {}}
         transition={edge.isLoop ? { repeat: Infinity, repeatType: 'loop', duration: 2, ease: 'linear' } : {}}
         className="cursor-pointer"
@@ -399,6 +457,53 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         <g>
           {nodes.map((n) => {
             let info;
+
+            // MCE Station - special rendering
+            if (n.id === 'mce-station') {
+              const mceInfo = (
+                <InfoPopup
+                  title="⚙️ Station 3 - MCE (Material Consumption & Forming)"
+                  buttonClassName="bg-gray-600 hover:bg-gray-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  content={
+                    <div className="text-sm text-gray-300 space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-300 mb-2">Overview</h4>
+                        <p>
+                          The MCE (Material Consumption & Forming) station is the shared entry point for both production lines.
+                          It consumes raw material parts and begins the forming process.
+                        </p>
+                      </div>
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <h4 className="text-md font-semibold text-purple-300 mb-2">Allocation Details</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Custom Line Allocation:</span>
+                            <span className="text-purple-300 font-bold">{(mceAllocation * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Standard Line Allocation:</span>
+                            <span className="text-blue-300 font-bold">{((1 - mceAllocation) * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                            <span className="text-gray-400">Priority:</span>
+                            <span className="text-white font-bold">Custom → Standard</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-blue-900 border border-blue-600 rounded-lg p-3">
+                        <h4 className="text-md font-semibold text-blue-300 mb-2">💡 Strategic Importance</h4>
+                        <p className="text-xs">
+                          The MCE allocation percentage determines how machine capacity is divided between custom and standard production.
+                          Custom line has first priority on allocated capacity, while standard line uses remaining capacity.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                />
+              );
+              return <MCEStation key={n.id} x={n.x} y={n.y} mceAllocation={mceAllocation} info={mceInfo} />;
+            }
+
             // Custom line stations
             if (n.id === 'custom-station1' || n.id === 'custom-station2' || n.id === 'custom-station3') {
               info = (
@@ -523,46 +628,103 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      {/* Flow Arrow Legend */}
+      {/* Comprehensive Legend */}
       <div className="mt-6 bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-400 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">🎯 Flow Arrow Legend</h3>
-        <div className="flex justify-center gap-8 text-sm">
-          <div className="flex flex-col items-center gap-2">
-            <svg width="50" height="20" viewBox="0 0 50 20">
-              <line x1="0" y1="10" x2="42" y2="10" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
-              <polygon points="50,10 42,6 42,14" fill="#ef4444" />
-            </svg>
-            <div className="text-center">
-              <div className="text-red-600 font-bold">🔴 Supply Shortage</div>
-              <div className="text-gray-600 text-xs">Flow &lt; Demand</div>
-              <div className="text-gray-500 text-xs">Bottleneck</div>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">📖 Production Flow Map Guide</h3>
+
+        {/* Dual-Line Architecture */}
+        <div className="mb-6 bg-white rounded-lg p-4 border-2 border-gray-300">
+          <h4 className="text-md font-bold text-gray-800 mb-3 flex items-center gap-2">
+            🏭 Dual-Line Architecture
+          </h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="bg-purple-50 rounded-lg p-3 border-2 border-purple-300">
+              <div className="font-bold text-purple-700 mb-1">Custom Line (Purple)</div>
+              <div className="text-gray-700 text-xs space-y-1">
+                <div>• Make-to-order production</div>
+                <div>• First priority on MCE</div>
+                <div>• Flows left → right</div>
+                <div>• Individual order tracking</div>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <svg width="50" height="20" viewBox="0 0 50 20">
-              <line x1="0" y1="10" x2="42" y2="10" stroke="#3b82f6" strokeWidth="10" strokeLinecap="round" />
-              <polygon points="50,10 42,6 42,14" fill="#3b82f6" />
-            </svg>
-            <div className="text-center">
-              <div className="text-blue-600 font-bold">🔵 Balanced Flow</div>
-              <div className="text-gray-600 text-xs">Flow ≈ Demand</div>
-              <div className="text-gray-500 text-xs">Healthy</div>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <svg width="50" height="20" viewBox="0 0 50 20">
-              <line x1="0" y1="10" x2="42" y2="10" stroke="#22c55e" strokeWidth="14" strokeLinecap="round" />
-              <polygon points="50,10 42,6 42,14" fill="#22c55e" />
-            </svg>
-            <div className="text-center">
-              <div className="text-green-600 font-bold">🟢 Excess Supply</div>
-              <div className="text-gray-600 text-xs">Flow &gt; Demand</div>
-              <div className="text-gray-500 text-xs">Overcapacity</div>
+            <div className="bg-blue-50 rounded-lg p-3 border-2 border-blue-300">
+              <div className="font-bold text-blue-700 mb-1">Standard Line (Blue)</div>
+              <div className="text-gray-700 text-xs space-y-1">
+                <div>• Make-to-stock production</div>
+                <div>• Second priority on MCE</div>
+                <div>• Snake pattern (2 rows)</div>
+                <div>• Batch processing (60 units)</div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="mt-4 text-center text-gray-600 text-xs">
-          Click any arrow for detailed flow metrics and bottleneck analysis
+
+        {/* MCE Station Info */}
+        <div className="mb-6 bg-gradient-to-r from-purple-50 via-gray-50 to-blue-50 rounded-lg p-4 border-2 border-gray-400">
+          <h4 className="text-md font-bold text-gray-800 mb-3 flex items-center gap-2">
+            ⚙️ MCE Station (Shared Resource)
+          </h4>
+          <div className="text-sm text-gray-700 space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-gray-800">Purpose:</span>
+              <span>Material Consumption & Forming - shared entry point for both production lines</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-gray-800">Allocation:</span>
+              <span>
+                <span className="text-purple-600 font-bold">{(mceAllocation * 100).toFixed(0)}% Custom</span>
+                {' / '}
+                <span className="text-blue-600 font-bold">{((1 - mceAllocation) * 100).toFixed(0)}% Standard</span>
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-gray-800">Priority:</span>
+              <span>Custom line has first priority, Standard line uses remaining capacity</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Flow Arrow Legend */}
+        <div className="bg-white rounded-lg p-4 border-2 border-gray-300">
+          <h4 className="text-md font-bold text-gray-800 mb-3 text-center">🎯 Flow Arrow Guide</h4>
+          <div className="flex justify-center gap-8 text-sm">
+            <div className="flex flex-col items-center gap-2">
+              <svg width="60" height="24" viewBox="0 0 60 24">
+                <line x1="0" y1="12" x2="48" y2="12" stroke="#ef4444" strokeWidth="8" strokeLinecap="round" />
+                <polygon points="60,12 48,6 48,18" fill="#ef4444" />
+              </svg>
+              <div className="text-center">
+                <div className="text-red-600 font-bold text-base">🔴 Supply Shortage</div>
+                <div className="text-gray-600 text-xs">Flow &lt; Demand</div>
+                <div className="text-gray-500 text-xs font-semibold">⚠️ Bottleneck</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <svg width="60" height="24" viewBox="0 0 60 24">
+                <line x1="0" y1="12" x2="48" y2="12" stroke="#3b82f6" strokeWidth="12" strokeLinecap="round" />
+                <polygon points="60,12 48,6 48,18" fill="#3b82f6" />
+              </svg>
+              <div className="text-center">
+                <div className="text-blue-600 font-bold text-base">🔵 Balanced Flow</div>
+                <div className="text-gray-600 text-xs">Flow ≈ Demand</div>
+                <div className="text-gray-500 text-xs font-semibold">✓ Healthy</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <svg width="60" height="24" viewBox="0 0 60 24">
+                <line x1="0" y1="12" x2="48" y2="12" stroke="#22c55e" strokeWidth="16" strokeLinecap="round" />
+                <polygon points="60,12 48,6 48,18" fill="#22c55e" />
+              </svg>
+              <div className="text-center">
+                <div className="text-green-600 font-bold text-base">🟢 Excess Supply</div>
+                <div className="text-gray-600 text-xs">Flow &gt; Demand</div>
+                <div className="text-gray-500 text-xs font-semibold">↑ Overcapacity</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 text-center text-gray-600 text-sm font-semibold">
+            💡 Click any arrow or node for detailed metrics • Arrow thickness indicates flow capacity
+          </div>
         </div>
       </div>
 

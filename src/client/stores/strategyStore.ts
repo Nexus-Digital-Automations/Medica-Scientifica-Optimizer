@@ -113,26 +113,14 @@ const STORAGE_KEY = 'medica-saved-strategies';
 // Pre-loaded default strategies
 const DEFAULT_STRATEGIES: SavedStrategy[] = [
   {
-    id: 'business-case-day51',
-    name: 'Business Case (Day 51)',
-    strategy: {
-      ...DEFAULT_STRATEGY,
-      // Business Case specific values are already in DEFAULT_STRATEGY
-    },
-    scenarioId: 'business-case-day51',
-    description: 'Textbook starting point: Cash $8.2K, Debt $70K, 0 inventory, 120 WIP',
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
-  },
-  {
     id: 'historical-data-day51',
     name: 'Historical Data (Day 51)',
     strategy: {
       ...DEFAULT_STRATEGY,
-      // Historical data uses same strategy parameters, just different initial state
+      // Historical data uses validated initial state from Excel Day 49
     },
     scenarioId: 'historical-data-day51',
-    description: 'Excel data: Cash $384K, Debt $0, 164 inventory, 414 WIP',
+    description: 'Validated Excel data: Cash $384K, Debt $0, 164 inventory, 414 standard WIP, 300 custom WIP (264/12/12/12), 2 WMA, 2 PUC',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   },
@@ -175,7 +163,7 @@ const saveSavedStrategiesToStorage = (strategies: SavedStrategy[]): void => {
 
 export const useStrategyStore = create<StrategyStore>((set, get) => ({
   strategy: DEFAULT_STRATEGY,
-  currentScenarioId: 'business-case-day51', // Default to business case scenario
+  currentScenarioId: 'historical-data-day51', // Default to validated historical data
   simulationResult: null,
   isSimulating: false,
   simulationError: null,
@@ -226,7 +214,7 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
   resetStrategy: () =>
     set({
       strategy: DEFAULT_STRATEGY,
-      currentScenarioId: 'business-case-day51', // Reset to default scenario
+      currentScenarioId: 'historical-data-day51', // Reset to validated historical data
       simulationResult: null,
       simulationError: null,
     }),

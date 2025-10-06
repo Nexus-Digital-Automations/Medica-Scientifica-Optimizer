@@ -3,7 +3,7 @@
  * All values taken from the business case reference documentation
  */
 
-import type { SimulationState, Strategy } from './types.js';
+import type { SimulationState } from './types.js';
 
 export const CONSTANTS = {
   // Financial Constants
@@ -246,48 +246,8 @@ export const INITIAL_STATE_HISTORICAL: SimulationState = {
 };
 
 /**
- * Default Initial State (Business Case)
+ * Default Initial State (Historical Data)
  * This is used when no specific initial state is requested
+ * Changed from Business Case to Historical Data as the primary starting point
  */
-export const INITIAL_STATE = INITIAL_STATE_BUSINESS_CASE;
-
-/**
- * Default Strategy Parameters (can be overridden by optimization)
- */
-export const DEFAULT_STRATEGY: Strategy = {
-  // Inventory Management Policy
-  reorderPoint: 200, // units (data-driven: prevents stockouts that occurred at 169 units historically)
-  orderQuantity: 400, // units per order
-
-  // Production Policy
-  standardBatchSize: 20, // units per batch
-  mceAllocationCustom: 0.50, // 50% to custom, 50% to standard (from historical data day 50)
-
-  // Pricing Policy
-  standardPrice: 225, // $ per unit (competitive market price - business case page 2)
-  dailyOvertimeHours: 0, // hours per day (0-4 hours, at 1.5x cost)
-  customBasePrice: 106.56, // $ base price (from historical data regression analysis)
-  customPenaltyPerDay: 0.27, // $ penalty for each day over target (from regression slope)
-  customTargetDeliveryDays: 5, // target delivery time (data-driven optimal)
-
-  // Demand Model Parameters (market conditions)
-  customDemandMean1: 25, // Phase 1 (days 51-172) mean demand
-  customDemandStdDev1: 5, // Phase 1 standard deviation
-  customDemandMean2: 32.5, // Phase 2 (days 173-415) mean demand - 30% increase
-  customDemandStdDev2: 6.5, // Phase 2 standard deviation
-
-  // Standard Product Demand Curve (linear: Q = intercept + slope * P)
-  // Reflects VERY COMPETITIVE market per business case (Page 2):
-  // "The market for standard products was dominated by purchasing departments
-  // of large health institutions, and it was very competitive"
-  // Competitive markets punish above-market pricing severely - demand drops to zero
-  standardDemandIntercept: 1500, // Theoretical demand at price $0
-  standardDemandSlope: -5.0, // Steep slope for competitive market (zero demand at $300+)
-
-  // Quit Risk Model (employee reaction to overtime)
-  overtimeTriggerDays: 5, // Consecutive overtime days before quit risk begins
-  dailyQuitProbability: 0.10, // 10% daily quit chance once overworked
-
-  // Timed Actions (will be evolved by genetic algorithm)
-  timedActions: [],
-};
+export const INITIAL_STATE = INITIAL_STATE_HISTORICAL;

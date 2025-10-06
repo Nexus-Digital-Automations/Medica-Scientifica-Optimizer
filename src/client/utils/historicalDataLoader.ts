@@ -1,7 +1,31 @@
-import type { SimulationResult } from '../types/ui.types';
+import type { SimulationResult, Strategy } from '../types/ui.types';
 import type { SimulationHistory } from '../../simulation/types.js';
-import { DEFAULT_STRATEGY } from '../../simulation/constants.js';
 import historicalDataJson from '../data/historicalData.json';
+
+/**
+ * Placeholder strategy for historical data display
+ * Historical data is pre-computed, so strategy parameters are not directly applicable
+ */
+const PLACEHOLDER_STRATEGY: Strategy = {
+  reorderPoint: 0,
+  orderQuantity: 0,
+  standardBatchSize: 0,
+  mceAllocationCustom: 0.50,
+  standardPrice: 225,
+  dailyOvertimeHours: 0,
+  customBasePrice: 106.56,
+  customPenaltyPerDay: 0.27,
+  customTargetDeliveryDays: 5,
+  customDemandMean1: 25,
+  customDemandStdDev1: 5,
+  customDemandMean2: 32.5,
+  customDemandStdDev2: 6.5,
+  standardDemandIntercept: 1500,
+  standardDemandSlope: -5.0,
+  overtimeTriggerDays: 5,
+  dailyQuitProbability: 0.10,
+  timedActions: [],
+};
 
 /**
  * Load historical simulation data from Excel-sourced JSON
@@ -170,7 +194,7 @@ export function loadHistoricalData(): SimulationResult | null {
       finalDebt,
       finalNetWorth,
       fitnessScore: finalNetWorth,
-      strategy: DEFAULT_STRATEGY,
+      strategy: PLACEHOLDER_STRATEGY,
       state: {
         currentDay: days - 1,
         cash: finalCash,
