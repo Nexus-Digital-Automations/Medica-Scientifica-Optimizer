@@ -117,68 +117,106 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
 
   // Auto-apply constraint suggestions from ProcessMap bottleneck analysis
   useEffect(() => {
-    const storedSuggestions = localStorage.getItem('appliedConstraintSuggestions');
-    if (storedSuggestions) {
-      try {
-        const suggestions: ConstraintSuggestion[] = JSON.parse(storedSuggestions);
+    const applyStoredSuggestions = () => {
+      const storedSuggestions = localStorage.getItem('appliedConstraintSuggestions');
+      console.log('Checking for constraint suggestions in localStorage:', storedSuggestions ? 'Found' : 'None');
 
-        // Apply suggestions to constraints
-        setConstraints(prevConstraints => {
-          const newConstraints = { ...prevConstraints };
+      if (storedSuggestions) {
+        try {
+          const suggestions: ConstraintSuggestion[] = JSON.parse(storedSuggestions);
+          console.log(`Applying ${suggestions.length} constraint suggestions:`, suggestions);
 
-          // Initialize policyRanges if not exists
-          if (!newConstraints.policyRanges) {
-            newConstraints.policyRanges = {};
-          }
+          // Apply suggestions to constraints
+          setConstraints(prevConstraints => {
+            const newConstraints = { ...prevConstraints };
 
-          suggestions.forEach(suggestion => {
-            switch (suggestion.constraintType) {
-              case 'minReorderPoint':
-                newConstraints.policyRanges!.reorderPoint = {
-                  ...newConstraints.policyRanges!.reorderPoint,
-                  min: suggestion.suggestedValue
-                };
-                break;
-              case 'minOrderQuantity':
-                newConstraints.policyRanges!.orderQuantity = {
-                  ...newConstraints.policyRanges!.orderQuantity,
-                  min: suggestion.suggestedValue
-                };
-                break;
-              case 'minWorkers':
-                newConstraints.workforceRange = {
-                  ...newConstraints.workforceRange,
-                  min: suggestion.suggestedValue
-                };
-                break;
-              case 'minMachines':
-                if (!newConstraints.machineRanges) {
-                  newConstraints.machineRanges = {};
-                }
-                if (suggestion.parameter) {
-                  const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
-                  newConstraints.machineRanges[machineType] = {
-                    ...newConstraints.machineRanges[machineType],
+            // Initialize ranges if not exists
+            if (!newConstraints.policyRanges) {
+              newConstraints.policyRanges = {};
+            }
+            if (!newConstraints.machineRanges) {
+              newConstraints.machineRanges = {};
+            }
+            if (!newConstraints.workforceRange) {
+              newConstraints.workforceRange = {};
+            }
+
+            suggestions.forEach(suggestion => {
+              console.log(`Applying suggestion: ${suggestion.constraintType} = ${suggestion.suggestedValue}`);
+
+              switch (suggestion.constraintType) {
+                case 'minReorderPoint':
+                  newConstraints.policyRanges!.reorderPoint = {
+                    ...newConstraints.policyRanges!.reorderPoint,
                     min: suggestion.suggestedValue
                   };
-                }
-                break;
-            }
+                  break;
+                case 'minOrderQuantity':
+                  newConstraints.policyRanges!.orderQuantity = {
+                    ...newConstraints.policyRanges!.orderQuantity,
+                    min: suggestion.suggestedValue
+                  };
+                  break;
+                case 'minWorkers':
+                  newConstraints.workforceRange = {
+                    ...newConstraints.workforceRange,
+                    min: suggestion.suggestedValue
+                  };
+                  break;
+                case 'minMachines':
+                  if (suggestion.parameter) {
+                    const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
+                    newConstraints.machineRanges![machineType] = {
+                      ...newConstraints.machineRanges![machineType],
+                      min: suggestion.suggestedValue
+                    };
+                  }
+                  break;
+              }
+            });
+
+            console.log('New constraints after applying suggestions:', newConstraints);
+            return newConstraints;
           });
 
-          return newConstraints;
-        });
+          // Show notification
+          alert(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis!`);
+          console.log(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis`);
 
-        // Show notification
-        console.log(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis`);
-
-        // Clear localStorage
-        localStorage.removeItem('appliedConstraintSuggestions');
-      } catch (error) {
-        console.error('Failed to apply constraint suggestions:', error);
-        localStorage.removeItem('appliedConstraintSuggestions');
+          // Clear localStorage
+          localStorage.removeItem('appliedConstraintSuggestions');
+        } catch (error) {
+          console.error('Failed to apply constraint suggestions:', error);
+          localStorage.removeItem('appliedConstraintSuggestions');
+        }
       }
-    }
+    };
+
+    // Apply on mount
+    applyStoredSuggestions();
+
+    // Also listen for storage events (in case user is already on optimizer page)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'appliedConstraintSuggestions' && e.newValue) {
+        setTimeout(applyStoredSuggestions, 100); // Small delay to ensure hash navigation completes
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check on hash change (when navigating to optimizer)
+    const handleHashChange = () => {
+      if (window.location.hash === '#/optimizer') {
+        setTimeout(applyStoredSuggestions, 100);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []); // Run once on mount
 
   // Handler functions for current state locks - cycle through states

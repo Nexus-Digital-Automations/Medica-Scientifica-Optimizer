@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { ConstraintSuggestionSet } from '../../utils/constraintSuggestions';
-import { useStrategyStore } from '../../stores/strategyStore';
 
 interface ConstraintSuggestionsModalProps {
   suggestions: ConstraintSuggestionSet;
@@ -11,7 +10,6 @@ export default function ConstraintSuggestionsModal({
   suggestions,
   onClose,
 }: ConstraintSuggestionsModalProps) {
-  const { applyConstraintSuggestions } = useStrategyStore();
   const [selected, setSelected] = useState<Record<string, boolean>>(() => {
     // Auto-select all high priority suggestions
     const initial: Record<string, boolean> = {};
@@ -28,7 +26,14 @@ export default function ConstraintSuggestionsModal({
   const handleApplyAndNavigate = () => {
     const selectedIds = Object.keys(selected).filter(id => selected[id]);
     if (selectedIds.length > 0) {
-      applyConstraintSuggestions(selectedIds);
+      // Get the actual selected suggestion objects
+      const selectedSuggestions = suggestions.suggestions.filter(s =>
+        selectedIds.includes(s.id)
+      );
+
+      // Store in localStorage for cross-page transfer to optimizer
+      localStorage.setItem('appliedConstraintSuggestions', JSON.stringify(selectedSuggestions));
+
       // Navigate to optimizer page
       window.location.hash = '#/optimizer';
     }
