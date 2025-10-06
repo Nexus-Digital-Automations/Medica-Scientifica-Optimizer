@@ -142,7 +142,8 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
             }
 
             suggestions.forEach(suggestion => {
-              console.log(`Applying constraint: ${suggestion.constraintType} = ${suggestion.currentValue} (current level as minimum)`);
+              const boundType = suggestion.constraintType.startsWith('min') ? 'minimum' : 'maximum';
+              console.log(`Applying constraint: ${suggestion.constraintType} = ${suggestion.currentValue} (current level as ${boundType})`);
 
               switch (suggestion.constraintType) {
                 case 'minReorderPoint':
@@ -169,6 +170,33 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                     newConstraints.machineRanges![machineType] = {
                       ...newConstraints.machineRanges![machineType],
                       min: suggestion.currentValue
+                    };
+                  }
+                  break;
+                case 'maxReorderPoint':
+                  newConstraints.policyRanges!.reorderPoint = {
+                    ...newConstraints.policyRanges!.reorderPoint,
+                    max: suggestion.currentValue
+                  };
+                  break;
+                case 'maxOrderQuantity':
+                  newConstraints.policyRanges!.orderQuantity = {
+                    ...newConstraints.policyRanges!.orderQuantity,
+                    max: suggestion.currentValue
+                  };
+                  break;
+                case 'maxWorkers':
+                  newConstraints.workforceRange = {
+                    ...newConstraints.workforceRange,
+                    max: suggestion.currentValue
+                  };
+                  break;
+                case 'maxMachines':
+                  if (suggestion.parameter) {
+                    const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
+                    newConstraints.machineRanges![machineType] = {
+                      ...newConstraints.machineRanges![machineType],
+                      max: suggestion.currentValue
                     };
                   }
                   break;
