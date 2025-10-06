@@ -270,7 +270,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-4 max-w-4xl mx-auto px-4 scale-90 origin-top">
       {/* Process Map Selector */}
       <ProcessMapSelector
         currentResult={simulationResult}

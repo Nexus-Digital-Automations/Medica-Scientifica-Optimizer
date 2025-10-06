@@ -6,8 +6,6 @@ interface AnimatedFlowArrowProps {
   flowRate: number; // Actual flow rate (units/day)
   demandRate: number; // What the next station needs (units/day)
   vertical?: boolean;
-  inputQuantity?: number; // Quantity flowing into the target node
-  outputQuantity?: number; // Quantity flowing out of the source node
 }
 
 export default function AnimatedFlowArrow({
@@ -16,8 +14,6 @@ export default function AnimatedFlowArrow({
   flowRate,
   demandRate,
   vertical = true,
-  inputQuantity,
-  outputQuantity,
 }: AnimatedFlowArrowProps) {
   const [showPopup, setShowPopup] = useState(false);
 
@@ -65,31 +61,34 @@ export default function AnimatedFlowArrow({
   const topWidth = isShortage ? 4 : hasExcess ? 24 : 12;
   const bottomWidth = isShortage ? 24 : hasExcess ? 4 : 12;
 
+  // Debug logging
+  console.log(`[Arrow] ${fromStation} → ${toStation}:`, { flowRate, demandRate, gap, isShortage, hasExcess, isBalanced, arrowColor });
+
   return (
     <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} items-center ${vertical ? 'my-4' : 'mx-4'} relative`}>
-      {/* Output quantity badge (at source/start of arrow) */}
-      {outputQuantity !== undefined && vertical && (
+      {/* Flow rate label (at source/start of arrow) */}
+      {vertical && (
         <div
-          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          className="absolute z-10 bg-blue-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-blue-600 shadow-lg whitespace-nowrap"
           style={{
             top: '-8px',
             left: '50%',
             transform: 'translateX(-100%)',
           }}
         >
-          {outputQuantity.toFixed(1)}
+          Flow: {flowRate.toFixed(1)}
         </div>
       )}
-      {outputQuantity !== undefined && !vertical && (
+      {!vertical && (
         <div
-          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          className="absolute z-10 bg-blue-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-blue-600 shadow-lg whitespace-nowrap"
           style={{
             left: '-8px',
             top: '50%',
             transform: 'translateY(-100%)',
           }}
         >
-          {outputQuantity.toFixed(1)}
+          Flow: {flowRate.toFixed(1)}
         </div>
       )}
 
@@ -170,29 +169,29 @@ export default function AnimatedFlowArrow({
         </div>
       </div>
 
-      {/* Input quantity badge (at target/end of arrow) */}
-      {inputQuantity !== undefined && vertical && (
+      {/* Demand rate label (at target/end of arrow) */}
+      {vertical && (
         <div
-          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          className="absolute z-10 bg-purple-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-purple-600 shadow-lg whitespace-nowrap"
           style={{
             bottom: '-8px',
             right: '50%',
             transform: 'translateX(100%)',
           }}
         >
-          {inputQuantity.toFixed(1)}
+          Demand: {demandRate.toFixed(1)}
         </div>
       )}
-      {inputQuantity !== undefined && !vertical && (
+      {!vertical && (
         <div
-          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          className="absolute z-10 bg-purple-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-purple-600 shadow-lg whitespace-nowrap"
           style={{
             right: '-8px',
             bottom: '50%',
             transform: 'translateY(100%)',
           }}
         >
-          {inputQuantity.toFixed(1)}
+          Demand: {demandRate.toFixed(1)}
         </div>
       )}
 
