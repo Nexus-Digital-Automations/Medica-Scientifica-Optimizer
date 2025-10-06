@@ -183,36 +183,6 @@ export default function StrategyVisualization() {
           </span>
         </div>
       </div>
-
-      {/* Action Summary */}
-      {strategy.timedActions.length > 0 && (
-        <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-5">
-          <div className="flex items-start gap-4">
-            <span className="text-2xl">📅</span>
-            <div>
-              <p className="text-blue-900 font-semibold mb-2">
-                {strategy.timedActions.length} Timed Action{strategy.timedActions.length > 1 ? 's' : ''} Scheduled
-              </p>
-              <p className="text-blue-700 text-sm">
-                The graphs above show how your parameters will change based on scheduled actions.
-                Run the simulation to see the actual impact on your factory's performance.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {strategy.timedActions.length === 0 && (
-        <div className="bg-gray-50 border-l-4 border-gray-300 rounded-lg p-5">
-          <div className="flex items-start gap-4">
-            <span className="text-2xl">ℹ️</span>
-            <p className="text-gray-600 text-sm">
-              No timed actions scheduled. Values will remain constant throughout the simulation.
-              Add timed actions in the Timeline Editor to adjust parameters during the simulation.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

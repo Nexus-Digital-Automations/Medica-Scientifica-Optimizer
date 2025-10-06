@@ -9,19 +9,6 @@ export default function PolicyForm() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto px-4">
-      {/* Info Box */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-5">
-        <div className="flex items-start gap-4">
-          <span className="text-3xl">ℹ️</span>
-          <div>
-            <p className="text-gray-900 font-semibold mb-2">Environmental Parameters & Initial Settings</p>
-            <p className="text-gray-700 text-sm leading-relaxed">
-              These are the baseline parameters and starting values for your simulation. Values like pricing and MCE allocation should be changed during the simulation using <strong className="text-blue-700">User Actions</strong> (policy decisions) from the Action Timeline.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Pricing Policy */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 px-8 py-6">

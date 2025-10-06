@@ -258,21 +258,6 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
-      {/* Historical Data Indicator */}
-      {isHistoricalData && (
-        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-600 text-lg">📊</span>
-            <div>
-              <p className="text-amber-900 text-sm font-semibold">Historical Reference Data</p>
-              <p className="text-amber-700 text-xs">
-                Showing baseline factory performance across all analytics. Run a simulation to see your custom strategy results.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Validation Report */}
       {hasData && !isHistoricalData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -403,15 +388,6 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           </div>
         </div>
       </div>
-      )}
-
-      {/* Viewing Indicator */}
-      {hasData && !isViewingCurrent && (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <p className="text-purple-900 text-sm font-medium">
-            📌 You are viewing a saved result. This is not your current simulation.
-          </p>
-        </div>
       )}
 
       {/* Action Buttons */}

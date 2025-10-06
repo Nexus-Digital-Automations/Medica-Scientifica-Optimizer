@@ -214,14 +214,6 @@ export default function CurrentStatePanel({
               </div>
             </div>
           </div>
-
-          {/* Lock Summary */}
-          <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-            <p className="text-sm text-blue-900 font-medium">
-              ℹ️ Locked values prevent the optimizer from making changes.
-              The optimizer will still optimize other unlocked parameters.
-            </p>
-          </div>
         </div>
       )}
     </div>
