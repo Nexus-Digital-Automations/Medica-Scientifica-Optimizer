@@ -99,14 +99,14 @@ export default function ConstraintSuggestionsModal({
                   </div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                      suggestion.flowRate > 0
+                      (suggestion.flowRate ?? 0) > 0
                         ? 'bg-red-900 text-red-200'
-                        : suggestion.flowRate < 0
+                        : (suggestion.flowRate ?? 0) < 0
                         ? 'bg-blue-900 text-blue-200'
                         : 'bg-gray-700 text-gray-300'
                     }`}>
-                      {suggestion.flowRate > 0 ? '📈' : suggestion.flowRate < 0 ? '📉' : '➡️'}
-                      {' '}{suggestion.flowRate > 0 ? '+' : ''}{suggestion.flowRate.toFixed(1)} units/day
+                      {(suggestion.flowRate ?? 0) > 0 ? '📈' : (suggestion.flowRate ?? 0) < 0 ? '📉' : '➡️'}
+                      {' '}{(suggestion.flowRate ?? 0) > 0 ? '+' : ''}{(suggestion.flowRate ?? 0).toFixed(1)} units/day
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1 italic">Source: {suggestion.stationSource}</div>

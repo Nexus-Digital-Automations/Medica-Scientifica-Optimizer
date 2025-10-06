@@ -189,8 +189,8 @@ function analyzeStationWIP(
   // Calculate trend (compare first 1/3 to last 1/3)
   const firstThird = wipData.slice(0, Math.floor(totalDays / 3));
   const lastThird = wipData.slice(Math.floor(totalDays * 2 / 3));
-  const firstAvg = firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length;
-  const lastAvg = lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length;
+  const firstAvg = firstThird.length > 0 ? firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length : 0;
+  const lastAvg = lastThird.length > 0 ? lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length : 0;
   const trendDiff = lastAvg - firstAvg;
 
   const trend: 'increasing' | 'decreasing' | 'stable' =
@@ -199,7 +199,7 @@ function analyzeStationWIP(
 
   // Calculate flow rate (units per day change)
   const daysInPeriod = lastThird.length;
-  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+  const flowRate = daysInPeriod > 0 && !isNaN(trendDiff) ? trendDiff / daysInPeriod : 0;
 
   // Utilization rate (inverse of bottleneck - higher WIP = lower utilization quality)
   const utilizationRate = Math.max(0, 100 - (avgWIP / criticalThreshold) * 100);
@@ -245,8 +245,8 @@ function analyzeInventoryLevel(
   // Trend calculation
   const firstThird = inventoryData.slice(0, Math.floor(totalDays / 3));
   const lastThird = inventoryData.slice(Math.floor(totalDays * 2 / 3));
-  const firstAvg = firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length;
-  const lastAvg = lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length;
+  const firstAvg = firstThird.length > 0 ? firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length : 0;
+  const lastAvg = lastThird.length > 0 ? lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length : 0;
   const trendDiff = lastAvg - firstAvg;
 
   const trend: 'increasing' | 'decreasing' | 'stable' =
@@ -255,7 +255,7 @@ function analyzeInventoryLevel(
 
   // Calculate flow rate (units per day change)
   const daysInPeriod = lastThird.length;
-  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+  const flowRate = daysInPeriod > 0 && !isNaN(trendDiff) ? trendDiff / daysInPeriod : 0;
 
   const utilizationRate = Math.min(100, (avgInventory / warningThreshold) * 100);
 
@@ -308,8 +308,8 @@ function analyzeARCPCapacity(
   // Trend
   const firstThird = capacityData.slice(0, Math.floor(totalDays / 3));
   const lastThird = capacityData.slice(Math.floor(totalDays * 2 / 3));
-  const firstAvg = firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length;
-  const lastAvg = lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length;
+  const firstAvg = firstThird.length > 0 ? firstThird.reduce((sum, d) => sum + d.value, 0) / firstThird.length : 0;
+  const lastAvg = lastThird.length > 0 ? lastThird.reduce((sum, d) => sum + d.value, 0) / lastThird.length : 0;
   const trendDiff = lastAvg - firstAvg;
 
   const trend: 'increasing' | 'decreasing' | 'stable' =
@@ -318,7 +318,7 @@ function analyzeARCPCapacity(
 
   // Calculate flow rate (units per day change)
   const daysInPeriod = lastThird.length;
-  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+  const flowRate = daysInPeriod > 0 && !isNaN(trendDiff) ? trendDiff / daysInPeriod : 0;
 
   const utilizationRate = Math.min(100, (avgCapacity / 30) * 100);
 
