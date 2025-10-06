@@ -317,6 +317,55 @@ The simulation accurately models:
 - Demand-constrained selling (stockout conditions)
 - Work-in-progress accumulation at bottleneck stages
 
+## Critical Business Constraints
+
+### Custom Line WIP Capacity Limit (360 Orders)
+
+**Business Rule:** The Custom line can hold a maximum of 360 orders in WIP (Work-in-Progress) due to space constraints.
+
+**Source:** Reference Guide.md - "Custom Line Max Capacity: 360 orders in WIP"
+
+**Behavior When Limit Reached:**
+```
+Custom Line WIP = 360 orders:
+- All new customer orders are REJECTED
+- No new custom revenue generated
+- Existing WIP continues processing
+- Cash flow becomes negative (expenses > revenue)
+- Business enters failure cascade:
+  1. Custom orders rejected → Zero custom revenue
+  2. Standard revenue insufficient to cover expenses
+  3. Cash → 0, Debt → maximum
+  4. Cannot buy raw materials
+  5. Production stops completely
+  6. All metrics → 0
+```
+
+**Why This Happens:**
+- Custom line throughput too slow vs order arrival rate
+- WIP accumulates faster than orders complete
+- ARCP capacity insufficient for custom volume
+- Machine capacity (WMA/PUC) bottlenecks
+- Eventually hits 360 limit around day 360
+
+**Solution Strategies:**
+1. **Increase ARCP Capacity**: Hire more workers (experts + rookies)
+2. **Buy More Machines**: Additional WMA/PUC machines increase throughput
+3. **Optimize MCE Allocation**: Balance custom vs standard allocation
+4. **Improve Delivery Time**: Faster completions reduce WIP accumulation
+5. **Dynamic Adjustments**: Monitor WIP levels and adjust before hitting limit
+
+**Detection:**
+```typescript
+// Warning signs before failure:
+if (customLineWIP > 300) {
+  // URGENT: Approaching capacity limit
+  // Take corrective action immediately
+}
+```
+
+**This is NOT a bug** - it's a realistic business constraint. Hitting the 360 WIP limit represents poor capacity planning and will cause business failure. The optimizer must find strategies that maintain custom WIP below 360 orders.
+
 ## Fixed Issues
 
 ### October 2025 Fixes
