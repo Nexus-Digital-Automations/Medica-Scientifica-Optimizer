@@ -58,6 +58,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   };
 
   const handleStrategySelect = async (strategy: SavedStrategy) => {
+    console.log('Loading strategy for simulation:', strategy.name);
     setIsLoadingStrategy(true);
     setSimulating(true);
     try {
@@ -72,12 +73,22 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Simulation completed:', data.success, 'Has result:', !!data.result);
         if (data.success && data.result) {
           setSimulationResult(data.result);
+          console.log('Simulation result set successfully');
+        } else {
+          console.error('Simulation failed or returned no result:', data);
+          alert('Simulation completed but returned no results. Check console for details.');
         }
+      } else {
+        const errorText = await response.text();
+        console.error('Simulation request failed:', response.status, errorText);
+        alert(`Simulation failed: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Failed to run simulation for strategy:', error);
+      alert(`Failed to run simulation: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoadingStrategy(false);
       setSimulating(false);
