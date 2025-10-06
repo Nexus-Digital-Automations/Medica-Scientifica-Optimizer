@@ -158,20 +158,23 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                     min: suggestion.currentValue
                   };
                   break;
-                case 'minWorkers':
-                  newConstraints.workforceRange = {
-                    ...newConstraints.workforceRange,
+                case 'minStandardBatchSize':
+                  newConstraints.policyRanges!.standardBatchSize = {
+                    ...newConstraints.policyRanges!.standardBatchSize,
                     min: suggestion.currentValue
                   };
                   break;
-                case 'minMachines':
-                  if (suggestion.parameter) {
-                    const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
-                    newConstraints.machineRanges![machineType] = {
-                      ...newConstraints.machineRanges![machineType],
-                      min: suggestion.currentValue
-                    };
-                  }
+                case 'minMCEAllocationCustom':
+                  newConstraints.policyRanges!.mceAllocationCustom = {
+                    ...newConstraints.policyRanges!.mceAllocationCustom,
+                    min: suggestion.currentValue
+                  };
+                  break;
+                case 'minDailyOvertimeHours':
+                  newConstraints.policyRanges!.dailyOvertimeHours = {
+                    ...newConstraints.policyRanges!.dailyOvertimeHours,
+                    min: suggestion.currentValue
+                  };
                   break;
                 case 'maxReorderPoint':
                   newConstraints.policyRanges!.reorderPoint = {
@@ -185,20 +188,23 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                     max: suggestion.currentValue
                   };
                   break;
-                case 'maxWorkers':
-                  newConstraints.workforceRange = {
-                    ...newConstraints.workforceRange,
+                case 'maxStandardBatchSize':
+                  newConstraints.policyRanges!.standardBatchSize = {
+                    ...newConstraints.policyRanges!.standardBatchSize,
                     max: suggestion.currentValue
                   };
                   break;
-                case 'maxMachines':
-                  if (suggestion.parameter) {
-                    const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
-                    newConstraints.machineRanges![machineType] = {
-                      ...newConstraints.machineRanges![machineType],
-                      max: suggestion.currentValue
-                    };
-                  }
+                case 'maxMCEAllocationCustom':
+                  newConstraints.policyRanges!.mceAllocationCustom = {
+                    ...newConstraints.policyRanges!.mceAllocationCustom,
+                    max: suggestion.currentValue
+                  };
+                  break;
+                case 'maxDailyOvertimeHours':
+                  newConstraints.policyRanges!.dailyOvertimeHours = {
+                    ...newConstraints.policyRanges!.dailyOvertimeHours,
+                    max: suggestion.currentValue
+                  };
                   break;
               }
             });

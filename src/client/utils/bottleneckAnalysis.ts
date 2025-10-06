@@ -18,6 +18,7 @@ export interface BottleneckMetrics {
   totalDays: number;
   trend: 'increasing' | 'decreasing' | 'stable';
   utilizationRate: number;
+  flowRate: number; // Units per day change rate (positive = growing, negative = declining)
   remedyHint?: RemedyHint;
 }
 
@@ -196,6 +197,10 @@ function analyzeStationWIP(
     trendDiff > criticalThreshold * 0.1 ? 'increasing' :
     trendDiff < -criticalThreshold * 0.1 ? 'decreasing' : 'stable';
 
+  // Calculate flow rate (units per day change)
+  const daysInPeriod = lastThird.length;
+  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+
   // Utilization rate (inverse of bottleneck - higher WIP = lower utilization quality)
   const utilizationRate = Math.max(0, 100 - (avgWIP / criticalThreshold) * 100);
 
@@ -210,6 +215,7 @@ function analyzeStationWIP(
     totalDays,
     trend,
     utilizationRate,
+    flowRate,
     remedyHint: generateRemedyHint(stationName, severity),
   };
 }
@@ -247,6 +253,10 @@ function analyzeInventoryLevel(
     trendDiff > criticalThreshold * 0.1 ? 'increasing' :
     trendDiff < -criticalThreshold * 0.1 ? 'decreasing' : 'stable';
 
+  // Calculate flow rate (units per day change)
+  const daysInPeriod = lastThird.length;
+  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+
   const utilizationRate = Math.min(100, (avgInventory / warningThreshold) * 100);
 
   return {
@@ -260,6 +270,7 @@ function analyzeInventoryLevel(
     totalDays,
     trend,
     utilizationRate,
+    flowRate,
     remedyHint: generateRemedyHint(stationName, severity),
   };
 }
@@ -305,6 +316,10 @@ function analyzeARCPCapacity(
     trendDiff > 5 ? 'increasing' :
     trendDiff < -5 ? 'decreasing' : 'stable';
 
+  // Calculate flow rate (units per day change)
+  const daysInPeriod = lastThird.length;
+  const flowRate = daysInPeriod > 0 ? trendDiff / daysInPeriod : 0;
+
   const utilizationRate = Math.min(100, (avgCapacity / 30) * 100);
 
   return {
@@ -318,6 +333,7 @@ function analyzeARCPCapacity(
     totalDays,
     trend,
     utilizationRate,
+    flowRate,
     remedyHint: generateRemedyHint(stationName, severity),
   };
 }

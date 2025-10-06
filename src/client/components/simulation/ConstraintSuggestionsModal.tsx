@@ -45,7 +45,7 @@ export default function ConstraintSuggestionsModal({
   // Group suggestions by category
   const inventorySuggestions = suggestions.suggestions.filter(s => s.category === 'Inventory');
   const workforceSuggestions = suggestions.suggestions.filter(s => s.category === 'Workforce');
-  const equipmentSuggestions = suggestions.suggestions.filter(s => s.category === 'Equipment');
+  const productionSuggestions = suggestions.suggestions.filter(s => s.category === 'Production');
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
@@ -89,9 +89,26 @@ export default function ConstraintSuggestionsModal({
                     </span>
                   </div>
                   <div className="text-sm text-gray-300 mb-2">
-                    <span className="font-semibold">Set as {suggestion.constraintType.startsWith('min') ? 'Minimum' : 'Maximum'}: {suggestion.currentValue}</span>
+                    <span className="font-semibold">
+                      Set as {suggestion.constraintType.startsWith('min') ? 'Minimum' : 'Maximum'}: {
+                        typeof suggestion.currentValue === 'number' && suggestion.currentValue < 1
+                          ? suggestion.currentValue.toFixed(2)
+                          : Math.round(suggestion.currentValue)
+                      }
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-400">{suggestion.reason}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                      suggestion.flowRate > 0
+                        ? 'bg-red-900 text-red-200'
+                        : suggestion.flowRate < 0
+                        ? 'bg-blue-900 text-blue-200'
+                        : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {suggestion.flowRate > 0 ? '📈' : suggestion.flowRate < 0 ? '📉' : '➡️'}
+                      {' '}{suggestion.flowRate > 0 ? '+' : ''}{suggestion.flowRate.toFixed(1)} units/day
+                    </span>
+                  </div>
                   <div className="text-xs text-gray-500 mt-1 italic">Source: {suggestion.stationSource}</div>
                 </div>
               </div>
@@ -136,7 +153,7 @@ export default function ConstraintSuggestionsModal({
         <div className="flex-1 overflow-y-auto p-6">
           {renderSuggestionGroup('📦 Inventory Policies', '📦', inventorySuggestions)}
           {renderSuggestionGroup('👷 Workforce', '👷', workforceSuggestions)}
-          {renderSuggestionGroup('⚙️ Equipment', '⚙️', equipmentSuggestions)}
+          {renderSuggestionGroup('🏭 Production', '🏭', productionSuggestions)}
 
           {suggestions.suggestions.length === 0 && (
             <div className="text-center py-12 text-gray-400">

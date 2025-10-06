@@ -1,7 +1,8 @@
 /**
  * Constraint Suggestion System
- * Generates optimizer constraint suggestions based on bottleneck analysis
- * Simply uses current values as min/max to steer the optimizer in the right direction
+ * Generates optimizer constraint suggestions based on flow analysis (trends)
+ * Uses current values as min/max to steer the optimizer in the right direction
+ * Detection is smart (trend-based), constraint values are simple (current value)
  */
 
 import type { SimulationResult } from '../types/ui.types';
@@ -14,12 +15,13 @@ import type { BottleneckAnalysis, BottleneckMetrics } from './bottleneckAnalysis
 export interface ConstraintSuggestion {
   id: string;
   stationSource: string;
-  constraintType: 'minReorderPoint' | 'minOrderQuantity' | 'minWorkers' | 'minMachines' | 'maxReorderPoint' | 'maxOrderQuantity' | 'maxWorkers' | 'maxMachines';
-  parameter?: string; // 'MCE' | 'WMA' | 'PUC' for machines
+  constraintType: 'minReorderPoint' | 'minOrderQuantity' | 'minStandardBatchSize' | 'minMCEAllocationCustom' | 'minDailyOvertimeHours' | 'maxReorderPoint' | 'maxOrderQuantity' | 'maxStandardBatchSize' | 'maxMCEAllocationCustom' | 'maxDailyOvertimeHours';
+  parameter?: string; // For future use
   currentValue: number;
+  flowRate: number; // Units/day change rate (for display)
   reason: string;
   priority: 'high' | 'medium' | 'low';
-  category: 'Inventory' | 'Workforce' | 'Equipment';
+  category: 'Inventory' | 'Production' | 'Workforce';
 }
 
 export interface ConstraintSuggestionSet {
@@ -33,8 +35,8 @@ export interface ConstraintSuggestionSet {
 // ============================================================================
 
 /**
- * Generate suggestions for Raw Materials bottleneck or excess
- * Shortage = set current as minimum, Excess = set current as maximum
+ * Generate suggestions for Raw Materials based on inventory flow
+ * Decreasing trend = shortage, Increasing trend + high level = surplus
  */
 function generateRawMaterialSuggestions(
   metric: BottleneckMetrics,
@@ -43,14 +45,17 @@ function generateRawMaterialSuggestions(
   const suggestions: ConstraintSuggestion[] = [];
   const { strategy } = simulationResult;
 
-  // Shortage (critical/warning) = set current as minimum (optimizer should go higher)
-  if (metric.severity === 'critical' || metric.severity === 'warning') {
+  // SHORTAGE: Decreasing inventory trend OR low inventory (critical/warning)
+  if (metric.trend === 'decreasing' || metric.severity === 'critical' || metric.severity === 'warning') {
     suggestions.push({
       id: `reorder-point-${Date.now()}`,
       stationSource: 'Raw Materials',
       constraintType: 'minReorderPoint',
       currentValue: strategy.reorderPoint || 0,
-      reason: 'Prevent stockouts - current level as minimum',
+      flowRate: metric.flowRate,
+      reason: metric.trend === 'decreasing'
+        ? 'Inventory depleting - set current as minimum'
+        : 'Low inventory level - set current as minimum',
       priority: metric.severity === 'critical' ? 'high' : 'medium',
       category: 'Inventory',
     });
@@ -60,21 +65,24 @@ function generateRawMaterialSuggestions(
       stationSource: 'Raw Materials',
       constraintType: 'minOrderQuantity',
       currentValue: strategy.orderQuantity || 0,
-      reason: 'Maintain inventory - current level as minimum',
+      flowRate: metric.flowRate,
+      reason: metric.trend === 'decreasing'
+        ? 'Inventory depleting - set current as minimum'
+        : 'Low inventory level - set current as minimum',
       priority: metric.severity === 'critical' ? 'high' : 'medium',
       category: 'Inventory',
     });
   }
 
-  // Excess inventory (avgInventory > 200, which is 2x warning threshold)
-  // Use averageWIP field which holds avgInventory for this metric
-  if (metric.severity === 'optimal' && metric.averageWIP > 200) {
+  // SURPLUS: Increasing trend AND high inventory (optimal + high avgWIP)
+  if (metric.trend === 'increasing' && metric.severity === 'optimal' && metric.averageWIP > 200) {
     suggestions.push({
       id: `max-reorder-point-${Date.now()}`,
       stationSource: 'Raw Materials',
       constraintType: 'maxReorderPoint',
       currentValue: strategy.reorderPoint || 0,
-      reason: 'Reduce excess inventory - current level as maximum',
+      flowRate: metric.flowRate,
+      reason: 'Inventory accumulating - set current as maximum',
       priority: 'medium',
       category: 'Inventory',
     });
@@ -84,7 +92,8 @@ function generateRawMaterialSuggestions(
       stationSource: 'Raw Materials',
       constraintType: 'maxOrderQuantity',
       currentValue: strategy.orderQuantity || 0,
-      reason: 'Free up cash - current level as maximum',
+      flowRate: metric.flowRate,
+      reason: 'Excess inventory tying up cash - set current as maximum',
       priority: 'medium',
       category: 'Inventory',
     });
@@ -94,43 +103,39 @@ function generateRawMaterialSuggestions(
 }
 
 /**
- * Generate suggestions for ARCP Workforce bottleneck or excess
- * Shortage = set current as minimum, Excess = set current as maximum
+ * Generate suggestions for ARCP Workforce based on capacity
+ * Low capacity = need overtime, High capacity = reduce overtime
  */
 function generateARCPWorkforceSuggestions(
   metric: BottleneckMetrics,
   simulationResult: SimulationResult
 ): ConstraintSuggestion[] {
-  const { state } = simulationResult;
-  const finalDayIndex = state.history.dailyCash.length - 1;
-  const currentExperts = state.history.dailyExperts[finalDayIndex]?.value || 0;
-  const currentRookies = state.history.dailyRookies[finalDayIndex]?.value || 0;
-  const currentTotal = currentExperts + currentRookies;
-
+  const { strategy } = simulationResult;
   const suggestions: ConstraintSuggestion[] = [];
 
-  // Shortage (critical/warning) = set current as minimum (optimizer should add more)
+  // SHORTAGE: Low ARCP capacity (critical/warning)
   if (metric.severity === 'critical' || metric.severity === 'warning') {
     suggestions.push({
-      id: `min-workers-${Date.now()}`,
+      id: `min-overtime-${Date.now()}`,
       stationSource: 'ARCP Workforce',
-      constraintType: 'minWorkers',
-      currentValue: currentTotal,
-      reason: 'Reduce ARCP congestion - current workforce as minimum',
+      constraintType: 'minDailyOvertimeHours',
+      currentValue: strategy.dailyOvertimeHours || 0,
+      flowRate: metric.flowRate,
+      reason: 'Insufficient ARCP capacity - set current overtime as minimum',
       priority: metric.severity === 'critical' ? 'high' : 'medium',
       category: 'Workforce',
     });
   }
 
-  // Excess capacity (avgCapacity > 60, which is 3x optimal threshold of 20)
-  // Use averageWIP field which holds avgCapacity for this metric
+  // SURPLUS: High ARCP capacity (optimal + high avgCapacity)
   if (metric.severity === 'optimal' && metric.averageWIP > 60) {
     suggestions.push({
-      id: `max-workers-${Date.now()}`,
+      id: `max-overtime-${Date.now()}`,
       stationSource: 'ARCP Workforce',
-      constraintType: 'maxWorkers',
-      currentValue: currentTotal,
-      reason: 'Reduce labor costs - current workforce as maximum',
+      constraintType: 'maxDailyOvertimeHours',
+      currentValue: strategy.dailyOvertimeHours || 0,
+      flowRate: metric.flowRate,
+      reason: 'Excess ARCP capacity - reduce overtime costs',
       priority: 'medium',
       category: 'Workforce',
     });
@@ -140,42 +145,87 @@ function generateARCPWorkforceSuggestions(
 }
 
 /**
- * Generate suggestions for Custom Line WIP (WMA capacity)
- * High WIP = set current machines as minimum, Low WIP = set current as maximum
+ * Generate suggestions for Custom Line based on WIP flow
+ * Increasing WIP = need more MCE, Decreasing WIP + low level = too much MCE on custom
  */
-function generateCustomLineWMASuggestions(
+function generateCustomLineSuggestions(
   metric: BottleneckMetrics,
   simulationResult: SimulationResult
 ): ConstraintSuggestion[] {
-  const { state } = simulationResult;
-  const currentWmaMachines = state.machines.WMA || 1;
+  const { strategy } = simulationResult;
   const suggestions: ConstraintSuggestion[] = [];
 
-  // High WIP (critical/warning) = set current as minimum (optimizer should add more machines)
-  if (metric.severity === 'critical' || metric.severity === 'warning') {
+  // SHORTAGE: Increasing Custom WIP (critical/warning)
+  if (metric.trend === 'increasing' || metric.severity === 'critical' || metric.severity === 'warning') {
     suggestions.push({
-      id: `min-wma-${Date.now()}`,
+      id: `min-mce-allocation-${Date.now()}`,
       stationSource: 'Custom Line',
-      constraintType: 'minMachines',
-      parameter: 'WMA',
-      currentValue: currentWmaMachines,
-      reason: 'Reduce custom line congestion - current WMA count as minimum',
+      constraintType: 'minMCEAllocationCustom',
+      currentValue: strategy.mceAllocationCustom || 0,
+      flowRate: metric.flowRate,
+      reason: metric.trend === 'increasing'
+        ? 'Custom orders backing up - set current MCE allocation as minimum'
+        : 'High custom WIP - set current MCE allocation as minimum',
       priority: metric.severity === 'critical' ? 'high' : 'medium',
-      category: 'Equipment',
+      category: 'Production',
     });
   }
 
-  // Excess capacity (avgWIP < 10 with optimal severity = very low WIP, too many machines)
-  if (metric.severity === 'optimal' && metric.averageWIP < 10) {
+  // SURPLUS: Decreasing WIP + low avgWIP (optimal + low WIP = starving standard line)
+  if (metric.trend === 'decreasing' && metric.severity === 'optimal' && metric.averageWIP < 10) {
     suggestions.push({
-      id: `max-wma-${Date.now()}`,
+      id: `max-mce-allocation-${Date.now()}`,
       stationSource: 'Custom Line',
-      constraintType: 'maxMachines',
-      parameter: 'WMA',
-      currentValue: currentWmaMachines,
-      reason: 'Reduce capital costs - current WMA count as maximum',
+      constraintType: 'maxMCEAllocationCustom',
+      currentValue: strategy.mceAllocationCustom || 0,
+      flowRate: metric.flowRate,
+      reason: 'Low custom demand - reallocate MCE to standard line',
       priority: 'medium',
-      category: 'Equipment',
+      category: 'Production',
+    });
+  }
+
+  return suggestions;
+}
+
+/**
+ * Generate suggestions for Standard Line based on WIP flow
+ * Increasing WIP = batches too large (slowing throughput), Decreasing WIP + low = batches too small
+ */
+function generateStandardLineSuggestions(
+  metric: BottleneckMetrics,
+  simulationResult: SimulationResult
+): ConstraintSuggestion[] {
+  const { strategy } = simulationResult;
+  const suggestions: ConstraintSuggestion[] = [];
+
+  // SHORTAGE: Increasing Standard WIP (critical/warning) = batches too large
+  if (metric.trend === 'increasing' || metric.severity === 'critical' || metric.severity === 'warning') {
+    suggestions.push({
+      id: `max-batch-size-${Date.now()}`,
+      stationSource: 'Standard Line',
+      constraintType: 'maxStandardBatchSize',
+      currentValue: strategy.standardBatchSize || 0,
+      flowRate: metric.flowRate,
+      reason: metric.trend === 'increasing'
+        ? 'Queue building up - batches too large, reduce batch size'
+        : 'High WIP - set current batch size as maximum',
+      priority: metric.severity === 'critical' ? 'high' : 'medium',
+      category: 'Production',
+    });
+  }
+
+  // SURPLUS: Decreasing WIP + low avgWIP (optimal + low WIP = batches too small)
+  if (metric.trend === 'decreasing' && metric.severity === 'optimal' && metric.averageWIP < 20) {
+    suggestions.push({
+      id: `min-batch-size-${Date.now()}`,
+      stationSource: 'Standard Line',
+      constraintType: 'minStandardBatchSize',
+      currentValue: strategy.standardBatchSize || 0,
+      flowRate: metric.flowRate,
+      reason: 'Empty queue - batches too small, increase for efficiency',
+      priority: 'medium',
+      category: 'Production',
     });
   }
 
@@ -187,8 +237,8 @@ function generateCustomLineWMASuggestions(
 // ============================================================================
 
 /**
- * Generate all constraint suggestions based on bottleneck analysis
- * Simply uses current values as min/max constraints to steer optimizer
+ * Generate all constraint suggestions based on flow analysis
+ * Uses trend-based detection, constraint values are always current values
  */
 export function generateConstraintSuggestions(
   bottleneckAnalysis: BottleneckAnalysis,
@@ -196,7 +246,7 @@ export function generateConstraintSuggestions(
 ): ConstraintSuggestionSet {
   const allSuggestions: ConstraintSuggestion[] = [];
 
-  // Generate suggestions for each bottleneck
+  // Generate suggestions for each station based on flow dynamics
   bottleneckAnalysis.metrics.forEach(metric => {
     let suggestions: ConstraintSuggestion[] = [];
 
@@ -210,7 +260,11 @@ export function generateConstraintSuggestions(
         break;
 
       case 'Custom Line':
-        suggestions = generateCustomLineWMASuggestions(metric, simulationResult);
+        suggestions = generateCustomLineSuggestions(metric, simulationResult);
+        break;
+
+      case 'Standard Line':
+        suggestions = generateStandardLineSuggestions(metric, simulationResult);
         break;
 
       default:
