@@ -142,25 +142,25 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
             }
 
             suggestions.forEach(suggestion => {
-              console.log(`Applying suggestion: ${suggestion.constraintType} = ${suggestion.suggestedValue}`);
+              console.log(`Applying constraint: ${suggestion.constraintType} = ${suggestion.currentValue} (current level as minimum)`);
 
               switch (suggestion.constraintType) {
                 case 'minReorderPoint':
                   newConstraints.policyRanges!.reorderPoint = {
                     ...newConstraints.policyRanges!.reorderPoint,
-                    min: suggestion.suggestedValue
+                    min: suggestion.currentValue
                   };
                   break;
                 case 'minOrderQuantity':
                   newConstraints.policyRanges!.orderQuantity = {
                     ...newConstraints.policyRanges!.orderQuantity,
-                    min: suggestion.suggestedValue
+                    min: suggestion.currentValue
                   };
                   break;
                 case 'minWorkers':
                   newConstraints.workforceRange = {
                     ...newConstraints.workforceRange,
-                    min: suggestion.suggestedValue
+                    min: suggestion.currentValue
                   };
                   break;
                 case 'minMachines':
@@ -168,7 +168,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                     const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
                     newConstraints.machineRanges![machineType] = {
                       ...newConstraints.machineRanges![machineType],
-                      min: suggestion.suggestedValue
+                      min: suggestion.currentValue
                     };
                   }
                   break;

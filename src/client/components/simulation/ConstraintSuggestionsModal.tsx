@@ -89,11 +89,9 @@ export default function ConstraintSuggestionsModal({
                     </span>
                   </div>
                   <div className="text-sm text-gray-300 mb-2">
-                    <span className="font-semibold">Current: {suggestion.currentValue}</span>
-                    <span className="mx-2">→</span>
-                    <span className="font-semibold text-green-400">Suggested: {suggestion.suggestedValue}</span>
+                    <span className="font-semibold">Set as {suggestion.constraintType.startsWith('min') ? 'Minimum' : 'Maximum'}: {suggestion.currentValue}</span>
                   </div>
-                  <div className="text-xs text-gray-400">{suggestion.rationale}</div>
+                  <div className="text-xs text-gray-400">{suggestion.reason}</div>
                   <div className="text-xs text-gray-500 mt-1 italic">Source: {suggestion.stationSource}</div>
                 </div>
               </div>
@@ -154,7 +152,7 @@ export default function ConstraintSuggestionsModal({
           <div className="border-t border-gray-700 p-6 bg-gray-900">
             <div className="flex items-center justify-between gap-4">
               <div className="text-sm text-gray-400">
-                💡 Constraints based on market demand analysis (not constrained production data)
+                💡 Constraints use current levels to steer optimizer in the right direction
               </div>
               <div className="flex gap-3">
                 <button
