@@ -97,9 +97,9 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
     setSavedResults(results);
   }, [currentResult]);
 
-  // Set default to first strategy on mount
+  // Set default to first strategy on mount ONLY if no current result exists
   useEffect(() => {
-    if (savedStrategies.length > 0 && !selectedSource && !initialLoad) {
+    if (savedStrategies.length > 0 && !selectedSource && !initialLoad && !currentResult) {
       const firstStrategy = savedStrategies[0];
       setInitialLoad(true);
       handleSelectSource({
@@ -112,7 +112,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
         },
       });
     }
-  }, [savedStrategies, selectedSource, initialLoad]);
+  }, [savedStrategies, selectedSource, initialLoad, currentResult]);
 
   const handleDeleteSaved = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
