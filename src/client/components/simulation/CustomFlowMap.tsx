@@ -45,16 +45,16 @@ const rawMaterialsNode: Node = { id: 'raw-materials', label: 'Raw Materials', x:
 const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1050, y: 200, color: '#6b7280', icon: '⚙️' };
 
 // Custom line nodes with vertical loop pattern
-// Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Station 2 → Deliveries
-// Loop flow: Station 2 → Queue 3 (below) → Station 3 (below) → back to Station 2
+// Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Deliveries
+// Loop flow: Queue 2 → Queue 3 (below) → Station 2 (below) → Station 3 (below) → back to Queue 2
 const customNodes: Node[] = [
   { id: 'custom-queue1', label: 'Queue 1', x: 550, y: 200, color: '#f97316', icon: '📦' },
   { id: 'custom-orders', label: 'Orders', x: 1550, y: 200, color: '#ef4444', icon: '📋' },
   { id: 'custom-queue2', label: 'Queue 2', x: 2050, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'custom-station2', label: 'Station 2', x: 2550, y: 200, color: '#2563eb', icon: '⚙️' },
   { id: 'custom-deliveries', label: 'Deliveries', x: 4050, y: 200, color: '#22c55e', icon: '📦' },
   // Loop nodes positioned below main line
-  { id: 'custom-queue3', label: 'Queue 3', x: 2550, y: 360, color: '#f97316', icon: '📦' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 2050, y: 360, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 2550, y: 360, color: '#2563eb', icon: '⚙️' },
   { id: 'custom-station3', label: 'Station 3', x: 3050, y: 360, color: '#2563eb', icon: '⚙️' },
 ];
 
@@ -561,20 +561,20 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   };
 
   // Custom line edges with vertical loop pattern
-  // Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Station 2 → Deliveries
-  // Loop: Station 2 → Queue 3 (down) → Station 3 → back to Station 2 (animated loop)
+  // Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Deliveries
+  // Loop: Queue 2 → Queue 3 (down) → Station 2 → Station 3 → back to Queue 2 (up, animated loop)
   const customEdges: Edge[] = [
     // Main flow
     { from: 'raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
     { from: 'custom-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
     { from: 'mce-station', to: 'custom-orders', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
     { from: 'custom-orders', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
-    { from: 'custom-queue2', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
-    { from: 'custom-station2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
+    { from: 'custom-queue2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
     // Loop flow (vertical pattern)
-    { from: 'custom-station2', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
-    { from: 'custom-queue3', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
-    { from: 'custom-station3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'custom-queue2', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
+    { from: 'custom-queue3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'custom-station2', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
+    { from: 'custom-station3', to: 'custom-queue2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue2-station2'] },
   ];
 
   // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
