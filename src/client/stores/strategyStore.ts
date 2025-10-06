@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Strategy, StrategyAction, SimulationResult } from '../types/ui.types';
 import type { SavedSimulationResult } from '../utils/savedResults';
+import type { ConstraintSuggestionSet } from '../utils/constraintSuggestions';
 import {
   loadSavedResults,
   saveSimulationResult,
@@ -34,6 +35,9 @@ interface StrategyStore {
   savedResults: SavedSimulationResult[];
   currentViewingResultId: string | null; // ID of result being viewed, null means current simulation
 
+  // Pending constraint suggestions
+  pendingConstraintSuggestions: ConstraintSuggestionSet | null;
+
   // Actions
   updateStrategy: (updates: Partial<Strategy>) => void;
   addTimedAction: (action: StrategyAction) => void;
@@ -61,6 +65,11 @@ interface StrategyStore {
   refreshSavedResults: () => void;
   viewCurrentSimulation: () => void;
   getViewingResult: () => SimulationResult | null; // Gets either current sim or saved result
+
+  // Constraint suggestion actions
+  setPendingConstraintSuggestions: (suggestions: ConstraintSuggestionSet | null) => void;
+  applyConstraintSuggestions: (suggestionIds: string[]) => void;
+  clearPendingConstraintSuggestions: () => void;
 }
 
 const DEFAULT_STRATEGY: Strategy = {
@@ -173,6 +182,7 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
   savedStrategies: loadSavedStrategiesFromStorage(),
   savedResults: loadSavedResults(),
   currentViewingResultId: null,
+  pendingConstraintSuggestions: null,
 
   updateStrategy: (updates) =>
     set((state) => ({
@@ -328,4 +338,24 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
     }
     return simulationResult;
   },
+
+  setPendingConstraintSuggestions: (suggestions) =>
+    set({ pendingConstraintSuggestions: suggestions }),
+
+  applyConstraintSuggestions: (suggestionIds) => {
+    const pending = get().pendingConstraintSuggestions;
+    if (!pending) return;
+
+    const selectedSuggestions = pending.suggestions.filter(s =>
+      suggestionIds.includes(s.id)
+    );
+
+    // Store in localStorage for cross-page transfer
+    localStorage.setItem('appliedConstraintSuggestions', JSON.stringify(selectedSuggestions));
+
+    set({ pendingConstraintSuggestions: null });
+  },
+
+  clearPendingConstraintSuggestions: () =>
+    set({ pendingConstraintSuggestions: null }),
 }));

@@ -2,9 +2,11 @@ import { useMemo, useState, useEffect } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
+import { generateConstraintSuggestions } from '../../utils/constraintSuggestions';
 import ProcessMapSelector, { type DataSource } from './ProcessMapSelector';
 import InfoPopup from './InfoPopup';
 import AnimatedFlowArrow from './AnimatedFlowArrow';
+import ConstraintSuggestionsModal from './ConstraintSuggestionsModal';
 import {
   LineChart,
   Line,
@@ -71,6 +73,13 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const bottleneckAnalysis = useMemo(() => analyzeBottlenecks(displayResult), [displayResult]);
   const [showStatistics, setShowStatistics] = useState(true);
   const [showTrends, setShowTrends] = useState(false);
+  const [showConstraintSuggestionsModal, setShowConstraintSuggestionsModal] = useState(false);
+
+  // Generate constraint suggestions based on bottleneck analysis
+  const constraintSuggestions = useMemo(
+    () => generateConstraintSuggestions(bottleneckAnalysis, displayResult),
+    [bottleneckAnalysis, displayResult]
+  );
 
   // Get final day values
   const finalDayIndex = state.history.dailyCash.length - 1;
@@ -344,6 +353,18 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
             ))}
           </div>
+          {/* Apply to Optimizer Button */}
+          {constraintSuggestions.suggestions.length > 0 && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setShowConstraintSuggestionsModal(true)}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-lg shadow-lg transition-all hover:scale-105 flex items-center gap-2"
+              >
+                <span>🎯</span>
+                <span>Apply {constraintSuggestions.suggestions.length} Suggested Constraint{constraintSuggestions.suggestions.length !== 1 ? 's' : ''} to Optimizer</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2001,6 +2022,13 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         </div>
       </div>
 
+      {/* Constraint Suggestions Modal */}
+      {showConstraintSuggestionsModal && (
+        <ConstraintSuggestionsModal
+          suggestions={constraintSuggestions}
+          onClose={() => setShowConstraintSuggestionsModal(false)}
+        />
+      )}
     </div>
   );
 }

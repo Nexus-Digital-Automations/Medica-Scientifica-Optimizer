@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { loadSavedResults, deleteSavedResult, type SavedSimulationResult } from '../../utils/savedResults';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
+import { useStrategyStore } from '../../stores/strategyStore';
 
 interface ProcessMapSelectorProps {
   currentResult: SimulationResult | null;
@@ -9,23 +10,26 @@ interface ProcessMapSelectorProps {
 }
 
 export interface DataSource {
-  type: 'historical' | 'current' | 'saved';
+  type: 'historical' | 'current' | 'saved' | 'strategy';
   id?: string;
   label: string;
   timestamp?: number;
   metadata?: {
-    finalNetWorth: number;
+    finalNetWorth?: number;
     strategyName?: string;
+    description?: string;
   };
 }
 
 export default function ProcessMapSelector({ currentResult, onSelectResult }: ProcessMapSelectorProps) {
+  const { savedStrategies } = useStrategyStore();
   const [savedResults, setSavedResults] = useState<SavedSimulationResult[]>([]);
   const [selectedSource, setSelectedSource] = useState<DataSource>({
     type: 'historical',
     label: '📊 Historical Data (Excel Baseline)',
   });
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loadingStrategy, setLoadingStrategy] = useState(false);
 
   useEffect(() => {
     // Load saved results from localStorage
@@ -45,7 +49,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
     }
   }, [currentResult]);
 
-  const handleSelectSource = (source: DataSource) => {
+  const handleSelectSource = async (source: DataSource) => {
     setSelectedSource(source);
     setShowDropdown(false);
 
@@ -58,6 +62,33 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       const saved = savedResults.find(r => r.id === source.id);
       if (saved) {
         onSelectResult(saved.result, source);
+      }
+    } else if (source.type === 'strategy' && source.id) {
+      // Run simulation for selected strategy
+      setLoadingStrategy(true);
+      try {
+        const strategy = savedStrategies.find(s => s.id === source.id);
+        if (strategy) {
+          const response = await fetch('/api/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              strategy: strategy.strategy,
+              scenarioId: strategy.scenarioId
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.result) {
+              onSelectResult(data.result, source);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to run simulation for strategy:', error);
+      } finally {
+        setLoadingStrategy(false);
       }
     }
   };
@@ -106,6 +137,8 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
         return '🔬';
       case 'saved':
         return '💾';
+      case 'strategy':
+        return '📚';
       default:
         return '📈';
     }
@@ -119,6 +152,8 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
         return 'bg-blue-600 text-white';
       case 'saved':
         return 'bg-purple-600 text-white';
+      case 'strategy':
+        return 'bg-green-600 text-white';
       default:
         return 'bg-gray-600 text-white';
     }
@@ -140,7 +175,12 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
               <div className="text-white font-semibold">{selectedSource.label}</div>
               {selectedSource.metadata && (
                 <div className="text-xs text-gray-400">
-                  Net Worth: {formatCurrency(selectedSource.metadata.finalNetWorth)}
+                  {selectedSource.metadata.finalNetWorth !== undefined && (
+                    <>Net Worth: {formatCurrency(selectedSource.metadata.finalNetWorth)}</>
+                  )}
+                  {selectedSource.metadata.description && (
+                    <>{selectedSource.metadata.finalNetWorth !== undefined ? ' • ' : ''}{selectedSource.metadata.description}</>
+                  )}
                   {selectedSource.timestamp && ` • ${formatTimestamp(selectedSource.timestamp)}`}
                 </div>
               )}
@@ -203,6 +243,48 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
                 </div>
               </div>
             </button>
+          )}
+
+          {/* Strategy Library */}
+          {savedStrategies.length > 0 && (
+            <>
+              <div className="px-4 py-2 bg-gray-900 border-y border-gray-700">
+                <div className="text-xs font-bold text-gray-400 uppercase">Strategy Library ({savedStrategies.length})</div>
+              </div>
+              {savedStrategies.map((strategy) => (
+                <button
+                  key={strategy.id}
+                  onClick={() => handleSelectSource({
+                    type: 'strategy',
+                    id: strategy.id,
+                    label: strategy.name,
+                    metadata: {
+                      strategyName: strategy.name,
+                      description: strategy.description,
+                    },
+                  })}
+                  className={`w-full p-4 text-left hover:bg-gray-700 transition-colors border-b border-gray-700 ${
+                    selectedSource.type === 'strategy' && selectedSource.id === strategy.id ? 'bg-gray-700' : ''
+                  }`}
+                  disabled={loadingStrategy}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`px-3 py-1 rounded-lg ${getSourceBadgeColor('strategy')} text-sm font-bold`}>
+                      📚 STRATEGY
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-semibold">{strategy.name}</div>
+                      {strategy.description && (
+                        <div className="text-xs text-gray-400">{strategy.description}</div>
+                      )}
+                    </div>
+                    {loadingStrategy && selectedSource.type === 'strategy' && selectedSource.id === strategy.id && (
+                      <div className="text-blue-400 text-xs">Running simulation...</div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </>
           )}
 
           {/* Saved Simulations */}

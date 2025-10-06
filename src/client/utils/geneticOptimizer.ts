@@ -71,6 +71,23 @@ export interface OptimizationConstraints {
   endDay: number;
   // Evaluation window for short-term growth rate calculation
   evaluationWindow: number; // Days to measure growth rate (default: 30)
+  // Min/Max ranges for policy parameters (suggested from bottleneck analysis)
+  policyRanges?: {
+    reorderPoint?: { min?: number; max?: number };
+    orderQuantity?: { min?: number; max?: number };
+    standardPrice?: { min?: number; max?: number };
+    standardBatchSize?: { min?: number; max?: number };
+    mceAllocationCustom?: { min?: number; max?: number };
+    dailyOvertimeHours?: { min?: number; max?: number };
+  };
+  // Min/Max for workforce (total workers: experts + rookies)
+  workforceRange?: { min?: number; max?: number };
+  // Min/Max for machines
+  machineRanges?: {
+    MCE?: { min?: number; max?: number };
+    WMA?: { min?: number; max?: number };
+    PUC?: { min?: number; max?: number };
+  };
 }
 
 /**
@@ -454,23 +471,36 @@ export function generateConstrainedStrategyParams(
   const params: OptimizationCandidate['strategyParams'] = {};
 
   // Only generate random values for variable (non-fixed) policies
+  // Respect min/max constraints from policyRanges
   if (!constraints.fixedPolicies.reorderPoint) {
-    params.reorderPoint = Math.floor(200 + Math.random() * 800); // 200-1000
+    const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
+    const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
+    params.reorderPoint = Math.floor(min + Math.random() * (max - min));
   }
   if (!constraints.fixedPolicies.orderQuantity) {
-    params.orderQuantity = Math.floor(200 + Math.random() * 1800); // 200-2000
+    const min = constraints.policyRanges?.orderQuantity?.min ?? 200;
+    const max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
+    params.orderQuantity = Math.floor(min + Math.random() * (max - min));
   }
   if (!constraints.fixedPolicies.standardPrice) {
-    params.standardPrice = Math.floor(500 + Math.random() * 700); // 500-1200
+    const min = constraints.policyRanges?.standardPrice?.min ?? 500;
+    const max = constraints.policyRanges?.standardPrice?.max ?? 1200;
+    params.standardPrice = Math.floor(min + Math.random() * (max - min));
   }
   if (!constraints.fixedPolicies.standardBatchSize) {
-    params.standardBatchSize = Math.floor(50 + Math.random() * 450); // 50-500
+    const min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
+    const max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
+    params.standardBatchSize = Math.floor(min + Math.random() * (max - min));
   }
   if (!constraints.fixedPolicies.mceAllocationCustom) {
-    params.mceAllocationCustom = Math.random() * 0.6 + 0.2; // 0.2-0.8
+    const min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
+    const max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
+    params.mceAllocationCustom = min + Math.random() * (max - min);
   }
   if (!constraints.fixedPolicies.dailyOvertimeHours) {
-    params.dailyOvertimeHours = Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0;
+    const min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
+    const max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    params.dailyOvertimeHours = Math.random() < 0.3 ? Math.floor(min + Math.random() * (max - min + 1)) : 0;
   }
 
   return params;
@@ -489,33 +519,46 @@ export function mutateConstrainedStrategyParams(
   const mutated = { ...params };
 
   // Only mutate variable (non-fixed) policies
+  // Respect min/max constraints from policyRanges
   if (!constraints.fixedPolicies.reorderPoint && Math.random() < mutationRate && mutated.reorderPoint) {
+    const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
+    const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
     const change = Math.floor((Math.random() - 0.5) * 200);
-    mutated.reorderPoint = Math.max(200, Math.min(1000, mutated.reorderPoint + change));
+    mutated.reorderPoint = Math.max(min, Math.min(max, mutated.reorderPoint + change));
   }
 
   if (!constraints.fixedPolicies.orderQuantity && Math.random() < mutationRate && mutated.orderQuantity) {
+    const min = constraints.policyRanges?.orderQuantity?.min ?? 200;
+    const max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
     const change = Math.floor((Math.random() - 0.5) * 400);
-    mutated.orderQuantity = Math.max(200, Math.min(2000, mutated.orderQuantity + change));
+    mutated.orderQuantity = Math.max(min, Math.min(max, mutated.orderQuantity + change));
   }
 
   if (!constraints.fixedPolicies.standardPrice && Math.random() < mutationRate && mutated.standardPrice) {
+    const min = constraints.policyRanges?.standardPrice?.min ?? 400;
+    const max = constraints.policyRanges?.standardPrice?.max ?? 1200;
     const change = Math.floor((Math.random() - 0.5) * 200);
-    mutated.standardPrice = Math.max(400, Math.min(1200, mutated.standardPrice + change));
+    mutated.standardPrice = Math.max(min, Math.min(max, mutated.standardPrice + change));
   }
 
   if (!constraints.fixedPolicies.standardBatchSize && Math.random() < mutationRate && mutated.standardBatchSize) {
+    const min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
+    const max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
     const change = Math.floor((Math.random() - 0.5) * 100);
-    mutated.standardBatchSize = Math.max(50, Math.min(500, mutated.standardBatchSize + change));
+    mutated.standardBatchSize = Math.max(min, Math.min(max, mutated.standardBatchSize + change));
   }
 
   if (!constraints.fixedPolicies.mceAllocationCustom && Math.random() < mutationRate && mutated.mceAllocationCustom !== undefined) {
+    const min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
+    const max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
     const change = (Math.random() - 0.5) * 0.2;
-    mutated.mceAllocationCustom = Math.max(0.2, Math.min(0.8, mutated.mceAllocationCustom + change));
+    mutated.mceAllocationCustom = Math.max(min, Math.min(max, mutated.mceAllocationCustom + change));
   }
 
   if (!constraints.fixedPolicies.dailyOvertimeHours && Math.random() < mutationRate && mutated.dailyOvertimeHours !== undefined) {
-    mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3);
+    const min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
+    const max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(min + Math.random() * (max - min + 1));
   }
 
   return mutated;

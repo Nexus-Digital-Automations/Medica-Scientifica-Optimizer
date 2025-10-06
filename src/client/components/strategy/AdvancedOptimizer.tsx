@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
+import type { ConstraintSuggestion } from '../../utils/constraintSuggestions';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams, ensureSufficientCash } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { debugLogger } from '../../utils/debugLogger';
@@ -38,6 +39,23 @@ interface OptimizationConstraints {
     MCE: LockState;
     WMA: LockState;
     PUC: LockState;
+  };
+  // Min/Max ranges for policy parameters (suggested from bottleneck analysis)
+  policyRanges?: {
+    reorderPoint?: { min?: number; max?: number };
+    orderQuantity?: { min?: number; max?: number };
+    standardPrice?: { min?: number; max?: number };
+    standardBatchSize?: { min?: number; max?: number };
+    mceAllocationCustom?: { min?: number; max?: number };
+    dailyOvertimeHours?: { min?: number; max?: number };
+  };
+  // Min/Max for workforce (total workers: experts + rookies)
+  workforceRange?: { min?: number; max?: number };
+  // Min/Max for machines
+  machineRanges?: {
+    MCE?: { min?: number; max?: number };
+    WMA?: { min?: number; max?: number };
+    PUC?: { min?: number; max?: number };
   };
 }
 
@@ -95,6 +113,72 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     price: 'unlocked',
     mceAllocation: 'unlocked',
   });
+
+  // Auto-apply constraint suggestions from ProcessMap bottleneck analysis
+  useEffect(() => {
+    const storedSuggestions = localStorage.getItem('appliedConstraintSuggestions');
+    if (storedSuggestions) {
+      try {
+        const suggestions: ConstraintSuggestion[] = JSON.parse(storedSuggestions);
+
+        // Apply suggestions to constraints
+        setConstraints(prevConstraints => {
+          const newConstraints = { ...prevConstraints };
+
+          // Initialize policyRanges if not exists
+          if (!newConstraints.policyRanges) {
+            newConstraints.policyRanges = {};
+          }
+
+          suggestions.forEach(suggestion => {
+            switch (suggestion.constraintType) {
+              case 'minReorderPoint':
+                newConstraints.policyRanges!.reorderPoint = {
+                  ...newConstraints.policyRanges!.reorderPoint,
+                  min: suggestion.suggestedValue
+                };
+                break;
+              case 'minOrderQuantity':
+                newConstraints.policyRanges!.orderQuantity = {
+                  ...newConstraints.policyRanges!.orderQuantity,
+                  min: suggestion.suggestedValue
+                };
+                break;
+              case 'minWorkers':
+                newConstraints.workforceRange = {
+                  ...newConstraints.workforceRange,
+                  min: suggestion.suggestedValue
+                };
+                break;
+              case 'minMachines':
+                if (!newConstraints.machineRanges) {
+                  newConstraints.machineRanges = {};
+                }
+                if (suggestion.parameter) {
+                  const machineType = suggestion.parameter as 'MCE' | 'WMA' | 'PUC';
+                  newConstraints.machineRanges[machineType] = {
+                    ...newConstraints.machineRanges[machineType],
+                    min: suggestion.suggestedValue
+                  };
+                }
+                break;
+            }
+          });
+
+          return newConstraints;
+        });
+
+        // Show notification
+        console.log(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis`);
+
+        // Clear localStorage
+        localStorage.removeItem('appliedConstraintSuggestions');
+      } catch (error) {
+        console.error('Failed to apply constraint suggestions:', error);
+        localStorage.removeItem('appliedConstraintSuggestions');
+      }
+    }
+  }, []); // Run once on mount
 
   // Handler functions for current state locks - cycle through states
   const handleLockWorkforce = () => {
