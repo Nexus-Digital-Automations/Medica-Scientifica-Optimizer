@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import ProcessMap from './ProcessMap';
+import CustomFlowMap from './CustomFlowMap';
 import StrategyLibraryModal from '../common/StrategyLibraryModal';
 import type { SavedStrategy } from '../../stores/strategyStore';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
@@ -525,7 +525,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         <div className="p-8">
           {/* Process Map Tab */}
           {selectedTab === 'processMap' && (
-            <ProcessMap simulationResult={simulationResult} />
+            <CustomFlowMap simulationResult={simulationResult} />
           )}
 
           {/* Financial Performance Tab */}

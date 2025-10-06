@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface InfoPopupProps {
   title: string;
@@ -23,8 +24,8 @@ export default function InfoPopup({ title, content, buttonClassName = '' }: Info
         ℹ️
       </button>
 
-      {/* Popup Modal */}
-      {isOpen && (
+      {/* Popup Modal - rendered via portal outside SVG */}
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
@@ -62,7 +63,8 @@ export default function InfoPopup({ title, content, buttonClassName = '' }: Info
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

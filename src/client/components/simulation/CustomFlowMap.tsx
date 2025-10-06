@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { generateConstraintSuggestions } from '../../utils/constraintSuggestions';
@@ -35,8 +35,10 @@ interface Edge {
   getMetrics?: () => FlowMetrics;
 }
 
-// MCE Station (unified, shared between both lines) - centered above production lines
-const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1200, y: 60, color: '#6b7280', icon: '⚙️' };
+// MCE Station (unified, shared between both lines) - tall box spanning both lines
+// Positioned at y=180, height=500 to visually show it serves both custom (y=240-400) and standard (y=520-640) lines
+// The horizontal separator at y=460 crosses through the middle of the MCE box
+const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1200, y: 180, color: '#6b7280', icon: '⚙️' };
 
 // Custom line nodes (single row, top section, 500px gaps)
 const customNodes: Node[] = [
@@ -127,7 +129,7 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
         {node.label}
       </text>
       {info && (
-        <foreignObject x={70} y={10} width={25} height={25} style={{ zIndex: 10 }}>
+        <foreignObject x={70} y={10} width={25} height={25} style={{ zIndex: 10 }} pointerEvents="all">
           {info}
         </foreignObject>
       )}
@@ -137,7 +139,7 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
 
 function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAllocation: number; info?: React.ReactNode }) {
   const width = 500;
-  const height = 120;
+  const height = 500; // Tall enough to span both production lines
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -161,30 +163,50 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
       />
 
       {/* Title */}
-      <text x={width / 2} y={30} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">
-        ⚙️ STATION 3 - MCE (SHARED)
+      <text x={width / 2} y={40} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">
+        ⚙️ STATION 3 - MCE
       </text>
-      <text x={width / 2} y={50} textAnchor="middle" fontSize={14} fill="#e5e7eb">
+      <text x={width / 2} y={65} textAnchor="middle" fontSize={16} fontWeight={600} fill="#e5e7eb">
+        (SHARED RESOURCE)
+      </text>
+      <text x={width / 2} y={85} textAnchor="middle" fontSize={12} fill="#d1d5db">
         Material Consumption & Forming
       </text>
 
-      {/* Allocation bar */}
-      <g transform="translate(60, 65)">
-        <rect width={380} height={30} rx={15} fill="#374151" />
-        <rect width={380 * mceAllocation} height={30} rx={15} fill="#a855f7" />
-        <rect x={380 * mceAllocation} width={380 * (1 - mceAllocation)} height={30} rx={15} fill="#3b82f6" />
+      {/* Line labels */}
+      <text x={width / 2} y={135} textAnchor="middle" fontSize={14} fontWeight={600} fill="#a855f7">
+        ↑ CUSTOM LINE
+      </text>
+      <text x={width / 2} y={370} textAnchor="middle" fontSize={14} fontWeight={600} fill="#3b82f6">
+        ↓ STANDARD LINE
+      </text>
 
-        <text x={190 * mceAllocation} y={20} textAnchor="middle" fontSize={12} fontWeight={700} fill="white">
+      {/* Horizontal separator line indicator (shows where separator crosses through) */}
+      <line x1={40} y1={280} x2={width - 40} y2={280} stroke="#9ca3af" strokeWidth={2} strokeDasharray="8 4" />
+      <text x={width / 2} y={275} textAnchor="middle" fontSize={11} fontWeight={600} fill="#9ca3af">
+        SEPARATOR
+      </text>
+
+      {/* Allocation bar - centered vertically */}
+      <g transform="translate(60, 220)">
+        <text x={190} y={-10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#d1d5db">
+          Capacity Allocation
+        </text>
+        <rect width={380} height={40} rx={20} fill="#374151" />
+        <rect width={380 * mceAllocation} height={40} rx={20} fill="#a855f7" />
+        <rect x={380 * mceAllocation} width={380 * (1 - mceAllocation)} height={40} rx={20} fill="#3b82f6" />
+
+        <text x={190 * mceAllocation} y={26} textAnchor="middle" fontSize={14} fontWeight={700} fill="white">
           {(mceAllocation * 100).toFixed(0)}%
         </text>
-        <text x={380 * mceAllocation + 190 * (1 - mceAllocation)} y={20} textAnchor="middle" fontSize={12} fontWeight={700} fill="white">
+        <text x={380 * mceAllocation + 190 * (1 - mceAllocation)} y={26} textAnchor="middle" fontSize={14} fontWeight={700} fill="white">
           {((1 - mceAllocation) * 100).toFixed(0)}%
         </text>
       </g>
 
       {/* Info popup */}
       {info && (
-        <foreignObject x={width - 35} y={10} width={25} height={25}>
+        <foreignObject x={width - 35} y={10} width={25} height={25} pointerEvents="all">
           {info}
         </foreignObject>
       )}
@@ -223,25 +245,7 @@ function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupTogg
         onClick={() => onPopupToggle(edgeId)}
       />
 
-      {!edge.isDotted && (
-        <g className="pointer-events-none">
-          <text>
-            <textPath href={`#path-${edge.from}-${edge.to}`} startOffset="25%">
-              <tspan className="text-xs font-bold" fill="#1e40af">
-                Flow: {flowMetrics.flowRate.toFixed(1)}
-              </tspan>
-            </textPath>
-          </text>
-          <text>
-            <textPath href={`#path-${edge.from}-${edge.to}`} startOffset="75%">
-              <tspan className="text-xs font-bold" fill="#7c3aed">
-                Demand: {flowMetrics.demandRate.toFixed(1)}
-              </tspan>
-            </textPath>
-          </text>
-        </g>
-      )}
-
+      {/* Invisible path for future use (edge metrics moved to popup) */}
       <path id={`path-${edge.from}-${edge.to}`} d={d} fill="none" stroke="none" />
     </>
   );
@@ -260,7 +264,7 @@ function EdgePopup({ edge, index: _index, metrics, onClose }: { edge: Edge; inde
   const bottleneckRatio = flowMetrics.demandRate > 0 ? flowMetrics.flowRate / flowMetrics.demandRate : 1;
 
   return (
-    <foreignObject x={from.x + NODE_W + 50} y={from.y} width={300} height={250}>
+    <foreignObject x={from.x + NODE_W + 50} y={from.y} width={300} height={250} pointerEvents="all">
       <div
         className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 rounded-xl shadow-2xl p-4"
         style={{ borderColor: strokeColor }}
@@ -308,6 +312,84 @@ function EdgePopup({ edge, index: _index, metrics, onClose }: { edge: Edge; inde
 export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) {
   const [showConstraintSuggestions, setShowConstraintSuggestions] = useState(false);
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
+
+  // Zoom and pan state
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Zoom constraints
+  const MIN_SCALE = 0.3;
+  const MAX_SCALE = 3;
+
+  // Zoom handler (mouse wheel)
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    e.preventDefault();
+
+    const delta = -e.deltaY * 0.001;
+    const newScale = Math.min(Math.max(transform.scale + delta, MIN_SCALE), MAX_SCALE);
+
+    if (newScale !== transform.scale) {
+      // Zoom towards cursor position
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate SVG coordinates
+        const svgX = (mouseX - transform.x) / transform.scale;
+        const svgY = (mouseY - transform.y) / transform.scale;
+
+        // Adjust pan to keep mouse position fixed
+        const newX = mouseX - svgX * newScale;
+        const newY = mouseY - svgY * newScale;
+
+        setTransform({ x: newX, y: newY, scale: newScale });
+      }
+    }
+  };
+
+  // Pan handlers (mouse drag)
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Only start dragging on primary mouse button (left click)
+    if (e.button === 0 && !e.target.closest('button, foreignObject')) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isDragging) {
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      setTransform({ ...transform, x: newX, y: newY });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Zoom control functions
+  const handleZoomIn = () => {
+    const newScale = Math.min(transform.scale * 1.2, MAX_SCALE);
+    setTransform({ ...transform, scale: newScale });
+  };
+
+  const handleZoomOut = () => {
+    const newScale = Math.max(transform.scale / 1.2, MIN_SCALE);
+    setTransform({ ...transform, scale: newScale });
+  };
+
+  const handleResetView = () => {
+    setTransform({ x: 0, y: 0, scale: 1 });
+  };
 
   const bottleneckAnalysis = useMemo(
     () => simulationResult ? analyzeBottlenecks(simulationResult) : { metrics: [], problems: [], overallHealth: 'optimal' as const, summaryStats: { totalBottlenecks: 0, criticalBottlenecks: 0, averageUtilization: 0, mostCriticalStation: null } },
@@ -407,7 +489,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const isStandardBottleneck = finalStandardWIP > 100;
 
   return (
-    <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-300">
+    <div className="relative w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-300">
       <div className="flex justify-between items-center mb-6">
         <div className="space-y-2">
           <div className="text-sm font-semibold text-gray-600">Team: Bearkats</div>
@@ -431,7 +513,17 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      <svg viewBox="0 0 3300 750" className="w-full h-full">
+      <svg
+        ref={svgRef}
+        viewBox="0 0 3300 750"
+        className="w-full h-full cursor-grab active:cursor-grabbing"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ userSelect: 'none' }}
+      >
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b" />
@@ -440,6 +532,15 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             <feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.3"/>
           </filter>
         </defs>
+
+        {/* Apply zoom and pan transform to all content */}
+        <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
+          {/* Horizontal separator line between custom and standard production lines */}
+          <g>
+          <line x1={0} y1={460} x2={3300} y2={460} stroke="#d1d5db" strokeWidth={3} strokeDasharray="12 6" />
+          <text x={100} y={455} fontSize={14} fontWeight={600} fill="#6b7280">CUSTOM LINE ↑</text>
+          <text x={100} y={478} fontSize={14} fontWeight={600} fill="#6b7280">STANDARD LINE ↓</text>
+        </g>
 
         <g>
           {edges.map((edge, i) => (
@@ -574,7 +675,39 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             return null;
           })}
         </g>
+        </g>
+        {/* End transform group */}
       </svg>
+
+      {/* Zoom control toolbar */}
+      <div className="absolute top-4 right-4 bg-gray-800 border-2 border-gray-600 rounded-xl shadow-2xl p-2 flex flex-col gap-2">
+        <button
+          onClick={handleZoomIn}
+          disabled={transform.scale >= MAX_SCALE}
+          className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all duration-200 hover:scale-110 disabled:hover:scale-100 shadow-md"
+          title="Zoom In"
+        >
+          +
+        </button>
+        <button
+          onClick={handleZoomOut}
+          disabled={transform.scale <= MIN_SCALE}
+          className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all duration-200 hover:scale-110 disabled:hover:scale-100 shadow-md"
+          title="Zoom Out"
+        >
+          −
+        </button>
+        <button
+          onClick={handleResetView}
+          className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-bold text-sm transition-all duration-200 hover:scale-110 shadow-md"
+          title="Reset View"
+        >
+          ⟲
+        </button>
+        <div className="text-center text-xs font-bold text-gray-300 mt-1 px-1">
+          {Math.round(transform.scale * 100)}%
+        </div>
+      </div>
 
       <div className="mt-6 space-y-4">
         {/* Custom Line Stats */}
