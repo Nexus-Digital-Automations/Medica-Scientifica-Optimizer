@@ -98,10 +98,15 @@ function getIconComponent(icon: string) {
 }
 
 function makeCurve(fromNode: Node, toNode: Node, extra = 0): string {
+  // Special handling for tall shared resource nodes (raw materials, MCE station)
+  const TALL_NODE_HEIGHT = 600;
+  const fromHeight = (fromNode.id === 'raw-materials' || fromNode.id === 'mce-station') ? TALL_NODE_HEIGHT : NODE_H;
+  const toHeight = (toNode.id === 'raw-materials' || toNode.id === 'mce-station') ? TALL_NODE_HEIGHT : NODE_H;
+
   const sx = fromNode.x + NODE_W;
-  const sy = fromNode.y + NODE_H / 2;
+  const sy = fromNode.y + fromHeight / 2;
   const ex = toNode.x;
-  const ey = toNode.y + NODE_H / 2;
+  const ey = toNode.y + toHeight / 2;
   const dx = ex - sx;
 
   if (Math.abs(ey - sy) > 50) {
@@ -117,19 +122,20 @@ function makeCurve(fromNode: Node, toNode: Node, extra = 0): string {
   return `M ${sx} ${sy} C ${cx1} ${sy} ${cx2} ${ey} ${ex} ${ey}`;
 }
 
-function getFlowColor(flowRate: number, demandRate: number): string {
-  const gap = flowRate - demandRate;
-  if (gap < -0.5) return '#ef4444'; // Red - shortage
-  if (gap > 0.5) return '#22c55e'; // Green - excess
-  return '#3b82f6'; // Blue - balanced
-}
+// Flow color and width functions - commented out for future use (dynamic arrow styling)
+// function getFlowColor(flowRate: number, demandRate: number): string {
+//   const gap = flowRate - demandRate;
+//   if (gap < -0.5) return '#ef4444'; // Red - shortage
+//   if (gap > 0.5) return '#22c55e'; // Green - excess
+//   return '#3b82f6'; // Blue - balanced
+// }
 
-function getArrowWidth(flowRate: number, demandRate: number): number {
-  const gap = flowRate - demandRate;
-  if (gap < -0.5) return 8;  // Thinner arrow - bottleneck/shortage (RED)
-  if (gap > 0.5) return 16;  // Thickest arrow - excess supply (GREEN)
-  return 12;                 // Medium arrow - balanced (BLUE)
-}
+// function getArrowWidth(flowRate: number, demandRate: number): number {
+//   const gap = flowRate - demandRate;
+//   if (gap < -0.5) return 8;  // Thinner arrow - bottleneck/shortage (RED)
+//   if (gap > 0.5) return 16;  // Thickest arrow - excess supply (GREEN)
+//   return 12;                 // Medium arrow - balanced (BLUE)
+// }
 
 function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
   const IconComponent = getIconComponent(node.icon);
@@ -310,25 +316,19 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
   );
 }
 
-function Edge({ edge, index, metrics, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
+function Edge({ edge, index, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
   if (!from || !to) return null;
 
   const edgeId = `${edge.from}-${edge.to}-${index}`;
-  const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
   const d = makeCurve(from, to, edge.isLoop ? 30 : 0);
-  const strokeColor = edge.isDotted ? '#9ca3af' : getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
-  const strokeWidth = edge.isDotted ? 2 : getArrowWidth(flowMetrics.flowRate, flowMetrics.demandRate);
 
-  // Select arrow marker based on stroke color for visibility
-  const getArrowMarker = (color: string) => {
-    if (color === '#ef4444') return 'url(#arrow-red)';
-    if (color === '#22c55e') return 'url(#arrow-green)';
-    if (color === '#9ca3af') return 'url(#arrow-gray)';
-    return 'url(#arrow-blue)'; // Default for balanced flow
-  };
+  // Use standardized styling for all arrows (temporarily simplified)
+  const strokeColor = '#3b82f6'; // Standard blue color
+  const strokeWidth = edge.isLoop ? 3 : 4; // Slightly thinner for loops
+  const arrowMarker = 'url(#arrow-blue)'; // Standard blue arrow marker
 
   return (
     <>
@@ -339,13 +339,12 @@ function Edge({ edge, index, metrics, onPopupToggle }: { edge: Edge; index: numb
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeDasharray={edge.isDotted ? '8 4' : edge.isLoop ? '12 8' : '0'}
-        markerEnd={getArrowMarker(strokeColor)}
-        filter={edge.isDotted ? undefined : "url(#arrow-shadow)"}
+        strokeDasharray={edge.isLoop ? '12 8' : '0'}
+        markerEnd={arrowMarker}
+        filter="url(#arrow-shadow)"
         animate={edge.isLoop ? { strokeDashoffset: [0, -40] } : {}}
         transition={edge.isLoop ? { repeat: Infinity, repeatType: 'loop', duration: 2, ease: 'linear' } : {}}
         className="cursor-pointer"
-        style={{ transition: 'stroke-width 0.3s ease' }}
         onClick={() => onPopupToggle(edgeId)}
       />
 
@@ -362,7 +361,6 @@ function EdgePopup({ edge, metrics, onClose }: { edge: Edge; index: number; metr
   if (!from || !to) return null;
 
   const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
-  const strokeColor = edge.isDotted ? '#9ca3af' : getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
   const gap = flowMetrics.flowRate - flowMetrics.demandRate;
   const isBottleneck = gap < -0.5;
   const bottleneckRatio = flowMetrics.demandRate > 0 ? flowMetrics.flowRate / flowMetrics.demandRate : 1;
@@ -370,8 +368,7 @@ function EdgePopup({ edge, metrics, onClose }: { edge: Edge; index: number; metr
   return (
     <foreignObject x={from.x + NODE_W + 50} y={from.y} width={300} height={250} pointerEvents="all">
       <div
-        className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 rounded-xl shadow-2xl p-4"
-        style={{ borderColor: strokeColor }}
+        className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-blue-500 rounded-xl shadow-2xl p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
