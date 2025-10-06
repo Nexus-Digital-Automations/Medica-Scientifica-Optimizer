@@ -307,7 +307,7 @@ function simulateDay(
   dailyMetrics.standardProduced = standardResult.totalUnitsCompleted;
 
   // Step 10: Run production (custom line) SECOND
-  // CRITICAL: Custom line is make-to-order - orders arrive (demand), are accepted if WIP < 360, rejected otherwise
+  // CRITICAL: Custom line is make-to-order - orders arrive (demand), are accepted if WIP < CUSTOM_LINE_MAX_WIP, rejected otherwise
   const customResult = processCustomLineProduction(
     state,
     strategy,

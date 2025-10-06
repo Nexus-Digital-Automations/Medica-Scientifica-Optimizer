@@ -36,7 +36,7 @@ export const CONSTANTS = {
   ROOKIE_TRAINING_TIME: 15, // days to become expert
 
   // Custom Line Capacity (data-driven from analysis)
-  CUSTOM_LINE_MAX_WIP: 360, // maximum orders in WIP
+  CUSTOM_LINE_MAX_WIP: 2000, // maximum orders in WIP (increased from 360 to handle longer simulations)
   MIN_CUSTOM_PRODUCTION_DAYS: 5, // minimum days to complete custom order
   CUSTOM_WMA_CAPACITY_PER_MACHINE_PER_DAY: 6, // WMA capacity per machine (12 total with 2 machines)
   CUSTOM_PUC_CAPACITY_PER_MACHINE_PER_DAY: 6, // PUC capacity per machine (12 total with 2 machines)

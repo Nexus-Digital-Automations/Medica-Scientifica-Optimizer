@@ -29,10 +29,10 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
   const [loadingStrategy, setLoadingStrategy] = useState(false);
   const [initialLoad, setInitialLoad] = useState(false);
 
-  // Auto-select current result when it changes (e.g., from Load Strategy button)
+  // Auto-select current result when it changes - ALWAYS prioritize current simulation
   useEffect(() => {
-    if (currentResult && initialLoad) {
-      // Only auto-select if we've already done initial load (prevents conflict with first strategy auto-load)
+    if (currentResult) {
+      setInitialLoad(true); // Mark as initialized
       const newSource: DataSource = {
         type: 'current',
         label: '🔬 Latest Simulation',
@@ -45,7 +45,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       onSelectResult(currentResult, newSource);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentResult, initialLoad]);
+  }, [currentResult]);
 
   const handleSelectSource = async (source: DataSource) => {
     setSelectedSource(source);

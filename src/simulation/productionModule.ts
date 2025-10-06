@@ -20,7 +20,7 @@ export interface MCECapacityAllocation {
 
 export interface CustomLineResult {
   ordersReceived: number; // Customer orders that arrived today
-  ordersAccepted: number; // Orders accepted into WIP (WIP < 360)
+  ordersAccepted: number; // Orders accepted into WIP (WIP < CUSTOM_LINE_MAX_WIP)
   ordersRejected: number; // Orders rejected due to WIP limit
   newOrdersStarted: number; // Orders that started MCE processing today
   ordersProcessed: number;
@@ -142,7 +142,7 @@ export function processCustomLineProduction(
   const completedOrders: Array<{ startDay: number; completionDay: number; totalDays: number }> = [];
 
   // Step 1: HANDLE INCOMING CUSTOMER ORDERS (make-to-order system)
-  // Business case: Orders arrive, are accepted if WIP < 360, rejected otherwise
+  // Business case: Orders arrive, are accepted if WIP < CUSTOM_LINE_MAX_WIP, rejected otherwise
   for (let i = 0; i < customDemand; i++) {
     if (state.customLineWIP.orders.length < CONSTANTS.CUSTOM_LINE_MAX_WIP) {
       // Accept order - add to WIP queue (waiting for MCE processing)
@@ -155,7 +155,7 @@ export function processCustomLineProduction(
       });
       ordersAccepted++;
     } else {
-      // Reject order - WIP at capacity limit (360)
+      // Reject order - WIP at capacity limit (CUSTOM_LINE_MAX_WIP)
       ordersRejected++;
     }
   }
@@ -275,7 +275,7 @@ export function processCustomLineProduction(
 
   return {
     ordersReceived, // Customer orders that arrived today
-    ordersAccepted, // Orders accepted into WIP (WIP < 360)
+    ordersAccepted, // Orders accepted into WIP (WIP < CUSTOM_LINE_MAX_WIP)
     ordersRejected, // Orders rejected due to WIP limit
     newOrdersStarted, // Orders that started MCE processing
     ordersProcessed: wmaPass1Used + wmaPass2Used + pucUsed + arcpUsed, // Total orders processed across all stations

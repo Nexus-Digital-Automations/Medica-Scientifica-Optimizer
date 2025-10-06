@@ -270,7 +270,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Process Map Selector */}
       <ProcessMapSelector
         currentResult={simulationResult}
@@ -568,8 +568,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         flowRate={rawMaterialFlowRate}
         demandRate={rawMaterialDemandRate}
         vertical={true}
-        outputQuantity={rawMaterialFlowRate}
-        inputQuantity={rawMaterialFlowRate}
       />
 
       {/* Unified MCE Station */}
@@ -708,8 +706,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           flowRate={mceToCustomFlowRate}
           demandRate={mceToCustomDemandRate}
           vertical={true}
-          outputQuantity={mceToCustomFlowRate}
-          inputQuantity={mceToCustomFlowRate}
         />
         <AnimatedFlowArrow
           fromStation="MCE"
@@ -717,8 +713,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           flowRate={mceToStandardFlowRate}
           demandRate={mceToStandardDemandRate}
           vertical={true}
-          outputQuantity={mceToStandardFlowRate}
-          inputQuantity={mceToStandardFlowRate}
         />
       </div>
 
@@ -1063,8 +1057,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={wmapass1ToPUCFlowRate}
               demandRate={wmapass1ToPUCDemandRate}
               vertical={true}
-              outputQuantity={wmapass1ToPUCFlowRate}
-              inputQuantity={wmapass1ToPUCFlowRate}
             />
 
             {/* Station 4 - PUC */}
@@ -1181,8 +1173,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={pucToWMApass2FlowRate}
               demandRate={pucToWMApass2DemandRate}
               vertical={true}
-              outputQuantity={pucToWMApass2FlowRate}
-              inputQuantity={pucToWMApass2FlowRate}
             />
 
             {/* Loopback Circle Indicator - Shared WMA Resource */}
@@ -1334,8 +1324,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={customToARCPFlowRate}
               demandRate={customToARCPDemandRate}
               vertical={true}
-              outputQuantity={customToARCPFlowRate}
-              inputQuantity={customToARCPFlowRate}
             />
 
             {/* Ship Direct */}
@@ -1707,8 +1695,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={standardToARCPFlowRate}
               demandRate={standardToARCPDemandRate}
               vertical={true}
-              outputQuantity={standardToARCPFlowRate}
-              inputQuantity={standardToARCPFlowRate}
             />
 
             {/* Station 6 - ARCP Manual */}
@@ -1884,8 +1870,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={arcpToStandardBatch2FlowRate}
               demandRate={arcpToStandardBatch2DemandRate}
               vertical={true}
-              outputQuantity={arcpToStandardBatch2FlowRate}
-              inputQuantity={arcpToStandardBatch2FlowRate}
             />
 
             {/* Second Batching */}
@@ -1995,8 +1979,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={batch2ToFinishedFlowRate}
               demandRate={batch2ToFinishedDemandRate}
               vertical={true}
-              outputQuantity={batch2ToFinishedFlowRate}
-              inputQuantity={batch2ToFinishedFlowRate}
             />
 
             {/* Finished Goods Inventory */}
@@ -2110,8 +2092,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               flowRate={finishedToCustomerFlowRate}
               demandRate={finishedToCustomerDemandRate}
               vertical={true}
-              outputQuantity={finishedToCustomerFlowRate}
-              inputQuantity={finishedToCustomerFlowRate}
             />
 
             {/* Ship */}
