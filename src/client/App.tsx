@@ -22,7 +22,7 @@ function App() {
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-6 w-full mx-auto">
         {activeTab === 'builder' && (
           <div>
             <div className="mb-6 flex items-start justify-between">

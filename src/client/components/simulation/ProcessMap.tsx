@@ -6,6 +6,7 @@ import ProcessMapSelector, { type DataSource } from './ProcessMapSelector';
 import InfoPopup from './InfoPopup';
 import AnimatedFlowArrow from './AnimatedFlowArrow';
 import ConstraintSuggestionsModal from './ConstraintSuggestionsModal';
+import CustomFlowMap from './CustomFlowMap';
 import {
   LineChart,
   Line,
@@ -65,6 +66,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const [showStatistics, setShowStatistics] = useState(true);
   const [showTrends, setShowTrends] = useState(false);
   const [showConstraintSuggestionsModal, setShowConstraintSuggestionsModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'dual-line' | 'custom-flow'>('custom-flow');
 
   // Perform comprehensive bottleneck analysis (with null safety)
   const bottleneckAnalysis = useMemo(() =>
@@ -270,13 +272,42 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto px-2 scale-75 origin-top">
+    <div className="space-y-4 w-full px-4">
       {/* Process Map Selector */}
       <ProcessMapSelector
         currentResult={simulationResult}
         onSelectResult={handleSelectResult}
       />
 
+      {/* View Mode Toggle */}
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={() => setViewMode('dual-line')}
+          className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+            viewMode === 'dual-line'
+              ? 'bg-blue-600 text-white shadow-lg scale-105'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          📊 Dual Production Lines
+        </button>
+        <button
+          onClick={() => setViewMode('custom-flow')}
+          className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+            viewMode === 'custom-flow'
+              ? 'bg-purple-600 text-white shadow-lg scale-105'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          🔄 Custom Flow with Loop
+        </button>
+      </div>
+
+      {/* Render based on view mode */}
+      {viewMode === 'custom-flow' ? (
+        <CustomFlowMap simulationResult={displayResult} />
+      ) : (
+        <>
       {/* Header with Overall Health */}
       <div className={`bg-gradient-to-r from-blue-900 to-purple-900 border-2 rounded-xl p-6 ${getSeverityColor(bottleneckAnalysis.overallHealth)}`}>
         <div className="flex items-center justify-between">
@@ -1166,24 +1197,63 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
             </div>
 
-            {/* Horizontal Loopback Arrow: PUC → WMA Pass 2 */}
-            <div className="flex items-center justify-center my-6 relative">
-              <div className="flex items-center gap-4">
-                {/* Left section with label */}
-                <div className="text-xs text-teal-300 font-bold bg-gray-900/90 px-3 py-2 rounded border border-teal-500 whitespace-nowrap">
+            {/* Curved Loopback Arrow: PUC → WMA Pass 2 */}
+            <div className="flex justify-end my-6 relative" style={{ height: '120px' }}>
+              <div className="relative">
+                {/* Loopback Label */}
+                <div className="absolute top-12 right-24 text-xs text-teal-300 font-bold bg-gray-900/90 px-3 py-2 rounded border border-teal-500 whitespace-nowrap z-10">
                   🔄 Loopback to WMA
                 </div>
 
-                {/* Horizontal Arrow */}
-                <div className="flex-1">
-                  <AnimatedFlowArrow
-                    fromStation="PUC"
-                    toStation="WMA Pass 2"
-                    flowRate={pucToWMApass2FlowRate}
-                    demandRate={pucToWMApass2DemandRate}
-                    vertical={false}
-                  />
+                {/* Flow/Demand Labels */}
+                <div className="absolute top-0 right-16 text-xs text-blue-300 font-bold bg-blue-900/90 px-2 py-1 rounded border border-blue-600 whitespace-nowrap z-10">
+                  Flow: {pucToWMApass2FlowRate.toFixed(1)}
                 </div>
+                <div className="absolute bottom-0 right-16 text-xs text-purple-300 font-bold bg-purple-900/90 px-2 py-1 rounded border border-purple-600 whitespace-nowrap z-10">
+                  Demand: {pucToWMApass2DemandRate.toFixed(1)}
+                </div>
+
+                {/* Curved SVG Arrow */}
+                <svg width="160" height="120" viewBox="0 0 160 120" className="overflow-visible">
+                  {/* Curved path */}
+                  <path
+                    d="M 10 10 Q 120 10, 120 60 T 10 110"
+                    fill="none"
+                    stroke={pucToWMApass2FlowRate < pucToWMApass2DemandRate ? '#ef4444' : pucToWMApass2FlowRate > pucToWMApass2DemandRate + 0.5 ? '#22c55e' : '#3b82f6'}
+                    strokeWidth="4"
+                    opacity="0.9"
+                  />
+                  {/* Arrowhead pointing down */}
+                  <polygon
+                    points="10,110 5,100 15,100"
+                    fill={pucToWMApass2FlowRate < pucToWMApass2DemandRate ? '#ef4444' : pucToWMApass2FlowRate > pucToWMApass2DemandRate + 0.5 ? '#22c55e' : '#3b82f6'}
+                    opacity="0.9"
+                  />
+                  {/* Animated particles */}
+                  <circle r="4" fill="white" opacity="0.8">
+                    <animateMotion
+                      dur="2s"
+                      repeatCount="indefinite"
+                      path="M 10 10 Q 120 10, 120 60 T 10 110"
+                    />
+                  </circle>
+                  <circle r="4" fill="white" opacity="0.8">
+                    <animateMotion
+                      dur="2s"
+                      repeatCount="indefinite"
+                      begin="0.66s"
+                      path="M 10 10 Q 120 10, 120 60 T 10 110"
+                    />
+                  </circle>
+                  <circle r="4" fill="white" opacity="0.8">
+                    <animateMotion
+                      dur="2s"
+                      repeatCount="indefinite"
+                      begin="1.33s"
+                      path="M 10 10 Q 120 10, 120 60 T 10 110"
+                    />
+                  </circle>
+                </svg>
               </div>
             </div>
 
@@ -2089,9 +2159,11 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
     </div>
   </div>
+        </>
+      )}
 
-  {/* Constraint Suggestions Modal */}
-  {showConstraintSuggestionsModal && (
+      {/* Constraint Suggestions Modal */}
+      {showConstraintSuggestionsModal && (
         <ConstraintSuggestionsModal
           suggestions={constraintSuggestions}
           onClose={() => setShowConstraintSuggestionsModal(false)}
