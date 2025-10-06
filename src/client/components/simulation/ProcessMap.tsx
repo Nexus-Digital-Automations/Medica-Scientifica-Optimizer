@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { generateConstraintSuggestions } from '../../utils/constraintSuggestions';
@@ -23,26 +23,11 @@ interface ProcessMapProps {
 
 export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   // State to track selected data source and result
-  const [selectedResult, setSelectedResult] = useState<SimulationResult | null>(null);
+  const [selectedResult, setSelectedResult] = useState<SimulationResult | null>(simulationResult);
   const [dataSource, setDataSource] = useState<DataSource>({
     type: 'strategy',
     label: 'Loading...',
   });
-
-  // Auto-select incoming simulation result when it changes
-  useEffect(() => {
-    if (simulationResult) {
-      setSelectedResult(simulationResult);
-      setDataSource({
-        type: 'current',
-        label: '🔬 Latest Simulation',
-        timestamp: Date.now(),
-        metadata: {
-          finalNetWorth: simulationResult.finalNetWorth || 0,
-        },
-      });
-    }
-  }, [simulationResult]);
 
   // Handle data source selection from selector
   const handleSelectResult = (result: SimulationResult | null, source: DataSource) => {

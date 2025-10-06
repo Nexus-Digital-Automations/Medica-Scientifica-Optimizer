@@ -29,6 +29,24 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
   const [loadingStrategy, setLoadingStrategy] = useState(false);
   const [initialLoad, setInitialLoad] = useState(false);
 
+  // Auto-select current result when it changes (e.g., from Load Strategy button)
+  useEffect(() => {
+    if (currentResult && initialLoad) {
+      // Only auto-select if we've already done initial load (prevents conflict with first strategy auto-load)
+      const newSource: DataSource = {
+        type: 'current',
+        label: '🔬 Latest Simulation',
+        timestamp: Date.now(),
+        metadata: {
+          finalNetWorth: currentResult.finalNetWorth,
+        },
+      };
+      setSelectedSource(newSource);
+      onSelectResult(currentResult, newSource);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentResult, initialLoad]);
+
   const handleSelectSource = async (source: DataSource) => {
     setSelectedSource(source);
     setShowDropdown(false);
