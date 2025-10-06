@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useMemo, useState, useRef } from 'react';
+import { Settings, FileText, Package, Clock, Users } from 'lucide-react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
 import { generateConstraintSuggestions } from '../../utils/constraintSuggestions';
@@ -77,6 +78,24 @@ function findNode(id: string): Node | undefined {
   return nodes.find((n) => n.id === id);
 }
 
+// Icon mapping utility - maps emoji strings to lucide-react components
+function getIconComponent(icon: string) {
+  switch (icon) {
+    case '⚙️':
+      return Settings;
+    case '📋':
+      return FileText;
+    case '📦':
+      return Package;
+    case '⏱️':
+      return Clock;
+    case '👥':
+      return Users;
+    default:
+      return Settings; // Default fallback
+  }
+}
+
 function makeCurve(fromNode: Node, toNode: Node, extra = 0): string {
   const sx = fromNode.x + NODE_W;
   const sy = fromNode.y + NODE_H / 2;
@@ -112,6 +131,8 @@ function getArrowWidth(flowRate: number, demandRate: number): number {
 }
 
 function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
+  const IconComponent = getIconComponent(node.icon);
+
   return (
     <g transform={`translate(${node.x}, ${node.y})`} className="group">
       <rect
@@ -124,7 +145,12 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
         className="drop-shadow-lg"
       />
       <rect x={10} y={10} width={50} height={50} rx={8} fill="rgba(255,255,255,0.25)" />
-      <text x={35} y={45} textAnchor="middle" fontSize={28}>{node.icon}</text>
+      {/* Lucide-react icon rendered via foreignObject */}
+      <foreignObject x={10} y={10} width={50} height={50}>
+        <div className="w-full h-full flex items-center justify-center">
+          <IconComponent className="w-7 h-7 text-white" strokeWidth={2.5} />
+        </div>
+      </foreignObject>
       <text x={NODE_W / 2} y={NODE_H - 15} textAnchor="middle" fontSize={13} fontWeight={700} fill="white">
         {node.label}
       </text>
@@ -162,10 +188,13 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
         className="drop-shadow-2xl"
       />
 
-      {/* Title */}
-      <text x={width / 2} y={35} textAnchor="middle" fontSize={20} fontWeight={700} fill="white">
-        ⚙️ STATION 1 - MCE
-      </text>
+      {/* Title with lucide-react icon */}
+      <foreignObject x={0} y={10} width={width} height={40}>
+        <div className="w-full h-full flex items-center justify-center gap-2">
+          <Settings className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <span className="text-xl font-bold text-white">STATION 1 - MCE</span>
+        </div>
+      </foreignObject>
       <text x={width / 2} y={58} textAnchor="middle" fontSize={16} fontWeight={600} fill="#e5e7eb">
         (SHARED RESOURCE)
       </text>
@@ -657,7 +686,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             if (n.id === 'mce-station') {
               const mceInfo = (
                 <InfoPopup
-                  title="⚙️ Station 1 - MCE (Material Consumption & Forming)"
+                  title="Station 1 - MCE (Material Consumption & Forming)"
                   buttonClassName="bg-gray-600 hover:bg-gray-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                   content={
                     <div className="text-sm text-gray-300 space-y-4">
