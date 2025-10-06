@@ -36,39 +36,39 @@ interface Edge {
 }
 
 // MCE Station (unified, shared between both lines) - LEFTMOST, FIRST STAGE IN CHRONOLOGICAL FLOW
-// Positioned at x=50 (LEFTMOST), y=240 (aligns with custom line), height=420 spans both lines
+// Positioned at x=50 (LEFTMOST), y=200 (aligns with custom line), height=520 spans both lines
 // This is the ENTRY POINT - ALL production flows LEFT→RIGHT chronologically starting from MCE
-const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 50, y: 240, color: '#6b7280', icon: '⚙️' };
+const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 50, y: 200, color: '#6b7280', icon: '⚙️' };
 
 // Custom line nodes (single row, top section, 500px gaps) - SHIFTED +620px right to make room for MCE being first
 const customNodes: Node[] = [
-  { id: 'custom-orders', label: 'Orders', x: 670, y: 240, color: '#ef4444', icon: '📋' },
-  { id: 'custom-queue1', label: 'Queue 1', x: 1290, y: 240, color: '#f97316', icon: '📦' },
-  { id: 'custom-station1', label: 'Station 1', x: 1910, y: 240, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue2', label: 'Queue 2', x: 2530, y: 240, color: '#f97316', icon: '📦' },
-  { id: 'custom-station2', label: 'Station 2', x: 3150, y: 240, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-deliveries', label: 'Deliveries', x: 3770, y: 240, color: '#22c55e', icon: '📦' },
-  { id: 'custom-station3', label: 'Station 3', x: 1910, y: 400, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue3', label: 'Queue 3', x: 2530, y: 400, color: '#f97316', icon: '📦' },
+  { id: 'custom-orders', label: 'Orders', x: 670, y: 200, color: '#ef4444', icon: '📋' },
+  { id: 'custom-queue1', label: 'Queue 1', x: 1290, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-station1', label: 'Station 1', x: 1910, y: 200, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue2', label: 'Queue 2', x: 2530, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 3150, y: 200, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-deliveries', label: 'Deliveries', x: 3770, y: 200, color: '#22c55e', icon: '📦' },
+  { id: 'custom-station3', label: 'Station 3', x: 1910, y: 360, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 2530, y: 360, color: '#f97316', icon: '📦' },
 ];
 
 // Standard line nodes (snake layout, 500px gaps) - SHIFTED +620px right to make room for MCE being first
-// Row 1: Left-to-right (y: 520)
-// Row 2: Right-to-left (y: 640)
+// Row 1: Left-to-right (y: 600)
+// Row 2: Right-to-left (y: 720)
 const standardNodes: Node[] = [
   // Row 1 (left to right)
-  { id: 'std-orders', label: 'Orders', x: 1290, y: 520, color: '#ef4444', icon: '📋' },
-  { id: 'std-queue1', label: 'Queue 1', x: 1910, y: 520, color: '#f97316', icon: '📦' },
-  { id: 'std-station1', label: 'Station 1', x: 2530, y: 520, color: '#2563eb', icon: '⚙️' },
-  { id: 'std-queue2', label: 'Queue 2', x: 3150, y: 520, color: '#f97316', icon: '📦' },
-  { id: 'std-batch1', label: 'Initial\nBatching', x: 3770, y: 520, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-orders', label: 'Orders', x: 1290, y: 600, color: '#ef4444', icon: '📋' },
+  { id: 'std-queue1', label: 'Queue 1', x: 1910, y: 600, color: '#f97316', icon: '📦' },
+  { id: 'std-station1', label: 'Station 1', x: 2530, y: 600, color: '#2563eb', icon: '⚙️' },
+  { id: 'std-queue2', label: 'Queue 2', x: 3150, y: 600, color: '#f97316', icon: '📦' },
+  { id: 'std-batch1', label: 'Initial\nBatching', x: 3770, y: 600, color: '#a855f7', icon: '⏱️' },
   // Row 2 (right to left)
-  { id: 'std-queue3', label: 'Queue 3', x: 3770, y: 640, color: '#f97316', icon: '📦' },
-  { id: 'std-arcp', label: 'Manual\nProcessing', x: 3150, y: 640, color: '#ec4899', icon: '👥' },
-  { id: 'std-queue4', label: 'Queue 4', x: 2530, y: 640, color: '#f97316', icon: '📦' },
-  { id: 'std-batch2', label: 'Final\nBatching', x: 1910, y: 640, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue5', label: 'Queue 5', x: 1290, y: 640, color: '#f97316', icon: '📦' },
-  { id: 'std-deliveries', label: 'Deliveries', x: 670, y: 640, color: '#22c55e', icon: '📦' },
+  { id: 'std-queue3', label: 'Queue 3', x: 3770, y: 720, color: '#f97316', icon: '📦' },
+  { id: 'std-arcp', label: 'Manual\nProcessing', x: 3150, y: 720, color: '#ec4899', icon: '👥' },
+  { id: 'std-queue4', label: 'Queue 4', x: 2530, y: 720, color: '#f97316', icon: '📦' },
+  { id: 'std-batch2', label: 'Final\nBatching', x: 1910, y: 720, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue5', label: 'Queue 5', x: 1290, y: 720, color: '#f97316', icon: '📦' },
+  { id: 'std-deliveries', label: 'Deliveries', x: 670, y: 720, color: '#22c55e', icon: '📦' },
 ];
 
 const nodes: Node[] = [mceNode, ...customNodes, ...standardNodes];
@@ -139,7 +139,7 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
 
 function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAllocation: number; info?: React.ReactNode }) {
   const width = 500;
-  const height = 420; // Spans from y=240 (custom line) to y=660 (below standard line)
+  const height = 620; // Spans from y=200 (custom line) to y=820 (below standard line)
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -174,21 +174,21 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
       </text>
 
       {/* Line labels */}
-      <text x={width / 2} y={115} textAnchor="middle" fontSize={14} fontWeight={600} fill="#a855f7">
+      <text x={width / 2} y={100} textAnchor="middle" fontSize={14} fontWeight={600} fill="#a855f7">
         ↑ CUSTOM LINE
       </text>
-      <text x={width / 2} y={330} textAnchor="middle" fontSize={14} fontWeight={600} fill="#3b82f6">
+      <text x={width / 2} y={480} textAnchor="middle" fontSize={14} fontWeight={600} fill="#3b82f6">
         ↓ STANDARD LINE
       </text>
 
-      {/* Horizontal separator line indicator (shows where separator crosses through at y=460) */}
-      <line x1={40} y1={220} x2={width - 40} y2={220} stroke="#9ca3af" strokeWidth={2} strokeDasharray="8 4" />
-      <text x={width / 2} y={215} textAnchor="middle" fontSize={11} fontWeight={600} fill="#9ca3af">
+      {/* Horizontal separator line indicator (shows where separator crosses through at y=500) */}
+      <line x1={40} y1={300} x2={width - 40} y2={300} stroke="#9ca3af" strokeWidth={2} strokeDasharray="8 4" />
+      <text x={width / 2} y={295} textAnchor="middle" fontSize={11} fontWeight={600} fill="#9ca3af">
         SEPARATOR
       </text>
 
       {/* Allocation bar - centered vertically */}
-      <g transform="translate(60, 180)">
+      <g transform="translate(60, 260)">
         <text x={190} y={-10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#d1d5db">
           Capacity Allocation
         </text>
@@ -607,7 +607,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         ref={svgRef}
         viewBox="0 0 4400 1000"
         className="w-full h-full cursor-grab active:cursor-grabbing"
-        style={{ minHeight: '600px', userSelect: 'none' }}
+        style={{ minHeight: '700px', userSelect: 'none' }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -615,17 +615,17 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         onMouseLeave={handleMouseLeave}
       >
         <defs>
-          {/* Colored arrow markers for better visibility */}
-          <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+          {/* Colored arrow markers - ENLARGED for better visibility */}
+          <marker id="arrow-red" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
           </marker>
-          <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
           </marker>
-          <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
           </marker>
-          <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+          <marker id="arrow-gray" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af" />
           </marker>
           <filter id="arrow-shadow">
@@ -635,12 +635,6 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
         {/* Apply zoom and pan transform to all content */}
         <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
-          {/* Horizontal separator line between custom and standard production lines - ENHANCED */}
-          <g>
-          <line x1={0} y1={460} x2={4400} y2={460} stroke="#1e293b" strokeWidth={8} strokeDasharray="16 8" filter="url(#arrow-shadow)" />
-          <text x={100} y={450} fontSize={16} fontWeight={700} fill="#1e293b">CUSTOM LINE ↑</text>
-          <text x={100} y={485} fontSize={16} fontWeight={700} fill="#1e293b">STANDARD LINE ↓</text>
-        </g>
 
         <g>
           {edges.map((edge, i) => (
@@ -755,6 +749,13 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             }
             return <Node node={n} key={n.id} info={info} />;
           })}
+        </g>
+
+        {/* Horizontal separator line - REPOSITIONED to render on top for full visibility */}
+        <g>
+          <line x1={0} y1={500} x2={4400} y2={500} stroke="#1e293b" strokeWidth={8} strokeDasharray="16 8" filter="url(#arrow-shadow)" />
+          <text x={100} y={485} fontSize={18} fontWeight={700} fill="#1e293b">CUSTOM LINE ↑</text>
+          <text x={100} y={525} fontSize={18} fontWeight={700} fill="#1e293b">STANDARD LINE ↓</text>
         </g>
 
         {/* Popup layer - renders on top of everything */}
