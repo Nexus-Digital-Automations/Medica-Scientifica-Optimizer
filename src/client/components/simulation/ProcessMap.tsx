@@ -49,6 +49,17 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   // Use selected result for display
   const displayResult = selectedResult;
 
+  // DEBUG: Track displayResult changes
+  useEffect(() => {
+    console.log('[ProcessMap] DEBUG - displayResult changed:', {
+      hasResult: !!displayResult,
+      dataSourceType: dataSource.type,
+      dataSourceLabel: dataSource.label,
+      historyLength: displayResult?.state.history.dailyCash.length,
+      sampleProductionData: displayResult?.state.history.dailyStandardProduction.slice(-5),
+    });
+  }, [displayResult, dataSource]);
+
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Initialize state hooks
   const [showStatistics, setShowStatistics] = useState(true);
