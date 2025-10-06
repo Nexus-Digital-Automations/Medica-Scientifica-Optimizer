@@ -2069,11 +2069,11 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           </div>
         </div>
       </div>
-        </div>
-      </div>
+    </div>
+  </div>
 
-      {/* Constraint Suggestions Modal */}
-      {showConstraintSuggestionsModal && (
+  {/* Constraint Suggestions Modal */}
+  {showConstraintSuggestionsModal && (
         <ConstraintSuggestionsModal
           suggestions={constraintSuggestions}
           onClose={() => setShowConstraintSuggestionsModal(false)}
