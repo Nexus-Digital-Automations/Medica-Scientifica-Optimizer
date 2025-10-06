@@ -26,16 +26,18 @@ export default function AnimatedFlowArrow({
   const isBottleneck = bottleneckRatio < 0.8; // Flow is less than 80% of demand
   const isCriticalBottleneck = bottleneckRatio < 0.5; // Flow is less than 50% of demand
 
-  // Determine flow characteristics
+  // Determine flow characteristics with tolerance for balanced state
   const gap = flowRate - demandRate;
-  const isShortage = gap < 0; // Not enough supply to meet demand
-  const hasExcess = gap > 0; // Supply exceeds demand
+  const balanceTolerance = 0.5; // Consider balanced if within ±0.5 units/day
+  const isBalanced = Math.abs(gap) <= balanceTolerance;
+  const isShortage = !isBalanced && gap < 0; // Not enough supply to meet demand
+  const hasExcess = !isBalanced && gap > 0; // Supply exceeds demand
 
   // Determine arrow color to match legend: red (shortage), blue (balanced), green (excess)
   const arrowColor = useMemo(() => {
     if (isShortage) return 'red';
     if (hasExcess) return 'green';
-    return 'blue';
+    return 'blue'; // balanced
   }, [isShortage, hasExcess]);
 
   const colorMap = {
@@ -58,6 +60,7 @@ export default function AnimatedFlowArrow({
 
   // Calculate tapering for visual metaphor with exaggerated widths
   // Shortage: very thin top (little supply) → very thick bottom (lots of demand)
+  // Balanced: equal width top and bottom (supply matches demand)
   // Excess: very thick top (lots of supply) → very thin bottom (less demand)
   const topWidth = isShortage ? 4 : hasExcess ? 24 : 12;
   const bottomWidth = isShortage ? 24 : hasExcess ? 4 : 12;

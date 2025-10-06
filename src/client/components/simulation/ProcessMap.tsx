@@ -74,14 +74,16 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   const avgStandardProduction = useMemo(() => {
     if (!displayResult) return 0;
-    const sum = displayResult.state.history.dailyStandardProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
-    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
+    const elements = displayResult.state.history.dailyStandardProduction.slice(startIdx, finalDayIndex + 1);
+    const sum = elements.reduce((acc, d) => acc + d.value, 0);
+    return elements.length > 0 ? sum / elements.length : 0;
   }, [displayResult, startIdx, finalDayIndex]);
 
   const avgCustomProduction = useMemo(() => {
     if (!displayResult) return 0;
-    const sum = displayResult.state.history.dailyCustomProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
-    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
+    const elements = displayResult.state.history.dailyCustomProduction.slice(startIdx, finalDayIndex + 1);
+    const sum = elements.reduce((acc, d) => acc + d.value, 0);
+    return elements.length > 0 ? sum / elements.length : 0;
   }, [displayResult, startIdx, finalDayIndex]);
 
   // Prepare trend chart data (with null safety)
