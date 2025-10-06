@@ -416,8 +416,11 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         <h3 className="text-xl font-bold text-white mb-4 text-center">Factory Flow Visualization</h3>
       </div>
 
-      {/* Raw Material Inventory - Top */}
-      <div className="flex justify-center mb-12">
+      {/* Horizontal Scrollable Container for Process Flow */}
+      <div className="overflow-x-auto pb-4">
+        <div className="min-w-[1400px]">
+          {/* Raw Material Inventory - Top */}
+          <div className="flex justify-center mb-12">
         <div className={`relative bg-gradient-to-br ${isRawMaterialBottleneck ? 'from-red-900 to-red-800 border-red-500' : 'from-amber-900 to-amber-800 border-amber-500'} border-3 rounded-3xl p-8 min-w-[400px] shadow-2xl`}>
           <div className="absolute top-4 right-4">
             <InfoPopup
@@ -664,7 +667,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Two Production Lines */}
-      <div className="grid grid-cols-2 gap-12">
+      <div className="grid grid-cols-2 gap-16 px-8">
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
           <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">
@@ -1125,6 +1128,36 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               outputQuantity={pucToWMApass2FlowRate}
               inputQuantity={pucToWMApass2FlowRate}
             />
+
+            {/* Loopback Circle Indicator - Shared WMA Resource */}
+            <div className="flex justify-center my-4">
+              <div className="relative inline-flex items-center">
+                <svg width="120" height="60" viewBox="0 0 120 60" className="overflow-visible">
+                  {/* Loopback circle */}
+                  <circle
+                    cx="60"
+                    cy="30"
+                    r="20"
+                    fill="none"
+                    stroke="#14b8a6"
+                    strokeWidth="3"
+                    strokeDasharray="5,5"
+                    opacity="0.8"
+                  />
+                  {/* Arrow pointing back */}
+                  <path
+                    d="M 80 30 L 75 25 M 80 30 L 75 35"
+                    stroke="#14b8a6"
+                    strokeWidth="3"
+                    fill="none"
+                    opacity="0.8"
+                  />
+                </svg>
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-teal-300 whitespace-nowrap bg-gray-900/90 px-2 py-1 rounded border border-teal-500">
+                  🔄 Shared WMA Resource
+                </span>
+              </div>
+            </div>
 
             {/* Station 2 - WMA Pass 2 */}
             <div className="relative bg-teal-700 rounded-xl p-5 mb-2 text-center">
@@ -2034,6 +2067,8 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-green-300">standard units shipped</div>
             </div>
           </div>
+        </div>
+      </div>
         </div>
       </div>
 
