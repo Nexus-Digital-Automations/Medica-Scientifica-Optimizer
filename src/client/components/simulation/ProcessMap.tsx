@@ -508,7 +508,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         toStation="MCE Station"
         flowRate={rawMaterialFlowRate}
         demandRate={rawMaterialDemandRate}
-        vertical={true}
+        vertical={false}
+        outputQuantity={rawMaterialFlowRate}
+        inputQuantity={rawMaterialFlowRate}
       />
 
       {/* Unified MCE Station */}
@@ -646,21 +648,32 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           toStation="Custom Line"
           flowRate={mceToCustomFlowRate}
           demandRate={mceToCustomDemandRate}
-          vertical={true}
+          vertical={false}
+          outputQuantity={mceToCustomFlowRate}
+          inputQuantity={mceToCustomFlowRate}
         />
         <AnimatedFlowArrow
           fromStation="MCE"
           toStation="Standard Line"
           flowRate={mceToStandardFlowRate}
           demandRate={mceToStandardDemandRate}
-          vertical={true}
+          vertical={false}
+          outputQuantity={mceToStandardFlowRate}
+          inputQuantity={mceToStandardFlowRate}
         />
       </div>
 
-      {/* Two Production Lines */}
-      <div className="grid grid-cols-2 gap-12">
-        {/* CUSTOM LINE - Left */}
-        <div className="space-y-6">
+      {/* Horizontal Scrollable Process Map Container */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[1400px]">
+      {/* Two Production Lines - Horizontal Flow */}
+      <div className="flex flex-col gap-16">
+        {/* CUSTOM LINE - Top Row Horizontal */}
+        <div>
+          <div className="flex items-center justify-center mb-4">
+            <span className="bg-purple-600 text-white px-6 py-2 rounded-lg font-bold text-lg">🎨 CUSTOM LINE</span>
+          </div>
+          <div className="flex flex-row items-start gap-4 overflow-x-visible">
           <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
@@ -997,7 +1010,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="PUC"
               flowRate={wmapass1ToPUCFlowRate}
               demandRate={wmapass1ToPUCDemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={wmapass1ToPUCFlowRate}
+              inputQuantity={wmapass1ToPUCFlowRate}
             />
 
             {/* Station 4 - PUC */}
@@ -1113,7 +1128,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="WMA Pass 2"
               flowRate={pucToWMApass2FlowRate}
               demandRate={pucToWMApass2DemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={pucToWMApass2FlowRate}
+              inputQuantity={pucToWMApass2FlowRate}
             />
 
             {/* Station 2 - WMA Pass 2 */}
@@ -1234,7 +1251,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP → Ship"
               flowRate={customToARCPFlowRate}
               demandRate={customToARCPDemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={customToARCPFlowRate}
+              inputQuantity={customToARCPFlowRate}
             />
 
             {/* Ship Direct */}
@@ -1248,11 +1267,44 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                 <div className="text-xs text-green-400">Maximum WIP Capacity: 360 orders</div>
               </div>
             </div>
+
+            {/* Loopback Circle Indicator */}
+            <div className="flex flex-col items-center justify-center ml-4">
+              <svg width="80" height="120" viewBox="0 0 80 120" className="overflow-visible">
+                {/* Curved loopback arrow */}
+                <path
+                  d="M 10 60 Q 10 30, 40 30 T 70 30"
+                  stroke="#8b5cf6"
+                  strokeWidth="3"
+                  strokeDasharray="5,5"
+                  fill="none"
+                />
+                {/* Circle indicator */}
+                <circle cx="70" cy="30" r="8" fill="#8b5cf6" stroke="#ffffff" strokeWidth="2" />
+                {/* Arrow pointing back */}
+                <path
+                  d="M 70 60 Q 70 90, 40 90 T 10 90"
+                  stroke="#8b5cf6"
+                  strokeWidth="3"
+                  strokeDasharray="5,5"
+                  fill="none"
+                />
+                <polygon points="10,90 18,87 18,93" fill="#8b5cf6" />
+              </svg>
+              <div className="text-xs text-purple-300 font-bold mt-2 text-center">
+                Shared<br />Resources<br />Loop
+              </div>
+            </div>
+          </div>
           </div>
         </div>
 
-        {/* STANDARD LINE - Right */}
-        <div className="space-y-6">
+        {/* STANDARD LINE - Bottom Row Horizontal */}
+        <div>
+          <div className="flex items-center justify-center mb-4">
+            <span className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-lg">💎 STANDARD LINE</span>
+          </div>
+          <div className="flex flex-row items-start gap-4 overflow-x-visible">
           <div className="border-3 border-blue-500 rounded-2xl p-8 bg-gradient-to-br from-blue-950 to-blue-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
@@ -1605,7 +1657,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP"
               flowRate={standardToARCPFlowRate}
               demandRate={standardToARCPDemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={standardToARCPFlowRate}
+              inputQuantity={standardToARCPFlowRate}
             />
 
             {/* Station 6 - ARCP Manual */}
@@ -1780,7 +1834,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Second Batching"
               flowRate={arcpToStandardBatch2FlowRate}
               demandRate={arcpToStandardBatch2DemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={arcpToStandardBatch2FlowRate}
+              inputQuantity={arcpToStandardBatch2FlowRate}
             />
 
             {/* Second Batching */}
@@ -1889,7 +1945,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Finished Goods"
               flowRate={batch2ToFinishedFlowRate}
               demandRate={batch2ToFinishedDemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={batch2ToFinishedFlowRate}
+              inputQuantity={batch2ToFinishedFlowRate}
             />
 
             {/* Finished Goods Inventory */}
@@ -2002,7 +2060,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Ship to Customer"
               flowRate={finishedToCustomerFlowRate}
               demandRate={finishedToCustomerDemandRate}
-              vertical={true}
+              vertical={false}
+              outputQuantity={finishedToCustomerFlowRate}
+              inputQuantity={finishedToCustomerFlowRate}
             />
 
             {/* Ship */}
@@ -2014,6 +2074,9 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-green-300">standard units shipped</div>
             </div>
           </div>
+          </div>
+        </div>
+      </div>
         </div>
       </div>
 

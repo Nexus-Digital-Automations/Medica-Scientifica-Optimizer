@@ -6,6 +6,8 @@ interface AnimatedFlowArrowProps {
   flowRate: number; // Actual flow rate (units/day)
   demandRate: number; // What the next station needs (units/day)
   vertical?: boolean;
+  inputQuantity?: number; // Quantity flowing into the target node
+  outputQuantity?: number; // Quantity flowing out of the source node
 }
 
 export default function AnimatedFlowArrow({
@@ -14,6 +16,8 @@ export default function AnimatedFlowArrow({
   flowRate,
   demandRate,
   vertical = true,
+  inputQuantity,
+  outputQuantity,
 }: AnimatedFlowArrowProps) {
   const [showPopup, setShowPopup] = useState(false);
 
@@ -59,7 +63,33 @@ export default function AnimatedFlowArrow({
   const bottomWidth = isShortage ? 24 : hasExcess ? 4 : 12;
 
   return (
-    <div className="flex flex-col items-center my-4 relative">
+    <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} items-center ${vertical ? 'my-4' : 'mx-4'} relative`}>
+      {/* Output quantity badge (at source/start of arrow) */}
+      {outputQuantity !== undefined && vertical && (
+        <div
+          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          style={{
+            top: '-8px',
+            left: '50%',
+            transform: 'translateX(-100%)',
+          }}
+        >
+          {outputQuantity.toFixed(1)}
+        </div>
+      )}
+      {outputQuantity !== undefined && !vertical && (
+        <div
+          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          style={{
+            left: '-8px',
+            top: '50%',
+            transform: 'translateY(-100%)',
+          }}
+        >
+          {outputQuantity.toFixed(1)}
+        </div>
+      )}
+
       {/* Arrow with tapering effect */}
       <div
         className="relative cursor-pointer group"
@@ -136,6 +166,32 @@ export default function AnimatedFlowArrow({
           ℹ️
         </div>
       </div>
+
+      {/* Input quantity badge (at target/end of arrow) */}
+      {inputQuantity !== undefined && vertical && (
+        <div
+          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          style={{
+            bottom: '-8px',
+            right: '50%',
+            transform: 'translateX(100%)',
+          }}
+        >
+          {inputQuantity.toFixed(1)}
+        </div>
+      )}
+      {inputQuantity !== undefined && !vertical && (
+        <div
+          className="absolute z-10 bg-gray-900/90 text-white text-xs font-bold px-2 py-1 rounded-md border border-gray-600 shadow-lg whitespace-nowrap"
+          style={{
+            right: '-8px',
+            bottom: '50%',
+            transform: 'translateY(100%)',
+          }}
+        >
+          {inputQuantity.toFixed(1)}
+        </div>
+      )}
 
       {/* Flow metrics popup */}
       {showPopup && (
