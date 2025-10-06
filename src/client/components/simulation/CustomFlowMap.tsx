@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useMemo, useState, useRef } from 'react';
 import { Settings, FileText, Package, Clock, Users } from 'lucide-react';
 import type { SimulationResult } from '../../types/ui.types';
@@ -323,27 +322,24 @@ function Edge({ edge, index, onPopupToggle }: { edge: Edge; index: number; metri
   if (!from || !to) return null;
 
   const edgeId = `${edge.from}-${edge.to}-${index}`;
-  const d = makeCurve(from, to, edge.isLoop ? 30 : 0);
+  const d = makeCurve(from, to, 0); // No extra curve offset
 
-  // Use standardized styling for all arrows (temporarily simplified)
+  // Consistent styling for all arrows
   const strokeColor = '#3b82f6'; // Standard blue color
-  const strokeWidth = edge.isLoop ? 3 : 4; // Slightly thinner for loops
+  const strokeWidth = 4; // Consistent width for all arrows
   const arrowMarker = 'url(#arrow-blue)'; // Standard blue arrow marker
 
   return (
     <>
-      <motion.path
+      <path
         key={`edge-${edgeId}`}
         d={d}
         fill="none"
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeDasharray={edge.isLoop ? '12 8' : '0'}
         markerEnd={arrowMarker}
         filter="url(#arrow-shadow)"
-        animate={edge.isLoop ? { strokeDashoffset: [0, -40] } : {}}
-        transition={edge.isLoop ? { repeat: Infinity, repeatType: 'loop', duration: 2, ease: 'linear' } : {}}
         className="cursor-pointer"
         onClick={() => onPopupToggle(edgeId)}
       />
@@ -560,9 +556,9 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     'std-queue5-deliveries': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
   };
 
-  // Custom line edges with vertical loop pattern
+  // Custom line edges with vertical loop pattern - all using consistent smooth arrow styling
   // Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Deliveries
-  // Loop: Queue 2 → Queue 3 (down) → Station 2 → Station 3 → back to Queue 2 (up, animated loop)
+  // Loop: Queue 2 → Queue 3 (down) → Station 2 → Station 3 → back to Queue 2 (up)
   const customEdges: Edge[] = [
     // Main flow
     { from: 'raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
@@ -570,11 +566,11 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     { from: 'mce-station', to: 'custom-orders', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
     { from: 'custom-orders', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
     { from: 'custom-queue2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
-    // Loop flow (vertical pattern)
-    { from: 'custom-queue2', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
-    { from: 'custom-queue3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
-    { from: 'custom-station2', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
-    { from: 'custom-station3', to: 'custom-queue2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue2-station2'] },
+    // Loop flow (vertical pattern) - no isLoop flag for consistent styling
+    { from: 'custom-queue2', to: 'custom-queue3', getMetrics: () => edgeMetrics['custom-station1-station3'] },
+    { from: 'custom-queue3', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'custom-station2', to: 'custom-station3', getMetrics: () => edgeMetrics['custom-station3-queue3'] },
+    { from: 'custom-station3', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
   ];
 
   // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
