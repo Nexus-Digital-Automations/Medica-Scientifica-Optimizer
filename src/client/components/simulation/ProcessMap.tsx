@@ -270,7 +270,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto px-4 scale-90 origin-top">
+    <div className="space-y-4 max-w-6xl mx-auto px-2 scale-75 origin-top">
       {/* Process Map Selector */}
       <ProcessMapSelector
         currentResult={simulationResult}
@@ -717,7 +717,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Two Production Lines */}
-      <div className="grid grid-cols-2 gap-16 px-8">
+      <div className="grid grid-cols-2 gap-6 px-4">
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
           <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">
@@ -1166,42 +1166,24 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-base text-white font-semibold mb-2">Precision Ultra-fine Cutting</div>
             </div>
 
-            {/* Animated Arrow: PUC → WMA Pass 2 */}
-            <AnimatedFlowArrow
-              fromStation="PUC"
-              toStation="WMA Pass 2"
-              flowRate={pucToWMApass2FlowRate}
-              demandRate={pucToWMApass2DemandRate}
-              vertical={true}
-            />
+            {/* Horizontal Loopback Arrow: PUC → WMA Pass 2 */}
+            <div className="flex items-center justify-center my-6 relative">
+              <div className="flex items-center gap-4">
+                {/* Left section with label */}
+                <div className="text-xs text-teal-300 font-bold bg-gray-900/90 px-3 py-2 rounded border border-teal-500 whitespace-nowrap">
+                  🔄 Loopback to WMA
+                </div>
 
-            {/* Loopback Circle Indicator - Shared WMA Resource */}
-            <div className="flex justify-center my-4">
-              <div className="relative inline-flex items-center">
-                <svg width="120" height="60" viewBox="0 0 120 60" className="overflow-visible">
-                  {/* Loopback circle */}
-                  <circle
-                    cx="60"
-                    cy="30"
-                    r="20"
-                    fill="none"
-                    stroke="#14b8a6"
-                    strokeWidth="3"
-                    strokeDasharray="5,5"
-                    opacity="0.8"
+                {/* Horizontal Arrow */}
+                <div className="flex-1">
+                  <AnimatedFlowArrow
+                    fromStation="PUC"
+                    toStation="WMA Pass 2"
+                    flowRate={pucToWMApass2FlowRate}
+                    demandRate={pucToWMApass2DemandRate}
+                    vertical={false}
                   />
-                  {/* Arrow pointing back */}
-                  <path
-                    d="M 80 30 L 75 25 M 80 30 L 75 35"
-                    stroke="#14b8a6"
-                    strokeWidth="3"
-                    fill="none"
-                    opacity="0.8"
-                  />
-                </svg>
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-teal-300 whitespace-nowrap bg-gray-900/90 px-2 py-1 rounded border border-teal-500">
-                  🔄 Shared WMA Resource
-                </span>
+                </div>
               </div>
             </div>
 
