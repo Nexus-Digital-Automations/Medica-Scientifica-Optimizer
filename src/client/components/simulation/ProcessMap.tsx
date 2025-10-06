@@ -508,7 +508,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         toStation="MCE Station"
         flowRate={rawMaterialFlowRate}
         demandRate={rawMaterialDemandRate}
-        vertical={false}
+        vertical={true}
         outputQuantity={rawMaterialFlowRate}
         inputQuantity={rawMaterialFlowRate}
       />
@@ -648,7 +648,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           toStation="Custom Line"
           flowRate={mceToCustomFlowRate}
           demandRate={mceToCustomDemandRate}
-          vertical={false}
+          vertical={true}
           outputQuantity={mceToCustomFlowRate}
           inputQuantity={mceToCustomFlowRate}
         />
@@ -657,23 +657,16 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
           toStation="Standard Line"
           flowRate={mceToStandardFlowRate}
           demandRate={mceToStandardDemandRate}
-          vertical={false}
+          vertical={true}
           outputQuantity={mceToStandardFlowRate}
           inputQuantity={mceToStandardFlowRate}
         />
       </div>
 
-      {/* Horizontal Scrollable Process Map Container */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[1400px]">
-      {/* Two Production Lines - Horizontal Flow */}
-      <div className="flex flex-col gap-16">
-        {/* CUSTOM LINE - Top Row Horizontal */}
-        <div>
-          <div className="flex items-center justify-center mb-4">
-            <span className="bg-purple-600 text-white px-6 py-2 rounded-lg font-bold text-lg">🎨 CUSTOM LINE</span>
-          </div>
-          <div className="flex flex-row items-start gap-4 overflow-x-visible">
+      {/* Two Production Lines */}
+      <div className="grid grid-cols-2 gap-12">
+        {/* CUSTOM LINE - Left */}
+        <div className="space-y-6">
           <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
@@ -1010,7 +1003,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="PUC"
               flowRate={wmapass1ToPUCFlowRate}
               demandRate={wmapass1ToPUCDemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={wmapass1ToPUCFlowRate}
               inputQuantity={wmapass1ToPUCFlowRate}
             />
@@ -1128,7 +1121,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="WMA Pass 2"
               flowRate={pucToWMApass2FlowRate}
               demandRate={pucToWMApass2DemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={pucToWMApass2FlowRate}
               inputQuantity={pucToWMApass2FlowRate}
             />
@@ -1251,7 +1244,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP → Ship"
               flowRate={customToARCPFlowRate}
               demandRate={customToARCPDemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={customToARCPFlowRate}
               inputQuantity={customToARCPFlowRate}
             />
@@ -1296,15 +1289,10 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               </div>
             </div>
           </div>
-          </div>
         </div>
 
-        {/* STANDARD LINE - Bottom Row Horizontal */}
-        <div>
-          <div className="flex items-center justify-center mb-4">
-            <span className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-lg">💎 STANDARD LINE</span>
-          </div>
-          <div className="flex flex-row items-start gap-4 overflow-x-visible">
+        {/* STANDARD LINE - Right */}
+        <div className="space-y-6">
           <div className="border-3 border-blue-500 rounded-2xl p-8 bg-gradient-to-br from-blue-950 to-blue-900">
             <div className="relative text-center mb-8">
               <div className="absolute top-0 right-0">
@@ -1657,7 +1645,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="ARCP"
               flowRate={standardToARCPFlowRate}
               demandRate={standardToARCPDemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={standardToARCPFlowRate}
               inputQuantity={standardToARCPFlowRate}
             />
@@ -1834,7 +1822,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Second Batching"
               flowRate={arcpToStandardBatch2FlowRate}
               demandRate={arcpToStandardBatch2DemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={arcpToStandardBatch2FlowRate}
               inputQuantity={arcpToStandardBatch2FlowRate}
             />
@@ -1945,7 +1933,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Finished Goods"
               flowRate={batch2ToFinishedFlowRate}
               demandRate={batch2ToFinishedDemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={batch2ToFinishedFlowRate}
               inputQuantity={batch2ToFinishedFlowRate}
             />
@@ -2060,7 +2048,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               toStation="Ship to Customer"
               flowRate={finishedToCustomerFlowRate}
               demandRate={finishedToCustomerDemandRate}
-              vertical={false}
+              vertical={true}
               outputQuantity={finishedToCustomerFlowRate}
               inputQuantity={finishedToCustomerFlowRate}
             />
@@ -2074,9 +2062,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
               <div className="text-sm text-green-300">standard units shipped</div>
             </div>
           </div>
-          </div>
-        </div>
-      </div>
         </div>
       </div>
 
