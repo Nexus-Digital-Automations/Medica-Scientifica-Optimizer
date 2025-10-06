@@ -24,30 +24,10 @@ export interface DataSource {
 export default function ProcessMapSelector({ currentResult, onSelectResult }: ProcessMapSelectorProps) {
   const { savedStrategies } = useStrategyStore();
   const [savedResults, setSavedResults] = useState<SavedSimulationResult[]>([]);
-  const [selectedSource, setSelectedSource] = useState<DataSource>({
-    type: 'historical',
-    label: '📊 Historical Data (Excel Baseline)',
-  });
+  const [selectedSource, setSelectedSource] = useState<DataSource | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loadingStrategy, setLoadingStrategy] = useState(false);
-
-  useEffect(() => {
-    // Load saved results from localStorage
-    const results = loadSavedResults();
-    setSavedResults(results);
-
-    // If there's a current result, select it by default
-    if (currentResult) {
-      setSelectedSource({
-        type: 'current',
-        label: '🔬 Latest Simulation',
-        timestamp: Date.now(),
-        metadata: {
-          finalNetWorth: currentResult.finalNetWorth,
-        },
-      });
-    }
-  }, [currentResult]);
+  const [initialLoad, setInitialLoad] = useState(false);
 
   const handleSelectSource = async (source: DataSource) => {
     setSelectedSource(source);
@@ -93,6 +73,29 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
     }
   };
 
+  useEffect(() => {
+    // Load saved results from localStorage
+    const results = loadSavedResults();
+    setSavedResults(results);
+  }, [currentResult]);
+
+  // Set default to first strategy on mount
+  useEffect(() => {
+    if (savedStrategies.length > 0 && !selectedSource && !initialLoad) {
+      const firstStrategy = savedStrategies[0];
+      setInitialLoad(true);
+      handleSelectSource({
+        type: 'strategy',
+        id: firstStrategy.id,
+        label: firstStrategy.name,
+        metadata: {
+          strategyName: firstStrategy.name,
+          description: firstStrategy.description,
+        },
+      });
+    }
+  }, [savedStrategies, selectedSource, initialLoad]);
+
   const handleDeleteSaved = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Delete this saved simulation?')) {
@@ -100,11 +103,17 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       const updatedResults = loadSavedResults();
       setSavedResults(updatedResults);
 
-      // If we deleted the currently selected result, switch to historical
-      if (selectedSource.type === 'saved' && selectedSource.id === id) {
+      // If we deleted the currently selected result, switch to first strategy
+      if (selectedSource?.type === 'saved' && selectedSource.id === id && savedStrategies.length > 0) {
+        const firstStrategy = savedStrategies[0];
         handleSelectSource({
-          type: 'historical',
-          label: '📊 Historical Data (Excel Baseline)',
+          type: 'strategy',
+          id: firstStrategy.id,
+          label: firstStrategy.name,
+          metadata: {
+            strategyName: firstStrategy.name,
+            description: firstStrategy.description,
+          },
         });
       }
     }
@@ -168,23 +177,29 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-lg ${getSourceBadgeColor(selectedSource.type)} text-sm font-bold`}>
-              {getSourceIcon(selectedSource.type)} {selectedSource.type.toUpperCase()}
-            </div>
-            <div className="text-left">
-              <div className="text-white font-semibold">{selectedSource.label}</div>
-              {selectedSource.metadata && (
-                <div className="text-xs text-gray-400">
-                  {selectedSource.metadata.finalNetWorth !== undefined && (
-                    <>Net Worth: {formatCurrency(selectedSource.metadata.finalNetWorth)}</>
-                  )}
-                  {selectedSource.metadata.description && (
-                    <>{selectedSource.metadata.finalNetWorth !== undefined ? ' • ' : ''}{selectedSource.metadata.description}</>
-                  )}
-                  {selectedSource.timestamp && ` • ${formatTimestamp(selectedSource.timestamp)}`}
+            {selectedSource ? (
+              <>
+                <div className={`px-3 py-1 rounded-lg ${getSourceBadgeColor(selectedSource.type)} text-sm font-bold`}>
+                  {getSourceIcon(selectedSource.type)} {selectedSource.type.toUpperCase()}
                 </div>
-              )}
-            </div>
+                <div className="text-left">
+                  <div className="text-white font-semibold">{selectedSource.label}</div>
+                  {selectedSource.metadata && (
+                    <div className="text-xs text-gray-400">
+                      {selectedSource.metadata.finalNetWorth !== undefined && (
+                        <>Net Worth: {formatCurrency(selectedSource.metadata.finalNetWorth)}</>
+                      )}
+                      {selectedSource.metadata.description && (
+                        <>{selectedSource.metadata.finalNetWorth !== undefined ? ' • ' : ''}{selectedSource.metadata.description}</>
+                      )}
+                      {selectedSource.timestamp && ` • ${formatTimestamp(selectedSource.timestamp)}`}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-white font-semibold">Select a strategy...</div>
+            )}
           </div>
           <div className="text-gray-400 text-xl">
             {showDropdown ? '▲' : '▼'}
@@ -195,56 +210,6 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       {/* Dropdown Menu */}
       {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border-2 border-gray-600 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
-          {/* Historical Data Option */}
-          <button
-            onClick={() => handleSelectSource({
-              type: 'historical',
-              label: '📊 Historical Data (Excel Baseline)',
-            })}
-            className={`w-full p-4 text-left hover:bg-gray-700 transition-colors border-b border-gray-700 ${
-              selectedSource.type === 'historical' ? 'bg-gray-700' : ''
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`px-3 py-1 rounded-lg ${getSourceBadgeColor('historical')} text-sm font-bold`}>
-                📊 HISTORICAL
-              </div>
-              <div>
-                <div className="text-white font-semibold">Historical Data (Excel Baseline)</div>
-                <div className="text-xs text-gray-400">Real factory data from Excel file • 50 days</div>
-              </div>
-            </div>
-          </button>
-
-          {/* Current Simulation Option */}
-          {currentResult && (
-            <button
-              onClick={() => handleSelectSource({
-                type: 'current',
-                label: '🔬 Latest Simulation',
-                timestamp: Date.now(),
-                metadata: {
-                  finalNetWorth: currentResult.finalNetWorth,
-                },
-              })}
-              className={`w-full p-4 text-left hover:bg-gray-700 transition-colors border-b border-gray-700 ${
-                selectedSource.type === 'current' ? 'bg-gray-700' : ''
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`px-3 py-1 rounded-lg ${getSourceBadgeColor('current')} text-sm font-bold`}>
-                  🔬 CURRENT
-                </div>
-                <div>
-                  <div className="text-white font-semibold">Latest Simulation</div>
-                  <div className="text-xs text-gray-400">
-                    Net Worth: {formatCurrency(currentResult.finalNetWorth)} • Just completed
-                  </div>
-                </div>
-              </div>
-            </button>
-          )}
-
           {/* Strategy Library */}
           {savedStrategies.length > 0 && (
             <>
@@ -264,7 +229,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
                     },
                   })}
                   className={`w-full p-4 text-left hover:bg-gray-700 transition-colors border-b border-gray-700 ${
-                    selectedSource.type === 'strategy' && selectedSource.id === strategy.id ? 'bg-gray-700' : ''
+                    selectedSource?.type === 'strategy' && selectedSource?.id === strategy.id ? 'bg-gray-700' : ''
                   }`}
                   disabled={loadingStrategy}
                 >
@@ -278,7 +243,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
                         <div className="text-xs text-gray-400">{strategy.description}</div>
                       )}
                     </div>
-                    {loadingStrategy && selectedSource.type === 'strategy' && selectedSource.id === strategy.id && (
+                    {loadingStrategy && selectedSource?.type === 'strategy' && selectedSource?.id === strategy.id && (
                       <div className="text-blue-400 text-xs">Running simulation...</div>
                     )}
                   </div>
@@ -307,7 +272,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
                     },
                   })}
                   className={`w-full p-4 text-left hover:bg-gray-700 transition-colors border-b border-gray-700 group ${
-                    selectedSource.type === 'saved' && selectedSource.id === saved.id ? 'bg-gray-700' : ''
+                    selectedSource?.type === 'saved' && selectedSource?.id === saved.id ? 'bg-gray-700' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -334,14 +299,6 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
             </>
           )}
 
-          {/* Empty State */}
-          {savedResults.length === 0 && !currentResult && (
-            <div className="p-6 text-center text-gray-500">
-              <div className="text-3xl mb-2">📭</div>
-              <div className="text-sm">No saved simulations yet</div>
-              <div className="text-xs mt-1">Run simulations and save them to build your portfolio</div>
-            </div>
-          )}
         </div>
       )}
     </div>
