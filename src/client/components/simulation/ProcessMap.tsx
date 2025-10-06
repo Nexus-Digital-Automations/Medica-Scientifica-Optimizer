@@ -49,6 +49,58 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   // Use selected result for display
   const displayResult = selectedResult;
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // Initialize state hooks
+  const [showStatistics, setShowStatistics] = useState(true);
+  const [showTrends, setShowTrends] = useState(false);
+  const [showConstraintSuggestionsModal, setShowConstraintSuggestionsModal] = useState(false);
+
+  // Perform comprehensive bottleneck analysis (with null safety)
+  const bottleneckAnalysis = useMemo(() =>
+    displayResult ? analyzeBottlenecks(displayResult) : { metrics: [], problems: [], overallHealth: 'optimal' as const, summaryStats: { totalBottlenecks: 0, criticalBottlenecks: 0, averageUtilization: 0, mostCriticalStation: null } },
+    [displayResult]
+  );
+
+  // Generate constraint suggestions based on bottleneck analysis (with null safety)
+  const constraintSuggestions = useMemo(
+    () => displayResult && bottleneckAnalysis ? generateConstraintSuggestions(bottleneckAnalysis, displayResult) : { suggestions: [], generatedFrom: 'bottleneck-analysis' as const, timestamp: Date.now() },
+    [bottleneckAnalysis, displayResult]
+  );
+
+  // Calculate average production rates (with null safety)
+  const finalDayIndex = displayResult?.state.history.dailyCash.length ? displayResult.state.history.dailyCash.length - 1 : 0;
+  const recentDays = 50;
+  const startIdx = Math.max(0, finalDayIndex - recentDays);
+
+  const avgStandardProduction = useMemo(() => {
+    if (!displayResult) return 0;
+    const sum = displayResult.state.history.dailyStandardProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
+    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
+  }, [displayResult, startIdx, finalDayIndex]);
+
+  const avgCustomProduction = useMemo(() => {
+    if (!displayResult) return 0;
+    const sum = displayResult.state.history.dailyCustomProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
+    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
+  }, [displayResult, startIdx, finalDayIndex]);
+
+  // Prepare trend chart data (with null safety)
+  const trendChartData = useMemo(() => {
+    if (!displayResult) return [];
+    const sampleInterval = Math.max(1, Math.floor(finalDayIndex / 50));
+    return displayResult.state.history.dailyStandardWIP
+      .filter((_, idx) => idx % sampleInterval === 0)
+      .map((_, idx) => {
+        const actualIdx = idx * sampleInterval;
+        return {
+          day: displayResult.state.history.dailyStandardWIP[actualIdx].day,
+          standardWIP: displayResult.state.history.dailyStandardWIP[actualIdx].value,
+          customWIP: displayResult.state.history.dailyCustomWIP[actualIdx]?.value || 0,
+          rawMaterial: displayResult.state.history.dailyRawMaterial[actualIdx]?.value || 0,
+        };
+      });
+  }, [displayResult, finalDayIndex]);
+
   // If still no result (shouldn't happen with historical data), show placeholder
   if (!displayResult) {
     return (
@@ -64,20 +116,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
   const { state } = displayResult;
 
-  // Perform comprehensive bottleneck analysis
-  const bottleneckAnalysis = useMemo(() => analyzeBottlenecks(displayResult), [displayResult]);
-  const [showStatistics, setShowStatistics] = useState(true);
-  const [showTrends, setShowTrends] = useState(false);
-  const [showConstraintSuggestionsModal, setShowConstraintSuggestionsModal] = useState(false);
-
-  // Generate constraint suggestions based on bottleneck analysis
-  const constraintSuggestions = useMemo(
-    () => generateConstraintSuggestions(bottleneckAnalysis, displayResult),
-    [bottleneckAnalysis, displayResult]
-  );
-
-  // Get final day values
-  const finalDayIndex = state.history.dailyCash.length - 1;
+  // Get final day values (finalDayIndex already computed at top)
   const finalRawMaterial = state.history.dailyRawMaterial[finalDayIndex]?.value || 0;
   const finalStandardWIP = state.history.dailyStandardWIP[finalDayIndex]?.value || 0;
   const finalCustomWIP = state.history.dailyCustomWIP[finalDayIndex]?.value || 0;
@@ -86,20 +125,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const finalCustomProduction = state.history.dailyCustomProduction[finalDayIndex]?.value || 0;
   const finalExperts = state.history.dailyExperts[finalDayIndex]?.value || 0;
   const finalRookies = state.history.dailyRookies[finalDayIndex]?.value || 0;
-
-  // Calculate average daily production rates (last 50 days)
-  const recentDays = 50;
-  const startIdx = Math.max(0, finalDayIndex - recentDays);
-
-  const avgStandardProduction = useMemo(() => {
-    const sum = state.history.dailyStandardProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
-    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
-  }, [state.history, startIdx, finalDayIndex]);
-
-  const avgCustomProduction = useMemo(() => {
-    const sum = state.history.dailyCustomProduction.slice(startIdx).reduce((acc, d) => acc + d.value, 0);
-    return sum / Math.min(recentDays, finalDayIndex - startIdx + 1);
-  }, [state.history, startIdx, finalDayIndex]);
 
   // Calculate ARCP capacity
   const arcpCapacity = (finalExperts * 3) + (finalRookies * 3 * 0.4);
@@ -152,22 +177,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   const isCustomBottleneck = finalCustomWIP > 50;
   const isARCPBottleneck = arcpCapacity < 10;
   const isRawMaterialBottleneck = finalRawMaterial < 50;
-
-  // Prepare trend chart data
-  const trendChartData = useMemo(() => {
-    const sampleInterval = Math.max(1, Math.floor(finalDayIndex / 50)); // Sample ~50 points
-    return state.history.dailyStandardWIP
-      .filter((_, idx) => idx % sampleInterval === 0)
-      .map((_, idx) => {
-        const actualIdx = idx * sampleInterval;
-        return {
-          day: state.history.dailyStandardWIP[actualIdx].day,
-          standardWIP: state.history.dailyStandardWIP[actualIdx].value,
-          customWIP: state.history.dailyCustomWIP[actualIdx]?.value || 0,
-          rawMaterial: state.history.dailyRawMaterial[actualIdx]?.value || 0,
-        };
-      });
-  }, [state.history, finalDayIndex]);
 
   // Get severity color
   const getSeverityColor = (severity: 'critical' | 'warning' | 'optimal') => {
