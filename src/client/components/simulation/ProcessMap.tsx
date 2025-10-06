@@ -1260,34 +1260,6 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
                 <div className="text-xs text-green-400">Maximum WIP Capacity: 360 orders</div>
               </div>
             </div>
-
-            {/* Loopback Circle Indicator */}
-            <div className="flex flex-col items-center justify-center ml-4">
-              <svg width="80" height="120" viewBox="0 0 80 120" className="overflow-visible">
-                {/* Curved loopback arrow */}
-                <path
-                  d="M 10 60 Q 10 30, 40 30 T 70 30"
-                  stroke="#8b5cf6"
-                  strokeWidth="3"
-                  strokeDasharray="5,5"
-                  fill="none"
-                />
-                {/* Circle indicator */}
-                <circle cx="70" cy="30" r="8" fill="#8b5cf6" stroke="#ffffff" strokeWidth="2" />
-                {/* Arrow pointing back */}
-                <path
-                  d="M 70 60 Q 70 90, 40 90 T 10 90"
-                  stroke="#8b5cf6"
-                  strokeWidth="3"
-                  strokeDasharray="5,5"
-                  fill="none"
-                />
-                <polygon points="10,90 18,87 18,93" fill="#8b5cf6" />
-              </svg>
-              <div className="text-xs text-purple-300 font-bold mt-2 text-center">
-                Shared<br />Resources<br />Loop
-              </div>
-            </div>
           </div>
         </div>
 
