@@ -36,40 +36,37 @@ interface Edge {
   getMetrics?: () => FlowMetrics;
 }
 
-// MCE Station (unified, shared between both lines) - LEFTMOST, FIRST STAGE IN CHRONOLOGICAL FLOW
-// Positioned at x=50 (LEFTMOST), y=200 (aligns with custom line), height=520 spans both lines
-// This is the ENTRY POINT - ALL production flows LEFT→RIGHT chronologically starting from MCE
-const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 50, y: 200, color: '#6b7280', icon: '⚙️' };
+// MCE Station (unified, shared between both lines) - spans vertically between custom and standard
+// Positioned at x=1050, y=200, height=500 spans both lines with horizontal color split
+const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1050, y: 200, color: '#6b7280', icon: '⚙️' };
 
-// Custom line nodes (single row, top section, 500px gaps) - SHIFTED +620px right to make room for MCE being first
+// Custom line nodes (single row, top section, 500px gaps)
+// Flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Station 2 → Queue 3 → Station 3 → Deliveries
 const customNodes: Node[] = [
-  { id: 'custom-orders', label: 'Orders', x: 670, y: 200, color: '#ef4444', icon: '📋' },
-  { id: 'custom-queue1', label: 'Queue 1', x: 1290, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'custom-station1', label: 'Station 1', x: 1910, y: 200, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue2', label: 'Queue 2', x: 2530, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'custom-station2', label: 'Station 2', x: 3150, y: 200, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-deliveries', label: 'Deliveries', x: 3770, y: 200, color: '#22c55e', icon: '📦' },
-  { id: 'custom-station3', label: 'Station 3', x: 1910, y: 360, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue3', label: 'Queue 3', x: 2530, y: 360, color: '#f97316', icon: '📦' },
+  { id: 'custom-raw-materials', label: 'Raw Materials', x: 50, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-queue1', label: 'Queue 1', x: 550, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-orders', label: 'Orders', x: 1550, y: 200, color: '#ef4444', icon: '📋' },
+  { id: 'custom-queue2', label: 'Queue 2', x: 2050, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 2550, y: 200, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 3050, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-station3', label: 'Station 3', x: 3550, y: 200, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-deliveries', label: 'Deliveries', x: 4050, y: 200, color: '#22c55e', icon: '📦' },
 ];
 
-// Standard line nodes (snake layout, 500px gaps) - SHIFTED +620px right to make room for MCE being first
-// Row 1: Left-to-right (y: 600)
-// Row 2: Right-to-left (y: 720)
+// Standard line nodes (continuous single row, bottom section, 500px gaps)
+// Flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
 const standardNodes: Node[] = [
-  // Row 1 (left to right)
-  { id: 'std-orders', label: 'Orders', x: 1290, y: 600, color: '#ef4444', icon: '📋' },
-  { id: 'std-queue1', label: 'Queue 1', x: 1910, y: 600, color: '#f97316', icon: '📦' },
-  { id: 'std-station1', label: 'Station 1', x: 2530, y: 600, color: '#2563eb', icon: '⚙️' },
-  { id: 'std-queue2', label: 'Queue 2', x: 3150, y: 600, color: '#f97316', icon: '📦' },
-  { id: 'std-batch1', label: 'Initial\nBatching', x: 3770, y: 600, color: '#a855f7', icon: '⏱️' },
-  // Row 2 (right to left)
-  { id: 'std-queue3', label: 'Queue 3', x: 3770, y: 720, color: '#f97316', icon: '📦' },
-  { id: 'std-arcp', label: 'Manual\nProcessing', x: 3150, y: 720, color: '#ec4899', icon: '👥' },
-  { id: 'std-queue4', label: 'Queue 4', x: 2530, y: 720, color: '#f97316', icon: '📦' },
-  { id: 'std-batch2', label: 'Final\nBatching', x: 1910, y: 720, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue5', label: 'Queue 5', x: 1290, y: 720, color: '#f97316', icon: '📦' },
-  { id: 'std-deliveries', label: 'Deliveries', x: 670, y: 720, color: '#22c55e', icon: '📦' },
+  { id: 'std-raw-materials', label: 'Raw Materials', x: 50, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-queue1', label: 'Queue 1', x: 550, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-orders', label: 'Orders', x: 1550, y: 700, color: '#ef4444', icon: '📋' },
+  { id: 'std-queue2', label: 'Queue 2', x: 2050, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-batch1', label: 'Initial\nBatching', x: 2550, y: 700, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue3', label: 'Queue 3', x: 3050, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-arcp', label: 'Manual\nProcessing', x: 3550, y: 700, color: '#ec4899', icon: '👥' },
+  { id: 'std-queue4', label: 'Queue 4', x: 4050, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-batch2', label: 'Final\nBatching', x: 4550, y: 700, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue5', label: 'Queue 5', x: 5050, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-deliveries', label: 'Deliveries', x: 5550, y: 700, color: '#22c55e', icon: '📦' },
 ];
 
 const nodes: Node[] = [mceNode, ...customNodes, ...standardNodes];
@@ -164,78 +161,80 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
 }
 
 function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAllocation: number; info?: React.ReactNode }) {
-  const width = 500;
-  const height = 620; // Spans from y=200 (custom line) to y=820 (below standard line)
+  const width = 120;
+  const height = 600; // Spans from y=200 (custom line) to y=800 (standard line)
 
   return (
     <g transform={`translate(${x}, ${y})`}>
-      {/* Gradient background box */}
+      {/* Gradients for each section */}
       <defs>
-        <linearGradient id="mce-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="mce-purple-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#9333ea" />
-          <stop offset="50%" stopColor="#6b7280" />
-          <stop offset="100%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+        <linearGradient id="mce-blue-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#3b82f6" />
         </linearGradient>
       </defs>
 
+      {/* Border/outline */}
       <rect
         width={width}
         height={height}
-        rx={20}
-        fill="url(#mce-gradient)"
-        stroke="#9ca3af"
+        rx={12}
+        fill="none"
+        stroke="white"
         strokeWidth={3}
-        className="drop-shadow-2xl"
+        className="drop-shadow-lg"
       />
 
-      {/* Title with lucide-react icon */}
-      <foreignObject x={0} y={10} width={width} height={40}>
-        <div className="w-full h-full flex items-center justify-center gap-2">
-          <Settings className="w-5 h-5 text-white" strokeWidth={2.5} />
-          <span className="text-xl font-bold text-white">STATION 1 - MCE</span>
-        </div>
-      </foreignObject>
-      <text x={width / 2} y={58} textAnchor="middle" fontSize={16} fontWeight={600} fill="#e5e7eb">
-        (SHARED RESOURCE)
-      </text>
-      <text x={width / 2} y={76} textAnchor="middle" fontSize={12} fill="#d1d5db">
-        Material Consumption & Forming
+      {/* Top section - Custom line (purple) - horizontal split based on allocation */}
+      <rect
+        width={width}
+        height={height * mceAllocation}
+        rx={12}
+        fill="url(#mce-purple-gradient)"
+        className="drop-shadow-lg"
+      />
+
+      {/* Bottom section - Standard line (blue) */}
+      <rect
+        y={height * mceAllocation}
+        width={width}
+        height={height * (1 - mceAllocation)}
+        rx={12}
+        fill="url(#mce-blue-gradient)"
+        className="drop-shadow-lg"
+      />
+
+      {/* Percentage text in custom section */}
+      <text
+        x={width / 2}
+        y={height * mceAllocation / 2 + 5}
+        textAnchor="middle"
+        fontSize={18}
+        fontWeight={700}
+        fill="white"
+      >
+        {(mceAllocation * 100).toFixed(0)}%
       </text>
 
-      {/* Line labels */}
-      <text x={width / 2} y={100} textAnchor="middle" fontSize={14} fontWeight={600} fill="#a855f7">
-        ↑ CUSTOM LINE
+      {/* Percentage text in standard section */}
+      <text
+        x={width / 2}
+        y={height * mceAllocation + (height * (1 - mceAllocation) / 2) + 5}
+        textAnchor="middle"
+        fontSize={18}
+        fontWeight={700}
+        fill="white"
+      >
+        {((1 - mceAllocation) * 100).toFixed(0)}%
       </text>
-      <text x={width / 2} y={480} textAnchor="middle" fontSize={14} fontWeight={600} fill="#3b82f6">
-        ↓ STANDARD LINE
-      </text>
-
-      {/* Horizontal separator line indicator (shows where separator crosses through at y=500) */}
-      <line x1={40} y1={300} x2={width - 40} y2={300} stroke="#9ca3af" strokeWidth={2} strokeDasharray="8 4" />
-      <text x={width / 2} y={295} textAnchor="middle" fontSize={11} fontWeight={600} fill="#9ca3af">
-        SEPARATOR
-      </text>
-
-      {/* Allocation bar - centered vertically */}
-      <g transform="translate(60, 260)">
-        <text x={190} y={-10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#d1d5db">
-          Capacity Allocation
-        </text>
-        <rect width={380} height={40} rx={20} fill="#374151" />
-        <rect width={380 * mceAllocation} height={40} rx={20} fill="#a855f7" />
-        <rect x={380 * mceAllocation} width={380 * (1 - mceAllocation)} height={40} rx={20} fill="#3b82f6" />
-
-        <text x={190 * mceAllocation} y={26} textAnchor="middle" fontSize={14} fontWeight={700} fill="white">
-          {(mceAllocation * 100).toFixed(0)}%
-        </text>
-        <text x={380 * mceAllocation + 190 * (1 - mceAllocation)} y={26} textAnchor="middle" fontSize={14} fontWeight={700} fill="white">
-          {((1 - mceAllocation) * 100).toFixed(0)}%
-        </text>
-      </g>
 
       {/* Info popup */}
       {info && (
-        <foreignObject x={width - 35} y={10} width={25} height={25} pointerEvents="all">
+        <foreignObject x={width - 30} y={5} width={25} height={25} pointerEvents="all">
           {info}
         </foreignObject>
       )}
@@ -243,7 +242,7 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
   );
 }
 
-function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
+function Edge({ edge, index, metrics, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
@@ -288,7 +287,7 @@ function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupTogg
   );
 }
 
-function EdgePopup({ edge, index: _index, metrics, onClose }: { edge: Edge; index: number; metrics?: FlowMetrics; onClose: () => void }) {
+function EdgePopup({ edge, metrics, onClose }: { edge: Edge; index: number; metrics?: FlowMetrics; onClose: () => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
@@ -496,31 +495,26 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     'std-queue5-deliveries': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
   };
 
-  // MCE station edges (feeds both lines)
-  const mceEdges: Edge[] = [
-    { from: 'mce-station', to: 'custom-orders', isDotted: true },
-    { from: 'mce-station', to: 'std-orders', isDotted: true },
-  ];
-
-  // Custom line edges
+  // Custom line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Station 2 → Queue 3 → Station 3 → Deliveries
   const customEdges: Edge[] = [
-    { from: 'custom-orders', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
-    { from: 'custom-queue1', to: 'custom-station1', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
-    { from: 'custom-station1', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
+    { from: 'custom-raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
+    { from: 'custom-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
+    { from: 'mce-station', to: 'custom-orders', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
+    { from: 'custom-orders', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
     { from: 'custom-queue2', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
-    { from: 'custom-station2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
-    { from: 'custom-station1', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
-    { from: 'custom-station3', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
-    { from: 'custom-queue3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'custom-station2', to: 'custom-queue3', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
+    { from: 'custom-queue3', to: 'custom-station3', getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'custom-station3', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
   ];
 
-  // Standard line edges (snake pattern)
+  // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
   const standardEdges: Edge[] = [
-    { from: 'std-orders', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
-    { from: 'std-queue1', to: 'std-station1', getMetrics: () => edgeMetrics['std-queue1-station1'] },
-    { from: 'std-station1', to: 'std-queue2', getMetrics: () => edgeMetrics['std-station1-queue2'] },
+    { from: 'std-raw-materials', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
+    { from: 'std-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['std-queue1-station1'] },
+    { from: 'mce-station', to: 'std-orders', getMetrics: () => edgeMetrics['std-station1-queue2'] },
+    { from: 'std-orders', to: 'std-queue2', getMetrics: () => edgeMetrics['std-orders-queue1'] },
     { from: 'std-queue2', to: 'std-batch1', getMetrics: () => edgeMetrics['std-queue2-batch1'] },
-    { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] }, // Vertical drop
+    { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] },
     { from: 'std-queue3', to: 'std-arcp', getMetrics: () => edgeMetrics['std-queue3-arcp'] },
     { from: 'std-arcp', to: 'std-queue4', getMetrics: () => edgeMetrics['std-arcp-queue4'] },
     { from: 'std-queue4', to: 'std-batch2', getMetrics: () => edgeMetrics['std-queue4-batch2'] },
@@ -528,7 +522,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     { from: 'std-queue5', to: 'std-deliveries', getMetrics: () => edgeMetrics['std-queue5-deliveries'] },
   ];
 
-  const edges: Edge[] = [...mceEdges, ...customEdges, ...standardEdges];
+  const edges: Edge[] = [...customEdges, ...standardEdges];
 
   const isCustomBottleneck = finalCustomWIP > 50;
   const isStandardBottleneck = finalStandardWIP > 100;
@@ -634,7 +628,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
       <svg
         ref={svgRef}
-        viewBox="0 0 4400 1000"
+        viewBox="0 0 5800 1000"
         className="w-full h-full cursor-grab active:cursor-grabbing"
         style={{ minHeight: '700px', userSelect: 'none' }}
         onWheel={handleWheel}
@@ -729,7 +723,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             }
 
             // Custom line stations
-            if (n.id === 'custom-station1' || n.id === 'custom-station2' || n.id === 'custom-station3') {
+            if (n.id === 'custom-station2' || n.id === 'custom-station3') {
               info = (
                 <InfoPopup
                   title={`${n.label} Details`}
@@ -747,8 +741,8 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               );
             }
             // Standard line stations and batching
-            else if (n.id === 'std-station1' || n.id === 'std-arcp' || n.id === 'std-batch1' || n.id === 'std-batch2') {
-              const isStation = n.id === 'std-station1' || n.id === 'std-arcp';
+            else if (n.id === 'std-arcp' || n.id === 'std-batch1' || n.id === 'std-batch2') {
+              const isStation = n.id === 'std-arcp';
               const isBatching = n.id === 'std-batch1' || n.id === 'std-batch2';
               info = (
                 <InfoPopup
@@ -760,8 +754,8 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                       <div className="mt-2">
                         {isStation && (
                           <>
-                            <div>Capacity: {n.id === 'std-station1' ? '6 units/day' : `${(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day`}</div>
-                            <div>Utilization: {((avgStandardProduction / (n.id === 'std-station1' ? 6 : arcpCapacity * (1 - mceAllocation))) * 100).toFixed(1)}%</div>
+                            <div>Capacity: {`${(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day`}</div>
+                            <div>Utilization: {((avgStandardProduction / (arcpCapacity * (1 - mceAllocation))) * 100).toFixed(1)}%</div>
                           </>
                         )}
                         {isBatching && (
@@ -780,11 +774,15 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
           })}
         </g>
 
-        {/* Horizontal separator line - REPOSITIONED to render on top for full visibility */}
+        {/* External line labels - positioned to left of entire map */}
         <g>
-          <line x1={0} y1={500} x2={4400} y2={500} stroke="#1e293b" strokeWidth={8} strokeDasharray="16 8" filter="url(#arrow-shadow)" />
-          <text x={100} y={485} fontSize={18} fontWeight={700} fill="#1e293b">CUSTOM LINE ↑</text>
-          <text x={100} y={525} fontSize={18} fontWeight={700} fill="#1e293b">STANDARD LINE ↓</text>
+          <text x={10} y={180} fontSize={22} fontWeight={700} fill="#9333ea">CUSTOM</text>
+          <text x={10} y={680} fontSize={22} fontWeight={700} fill="#2563eb">STANDARD</text>
+        </g>
+
+        {/* Horizontal separator line */}
+        <g>
+          <line x1={0} y1={450} x2={5800} y2={450} stroke="#d1d5db" strokeWidth={4} strokeDasharray="12 6" opacity={0.5} />
         </g>
 
         {/* Popup layer - renders on top of everything */}
