@@ -35,17 +35,35 @@ interface Edge {
   getMetrics?: () => FlowMetrics;
 }
 
-const nodes: Node[] = [
-  { id: 'orders', label: 'Orders', x: 20, y: 40, color: '#ef4444', icon: '📋' },
-  { id: 'queue1', label: 'Queue 1', x: 170, y: 40, color: '#f97316', icon: '📦' },
-  { id: 'station1', label: 'Station 1', x: 320, y: 40, color: '#2563eb', icon: '⚙️' },
-  { id: 'queue2', label: 'Queue 2', x: 470, y: 40, color: '#f97316', icon: '📦' },
-  { id: 'station2', label: 'Station 2', x: 620, y: 40, color: '#2563eb', icon: '⚙️' },
-  { id: 'deliveries', label: 'Deliveries', x: 770, y: 40, color: '#22c55e', icon: '📦' },
-  { id: 'station3', label: 'Station 3', x: 320, y: 220, color: '#2563eb', icon: '⚙️' },
-  { id: 'queue3', label: 'Queue 3', x: 470, y: 220, color: '#f97316', icon: '📦' },
-  { id: 'shared', label: 'Shared\nResources', x: 20, y: 180, color: '#6b7280', icon: '📦' }
+// Custom line nodes (top section)
+const customNodes: Node[] = [
+  { id: 'custom-orders', label: 'Orders', x: 20, y: 40, color: '#ef4444', icon: '📋' },
+  { id: 'custom-queue1', label: 'Queue 1', x: 170, y: 40, color: '#f97316', icon: '📦' },
+  { id: 'custom-station1', label: 'Station 1', x: 320, y: 40, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue2', label: 'Queue 2', x: 470, y: 40, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 620, y: 40, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-deliveries', label: 'Deliveries', x: 1070, y: 40, color: '#22c55e', icon: '📦' },
+  { id: 'custom-station3', label: 'Station 3', x: 320, y: 200, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 470, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'shared', label: 'Shared\nResources', x: 20, y: 160, color: '#6b7280', icon: '📦' }
 ];
+
+// Standard line nodes (bottom section)
+const standardNodes: Node[] = [
+  { id: 'std-orders', label: 'Orders', x: 50, y: 340, color: '#ef4444', icon: '📋' },
+  { id: 'std-queue1', label: 'Queue 1', x: 180, y: 340, color: '#f97316', icon: '📦' },
+  { id: 'std-station1', label: 'Station 1', x: 310, y: 340, color: '#2563eb', icon: '⚙️' },
+  { id: 'std-queue2', label: 'Queue 2', x: 440, y: 340, color: '#f97316', icon: '📦' },
+  { id: 'std-batch1', label: 'Initial\nBatching', x: 570, y: 340, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue3', label: 'Queue 3', x: 700, y: 340, color: '#f97316', icon: '📦' },
+  { id: 'std-arcp', label: 'Manual\nProcessing', x: 830, y: 340, color: '#ec4899', icon: '👥' },
+  { id: 'std-queue4', label: 'Queue 4', x: 960, y: 340, color: '#f97316', icon: '📦' },
+  { id: 'std-batch2', label: 'Final\nBatching', x: 1090, y: 340, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue5', label: 'Queue 5', x: 1220, y: 340, color: '#f97316', icon: '📦' },
+  { id: 'std-deliveries', label: 'Deliveries', x: 1350, y: 340, color: '#22c55e', icon: '📦' },
+];
+
+const nodes: Node[] = [...customNodes, ...standardNodes];
 
 function findNode(id: string): Node | undefined {
   return nodes.find((n) => n.id === id);
@@ -78,6 +96,13 @@ function getFlowColor(flowRate: number, demandRate: number): string {
   return '#3b82f6'; // Blue - balanced
 }
 
+function getArrowWidth(flowRate: number, demandRate: number): number {
+  const gap = flowRate - demandRate;
+  if (gap < -0.5) return 2; // Thin arrow - bottleneck/shortage
+  if (gap > 0.5) return 6;   // Thick arrow - excess supply
+  return 4;                   // Normal arrow - balanced
+}
+
 function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
   return (
     <g transform={`translate(${node.x}, ${node.y})`} className="group">
@@ -96,7 +121,7 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
         {node.label}
       </text>
       {info && (
-        <foreignObject x={NODE_W - 30} y={5} width={25} height={25}>
+        <foreignObject x={70} y={10} width={25} height={25} style={{ zIndex: 10 }}>
           {info}
         </foreignObject>
       )}
@@ -114,6 +139,7 @@ function Edge({ edge, index, metrics }: { edge: Edge; index: number; metrics?: F
   const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
   const d = makeCurve(from, to, edge.isLoop ? 30 : 0);
   const strokeColor = edge.isDotted ? '#9ca3af' : getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
+  const strokeWidth = edge.isDotted ? 2 : getArrowWidth(flowMetrics.flowRate, flowMetrics.demandRate);
 
   const gap = flowMetrics.flowRate - flowMetrics.demandRate;
   const isBottleneck = gap < -0.5;
@@ -126,13 +152,14 @@ function Edge({ edge, index, metrics }: { edge: Edge; index: number; metrics?: F
         d={d}
         fill="none"
         stroke={strokeColor}
-        strokeWidth={4}
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={edge.isDotted ? '8 4' : edge.isLoop ? '12 8' : '0'}
         markerEnd="url(#arrow)"
         animate={edge.isLoop ? { strokeDashoffset: [0, -40] } : {}}
         transition={edge.isLoop ? { repeat: Infinity, repeatType: 'loop', duration: 2, ease: 'linear' } : {}}
-        className="cursor-pointer hover:stroke-width-6"
+        className="cursor-pointer"
+        style={{ transition: 'stroke-width 0.3s ease' }}
         onClick={() => setShowPopup(!showPopup)}
       />
 
@@ -238,41 +265,83 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const arcpCapacity = (finalExperts * 3) + (finalRookies * 3 * 0.4);
   const mceAllocation = simulationResult?.strategy?.mceAllocationCustom ?? 0.5;
 
+  // Calculate standard line metrics
+  const avgStandardProduction = state.history.dailyStandardProduction.slice(startIdx, finalDayIndex + 1).reduce((sum, d) => sum + d.value, 0) / (finalDayIndex - startIdx + 1);
+  const finalStandardWIP = state.history.dailyStandardWIP[finalDayIndex]?.value || 0;
+  const standardBatchSize = simulationResult?.strategy?.standardBatchSize ?? 60;
+
   // Flow metrics for each edge
   const edgeMetrics: Record<string, FlowMetrics> = {
-    'orders-queue1': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 1 },
-    'queue1-station1': { flowRate: avgCustomProduction, demandRate: 6 },
-    'station1-queue2': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 2 },
-    'queue2-station2': { flowRate: avgCustomProduction, demandRate: 6 },
-    'station2-deliveries': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 1 },
-    'station1-station3': { flowRate: avgCustomProduction * 0.3, demandRate: 6 },
-    'station3-queue3': { flowRate: avgCustomProduction * 0.3, demandRate: avgCustomProduction * 0.3 },
-    'queue3-station2': { flowRate: avgCustomProduction * 0.3, demandRate: arcpCapacity * mceAllocation },
+    // Custom line metrics
+    'custom-orders-queue1': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 1 },
+    'custom-queue1-station1': { flowRate: avgCustomProduction, demandRate: 6 },
+    'custom-station1-queue2': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 2 },
+    'custom-queue2-station2': { flowRate: avgCustomProduction, demandRate: 6 },
+    'custom-station2-deliveries': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 1 },
+    'custom-station1-station3': { flowRate: avgCustomProduction * 0.3, demandRate: 6 },
+    'custom-station3-queue3': { flowRate: avgCustomProduction * 0.3, demandRate: avgCustomProduction * 0.3 },
+    'custom-queue3-station2': { flowRate: avgCustomProduction * 0.3, demandRate: arcpCapacity * mceAllocation },
+
+    // Standard line metrics
+    'std-orders-queue1': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 2 },
+    'std-queue1-station1': { flowRate: avgStandardProduction, demandRate: 6 },
+    'std-station1-queue2': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
+    'std-queue2-batch1': { flowRate: avgStandardProduction, demandRate: standardBatchSize / 4 },
+    'std-batch1-queue3': { flowRate: avgStandardProduction, demandRate: avgStandardProduction },
+    'std-queue3-arcp': { flowRate: avgStandardProduction, demandRate: arcpCapacity * (1 - mceAllocation) },
+    'std-arcp-queue4': { flowRate: avgStandardProduction, demandRate: avgStandardProduction },
+    'std-queue4-batch2': { flowRate: avgStandardProduction, demandRate: standardBatchSize },
+    'std-batch2-queue5': { flowRate: avgStandardProduction, demandRate: avgStandardProduction },
+    'std-queue5-deliveries': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
   };
 
-  const edges: Edge[] = [
-    { from: 'orders', to: 'queue1', getMetrics: () => edgeMetrics['orders-queue1'] },
-    { from: 'queue1', to: 'station1', getMetrics: () => edgeMetrics['queue1-station1'] },
-    { from: 'station1', to: 'queue2', getMetrics: () => edgeMetrics['station1-queue2'] },
-    { from: 'queue2', to: 'station2', getMetrics: () => edgeMetrics['queue2-station2'] },
-    { from: 'station2', to: 'deliveries', getMetrics: () => edgeMetrics['station2-deliveries'] },
-    { from: 'station1', to: 'station3', isLoop: true, getMetrics: () => edgeMetrics['station1-station3'] },
-    { from: 'station3', to: 'queue3', isLoop: true, getMetrics: () => edgeMetrics['station3-queue3'] },
-    { from: 'queue3', to: 'station2', isLoop: true, getMetrics: () => edgeMetrics['queue3-station2'] },
-    { from: 'shared', to: 'station1', isDotted: true },
+  // Custom line edges
+  const customEdges: Edge[] = [
+    { from: 'custom-orders', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
+    { from: 'custom-queue1', to: 'custom-station1', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
+    { from: 'custom-station1', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
+    { from: 'custom-queue2', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
+    { from: 'custom-station2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
+    { from: 'custom-station1', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
+    { from: 'custom-station3', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
+    { from: 'custom-queue3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
+    { from: 'shared', to: 'custom-station1', isDotted: true },
   ];
 
+  // Standard line edges
+  const standardEdges: Edge[] = [
+    { from: 'std-orders', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
+    { from: 'std-queue1', to: 'std-station1', getMetrics: () => edgeMetrics['std-queue1-station1'] },
+    { from: 'std-station1', to: 'std-queue2', getMetrics: () => edgeMetrics['std-station1-queue2'] },
+    { from: 'std-queue2', to: 'std-batch1', getMetrics: () => edgeMetrics['std-queue2-batch1'] },
+    { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] },
+    { from: 'std-queue3', to: 'std-arcp', getMetrics: () => edgeMetrics['std-queue3-arcp'] },
+    { from: 'std-arcp', to: 'std-queue4', getMetrics: () => edgeMetrics['std-arcp-queue4'] },
+    { from: 'std-queue4', to: 'std-batch2', getMetrics: () => edgeMetrics['std-queue4-batch2'] },
+    { from: 'std-batch2', to: 'std-queue5', getMetrics: () => edgeMetrics['std-batch2-queue5'] },
+    { from: 'std-queue5', to: 'std-deliveries', getMetrics: () => edgeMetrics['std-queue5-deliveries'] },
+  ];
+
+  const edges: Edge[] = [...customEdges, ...standardEdges];
+
   const isCustomBottleneck = finalCustomWIP > 50;
+  const isStandardBottleneck = finalStandardWIP > 100;
 
   return (
     <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-300">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-xl font-bold text-gray-800">
-          🏭 Custom Production Flow with Loop
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-gray-600">Team: Bearkats</div>
+          <div className="text-2xl font-bold text-gray-800">
+            🏭 Dual-Line Production Flow
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className={`px-6 py-2 rounded-lg font-bold text-lg shadow-lg ${isCustomBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-600 text-white'}`}>
+          <div className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg ${isCustomBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-600 text-white'}`}>
             {isCustomBottleneck ? '⚠️ BOTTLENECK' : 'CUSTOM'}
+          </div>
+          <div className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg ${isStandardBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white'}`}>
+            {isStandardBottleneck ? '⚠️ BOTTLENECK' : 'STANDARD'}
           </div>
           <button
             onClick={() => setShowConstraintSuggestions(true)}
@@ -283,7 +352,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      <svg viewBox="0 0 950 380" className="w-full h-full">
+      <svg viewBox="0 0 1500 480" className="w-full h-full">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b" />
@@ -299,17 +368,48 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         <g>
           {nodes.map((n) => {
             let info;
-            if (n.id === 'station1' || n.id === 'station2' || n.id === 'station3') {
+            // Custom line stations
+            if (n.id === 'custom-station1' || n.id === 'custom-station2' || n.id === 'custom-station3') {
               info = (
                 <InfoPopup
                   title={`${n.label} Details`}
-                  buttonClassName="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                  buttonClassName="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                   content={
                     <div className="text-sm text-gray-300">
-                      <p>Processing station with shared capacity allocation</p>
+                      <p>Custom line processing station with shared capacity</p>
                       <div className="mt-2">
                         <div>Capacity: 6 units/day</div>
                         <div>Utilization: {((avgCustomProduction / 6) * 100).toFixed(1)}%</div>
+                      </div>
+                    </div>
+                  }
+                />
+              );
+            }
+            // Standard line stations and batching
+            else if (n.id === 'std-station1' || n.id === 'std-arcp' || n.id === 'std-batch1' || n.id === 'std-batch2') {
+              const isStation = n.id === 'std-station1' || n.id === 'std-arcp';
+              const isBatching = n.id === 'std-batch1' || n.id === 'std-batch2';
+              info = (
+                <InfoPopup
+                  title={`${n.label} Details`}
+                  buttonClassName="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  content={
+                    <div className="text-sm text-gray-300">
+                      <p>{isStation ? 'Standard line processing station with shared capacity' : 'Batching stage - accumulates units for efficient processing'}</p>
+                      <div className="mt-2">
+                        {isStation && (
+                          <>
+                            <div>Capacity: {n.id === 'std-station1' ? '6 units/day' : `${(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day`}</div>
+                            <div>Utilization: {((avgStandardProduction / (n.id === 'std-station1' ? 6 : arcpCapacity * (1 - mceAllocation))) * 100).toFixed(1)}%</div>
+                          </>
+                        )}
+                        {isBatching && (
+                          <>
+                            <div>Wait Time: {n.id === 'std-batch1' ? '4 days' : '1 day'}</div>
+                            <div>Batch Size: {standardBatchSize} units</div>
+                          </>
+                        )}
                       </div>
                     </div>
                   }
@@ -321,47 +421,86 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </g>
       </svg>
 
-      <div className="mt-6 grid grid-cols-4 gap-4">
-        <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
-          <div className="text-sm text-purple-700 font-semibold mb-1">Custom WIP</div>
-          <div className="text-2xl font-bold text-gray-800">{finalCustomWIP} orders</div>
-        </div>
-        <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
-          <div className="text-sm text-blue-700 font-semibold mb-1">Daily Output</div>
-          <div className="text-2xl font-bold text-gray-800">{avgCustomProduction.toFixed(1)} units/day</div>
-        </div>
-        <div className="bg-white border-2 border-green-300 rounded-lg p-4 shadow-md">
-          <div className="text-sm text-green-700 font-semibold mb-1">Total Delivered</div>
-          <div className="text-2xl font-bold text-gray-800">
-            {Math.round(state.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0))} units
+      <div className="mt-6 space-y-4">
+        {/* Custom Line Stats */}
+        <div>
+          <div className="text-sm font-bold text-purple-700 mb-2">📊 CUSTOM LINE METRICS</div>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-purple-700 font-semibold mb-1">Custom WIP</div>
+              <div className="text-2xl font-bold text-gray-800">{finalCustomWIP} orders</div>
+            </div>
+            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-purple-700 font-semibold mb-1">Daily Output</div>
+              <div className="text-2xl font-bold text-gray-800">{avgCustomProduction.toFixed(1)} units/day</div>
+            </div>
+            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-purple-700 font-semibold mb-1">Total Delivered</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {Math.round(state.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0))} units
+              </div>
+            </div>
+            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-purple-700 font-semibold mb-1">ARCP Allocated</div>
+              <div className="text-2xl font-bold text-gray-800">{(arcpCapacity * mceAllocation).toFixed(1)} units/day</div>
+            </div>
           </div>
         </div>
-        <div className="bg-white border-2 border-orange-300 rounded-lg p-4 shadow-md">
-          <div className="text-sm text-orange-700 font-semibold mb-1">ARCP Capacity</div>
-          <div className="text-2xl font-bold text-gray-800">{arcpCapacity.toFixed(1)} units/day</div>
+
+        {/* Standard Line Stats */}
+        <div>
+          <div className="text-sm font-bold text-blue-700 mb-2">📊 STANDARD LINE METRICS</div>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-blue-700 font-semibold mb-1">Standard WIP</div>
+              <div className="text-2xl font-bold text-gray-800">{Math.round(finalStandardWIP)} units</div>
+            </div>
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-blue-700 font-semibold mb-1">Daily Output</div>
+              <div className="text-2xl font-bold text-gray-800">{avgStandardProduction.toFixed(1)} units/day</div>
+            </div>
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-blue-700 font-semibold mb-1">Total Delivered</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {Math.round(state.history.dailyStandardProduction.reduce((sum, d) => sum + d.value, 0))} units
+              </div>
+            </div>
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
+              <div className="text-sm text-blue-700 font-semibold mb-1">ARCP Allocated</div>
+              <div className="text-2xl font-bold text-gray-800">{(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="mt-6 flex justify-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-12 h-1 bg-gray-800 rounded"></div>
-          <span className="text-gray-700 font-medium">Main Flow</span>
+          <svg width="40" height="16" viewBox="0 0 40 16">
+            <line x1="0" y1="8" x2="35" y2="8" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+            <polygon points="40,8 35,5 35,11" fill="#ef4444" />
+          </svg>
+          <span className="text-gray-700 font-medium">Bottleneck (Thin)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-12 h-1 bg-blue-600 rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #3b82f6 0px, #3b82f6 8px, transparent 8px, transparent 16px)' }}></div>
+          <svg width="40" height="16" viewBox="0 0 40 16">
+            <line x1="0" y1="8" x2="35" y2="8" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" />
+            <polygon points="40,8 35,5 35,11" fill="#3b82f6" />
+          </svg>
+          <span className="text-gray-700 font-medium">Balanced (Normal)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg width="40" height="16" viewBox="0 0 40 16">
+            <line x1="0" y1="8" x2="35" y2="8" stroke="#22c55e" strokeWidth="6" strokeLinecap="round" />
+            <polygon points="40,8 35,5 35,11" fill="#22c55e" />
+          </svg>
+          <span className="text-gray-700 font-medium">Excess (Thick)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg width="40" height="16" viewBox="0 0 40 16">
+            <line x1="0" y1="8" x2="35" y2="8" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 4" />
+            <polygon points="40,8 35,5 35,11" fill="#3b82f6" />
+          </svg>
           <span className="text-gray-700 font-medium">Loop Path</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-          <span className="text-gray-700 font-medium">Shortage</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-          <span className="text-gray-700 font-medium">Balanced</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="text-gray-700 font-medium">Excess</span>
         </div>
       </div>
 
