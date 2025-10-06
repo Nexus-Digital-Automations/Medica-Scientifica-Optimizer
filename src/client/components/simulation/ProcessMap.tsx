@@ -38,7 +38,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
         label: '🔬 Latest Simulation',
         timestamp: Date.now(),
         metadata: {
-          finalNetWorth: simulationResult.finalNetWorth,
+          finalNetWorth: simulationResult.finalNetWorth || 0,
         },
       });
     }

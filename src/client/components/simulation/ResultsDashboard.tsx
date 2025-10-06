@@ -525,7 +525,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
         <div className="p-8">
           {/* Process Map Tab */}
           {selectedTab === 'processMap' && (
-            <ProcessMap simulationResult={displayResult ?? null} />
+            <ProcessMap simulationResult={simulationResult} />
           )}
 
           {/* Financial Performance Tab */}
