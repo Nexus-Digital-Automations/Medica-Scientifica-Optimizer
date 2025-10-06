@@ -5,9 +5,10 @@ interface InfoPopupProps {
   title: string;
   content: React.ReactNode;
   buttonClassName?: string;
+  children?: React.ReactNode;
 }
 
-export default function InfoPopup({ title, content, buttonClassName = '' }: InfoPopupProps) {
+export default function InfoPopup({ title, content, buttonClassName = '', children }: InfoPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -18,10 +19,10 @@ export default function InfoPopup({ title, content, buttonClassName = '' }: Info
           e.stopPropagation();
           setIsOpen(true);
         }}
-        className={`inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-colors ${buttonClassName}`}
+        className={children ? buttonClassName : `inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-colors ${buttonClassName}`}
         title={`View details: ${title}`}
       >
-        ℹ️
+        {children || 'ℹ️'}
       </button>
 
       {/* Popup Modal - rendered via portal outside SVG */}

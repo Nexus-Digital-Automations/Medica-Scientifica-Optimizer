@@ -499,12 +499,86 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg ${isCustomBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-600 text-white'}`}>
-            {isCustomBottleneck ? '⚠️ BOTTLENECK' : 'CUSTOM'}
+          {/* Custom Line Metrics Button */}
+          <div className="relative">
+            <InfoPopup
+              title="📊 Custom Line Metrics"
+              buttonClassName={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg cursor-pointer hover:scale-105 transition-transform ${isCustomBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-600 text-white'}`}
+              content={
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-purple-300 font-semibold mb-1">Custom WIP</div>
+                      <div className="text-2xl font-bold text-white">{finalCustomWIP} orders</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-purple-300 font-semibold mb-1">Daily Output</div>
+                      <div className="text-2xl font-bold text-white">{avgCustomProduction.toFixed(1)} units/day</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-purple-300 font-semibold mb-1">Total Delivered</div>
+                      <div className="text-2xl font-bold text-white">
+                        {Math.round(state.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0))} units
+                      </div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-purple-300 font-semibold mb-1">ARCP Allocated</div>
+                      <div className="text-2xl font-bold text-white">{(arcpCapacity * mceAllocation).toFixed(1)} units/day</div>
+                    </div>
+                  </div>
+                  <div className={`rounded-lg p-3 ${isCustomBottleneck ? 'bg-red-900/30 border border-red-600' : 'bg-purple-900/30 border border-purple-600'}`}>
+                    <div className="text-sm font-semibold text-white mb-1">Status</div>
+                    <div className="text-gray-300 text-sm">
+                      {isCustomBottleneck ? '⚠️ Bottleneck detected - WIP exceeds 50 orders' : '✅ Operating normally'}
+                    </div>
+                  </div>
+                </div>
+              }
+            >
+              <span>{isCustomBottleneck ? '⚠️ BOTTLENECK' : 'CUSTOM'}</span>
+            </InfoPopup>
           </div>
-          <div className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg ${isStandardBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white'}`}>
-            {isStandardBottleneck ? '⚠️ BOTTLENECK' : 'STANDARD'}
+
+          {/* Standard Line Metrics Button */}
+          <div className="relative">
+            <InfoPopup
+              title="📊 Standard Line Metrics"
+              buttonClassName={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg cursor-pointer hover:scale-105 transition-transform ${isStandardBottleneck ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white'}`}
+              content={
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-blue-300 font-semibold mb-1">Standard WIP</div>
+                      <div className="text-2xl font-bold text-white">{Math.round(finalStandardWIP)} units</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-blue-300 font-semibold mb-1">Daily Output</div>
+                      <div className="text-2xl font-bold text-white">{avgStandardProduction.toFixed(1)} units/day</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-blue-300 font-semibold mb-1">Total Delivered</div>
+                      <div className="text-2xl font-bold text-white">
+                        {Math.round(state.history.dailyStandardProduction.reduce((sum, d) => sum + d.value, 0))} units
+                      </div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-sm text-blue-300 font-semibold mb-1">ARCP Allocated</div>
+                      <div className="text-2xl font-bold text-white">{(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day</div>
+                    </div>
+                  </div>
+                  <div className={`rounded-lg p-3 ${isStandardBottleneck ? 'bg-red-900/30 border border-red-600' : 'bg-blue-900/30 border border-blue-600'}`}>
+                    <div className="text-sm font-semibold text-white mb-1">Status</div>
+                    <div className="text-gray-300 text-sm">
+                      {isStandardBottleneck ? '⚠️ Bottleneck detected - WIP exceeds 100 units' : '✅ Operating normally'}
+                    </div>
+                  </div>
+                </div>
+              }
+            >
+              <span>{isStandardBottleneck ? '⚠️ BOTTLENECK' : 'STANDARD'}</span>
+            </InfoPopup>
           </div>
+
           <button
             onClick={() => setShowConstraintSuggestions(true)}
             className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center text-white text-xl cursor-pointer hover:scale-110 transition-transform shadow-md"
@@ -516,8 +590,9 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
       <svg
         ref={svgRef}
-        viewBox="0 0 3300 750"
+        viewBox="0 0 3300 1000"
         className="w-full h-full cursor-grab active:cursor-grabbing"
+        style={{ minHeight: '600px' }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -707,58 +782,6 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </button>
         <div className="text-center text-xs font-bold text-gray-300 mt-1 px-1">
           {Math.round(transform.scale * 100)}%
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-4">
-        {/* Custom Line Stats */}
-        <div>
-          <div className="text-sm font-bold text-purple-700 mb-2">📊 CUSTOM LINE METRICS</div>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-purple-700 font-semibold mb-1">Custom WIP</div>
-              <div className="text-2xl font-bold text-gray-800">{finalCustomWIP} orders</div>
-            </div>
-            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-purple-700 font-semibold mb-1">Daily Output</div>
-              <div className="text-2xl font-bold text-gray-800">{avgCustomProduction.toFixed(1)} units/day</div>
-            </div>
-            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-purple-700 font-semibold mb-1">Total Delivered</div>
-              <div className="text-2xl font-bold text-gray-800">
-                {Math.round(state.history.dailyCustomProduction.reduce((sum, d) => sum + d.value, 0))} units
-              </div>
-            </div>
-            <div className="bg-white border-2 border-purple-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-purple-700 font-semibold mb-1">ARCP Allocated</div>
-              <div className="text-2xl font-bold text-gray-800">{(arcpCapacity * mceAllocation).toFixed(1)} units/day</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Standard Line Stats */}
-        <div>
-          <div className="text-sm font-bold text-blue-700 mb-2">📊 STANDARD LINE METRICS</div>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-blue-700 font-semibold mb-1">Standard WIP</div>
-              <div className="text-2xl font-bold text-gray-800">{Math.round(finalStandardWIP)} units</div>
-            </div>
-            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-blue-700 font-semibold mb-1">Daily Output</div>
-              <div className="text-2xl font-bold text-gray-800">{avgStandardProduction.toFixed(1)} units/day</div>
-            </div>
-            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-blue-700 font-semibold mb-1">Total Delivered</div>
-              <div className="text-2xl font-bold text-gray-800">
-                {Math.round(state.history.dailyStandardProduction.reduce((sum, d) => sum + d.value, 0))} units
-              </div>
-            </div>
-            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 shadow-md">
-              <div className="text-sm text-blue-700 font-semibold mb-1">ARCP Allocated</div>
-              <div className="text-2xl font-bold text-gray-800">{(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day</div>
-            </div>
-          </div>
         </div>
       </div>
 
