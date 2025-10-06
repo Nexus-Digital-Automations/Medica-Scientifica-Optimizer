@@ -44,8 +44,7 @@ export default function ProcessMapSelector({ currentResult, onSelectResult }: Pr
       setSelectedSource(newSource);
       onSelectResult(currentResult, newSource);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentResult]);
+  }, [currentResult, onSelectResult]);
 
   const handleSelectSource = async (source: DataSource) => {
     setSelectedSource(source);
