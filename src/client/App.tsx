@@ -8,9 +8,17 @@ import ResultsDashboard from './components/simulation/ResultsDashboard';
 import SaveStrategyButton from './components/strategy/SaveStrategyButton';
 import StrategyLibrary from './components/strategy/StrategyLibrary';
 import OptimizerPage from './components/optimizer/OptimizerPage';
+import StrategyLibraryModal from './components/common/StrategyLibraryModal';
+import { useStrategyStore, type SavedStrategy } from './stores/strategyStore';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'builder' | 'optimizer' | 'results' | 'library'>('builder');
+  const [showStrategyModal, setShowStrategyModal] = useState(false);
+  const { loadSavedStrategy } = useStrategyStore();
+
+  const handleLoadStrategy = (strategy: SavedStrategy) => {
+    loadSavedStrategy(strategy.id);
+  };
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
@@ -26,7 +34,15 @@ function App() {
                   Configure your factory's operating policies and plan timed actions
                 </p>
               </div>
-              <SaveStrategyButton />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowStrategyModal(true)}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  📚 Load Strategy
+                </button>
+                <SaveStrategyButton />
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -75,6 +91,17 @@ function App() {
             </div>
             <StrategyLibrary onLoadStrategy={() => setActiveTab('builder')} />
           </div>
+        )}
+
+        {/* Strategy Library Modal */}
+        {showStrategyModal && (
+          <StrategyLibraryModal
+            onSelect={handleLoadStrategy}
+            onClose={() => setShowStrategyModal(false)}
+            title="Load Strategy for Editing"
+            description="Select a strategy to load into the builder"
+            selectButtonText="Load into Builder"
+          />
         )}
       </div>
     </Layout>

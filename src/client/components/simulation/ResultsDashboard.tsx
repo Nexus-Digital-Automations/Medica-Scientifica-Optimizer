@@ -17,7 +17,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import ProcessMap from './ProcessMap';
-import SavedResultsManager from './SavedResultsManager';
+import StrategyLibraryModal from '../common/StrategyLibraryModal';
+import type { SavedStrategy } from '../../stores/strategyStore';
 import { getMostRecentSavedResult } from '../../utils/savedResults';
 import { loadHistoricalData } from '../../utils/historicalDataLoader';
 
@@ -26,11 +27,12 @@ interface ResultsDashboardProps {
 }
 
 export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardProps) {
-  const { simulationResult, saveCurrentResult, getViewingResult, currentViewingResultId, savedResults } = useStrategyStore();
+  const { simulationResult, saveCurrentResult, getViewingResult, currentViewingResultId, setSimulationResult, setSimulating } = useStrategyStore();
   const [selectedTab, setSelectedTab] = useState<'processMap' | 'financial' | 'production' | 'workforce' | 'inventory' | 'market'>('processMap');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveStrategyName, setSaveStrategyName] = useState('');
-  const [showResultsPanel, setShowResultsPanel] = useState(false);
+  const [showStrategyModal, setShowStrategyModal] = useState(false);
+  const [isLoadingStrategy, setIsLoadingStrategy] = useState(false);
 
   // Get the result being viewed (current or saved)
   const viewingResult = getViewingResult();
@@ -52,6 +54,33 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
       saveCurrentResult(saveStrategyName.trim());
       setShowSaveModal(false);
       setSaveStrategyName('');
+    }
+  };
+
+  const handleStrategySelect = async (strategy: SavedStrategy) => {
+    setIsLoadingStrategy(true);
+    setSimulating(true);
+    try {
+      const response = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          strategy: strategy.strategy,
+          scenarioId: strategy.scenarioId || 'business-case-day51',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.result) {
+          setSimulationResult(data.result);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to run simulation for strategy:', error);
+    } finally {
+      setIsLoadingStrategy(false);
+      setSimulating(false);
     }
   };
 
@@ -237,27 +266,7 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
   };
 
   return (
-    <div className="flex gap-6">
-      {/* Saved Results Sidebar */}
-      {showResultsPanel && (
-        <div className="w-80 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Saved Results</h3>
-            <button
-              onClick={() => setShowResultsPanel(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <SavedResultsManager />
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 space-y-6">
+    <div className="space-y-6">
       {/* Validation Report */}
       {hasData && !isHistoricalData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -394,14 +403,15 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
       <div className="flex justify-between items-center gap-4">
         <div className="flex gap-3">
           <button
-            onClick={() => setShowResultsPanel(!showResultsPanel)}
+            onClick={() => setShowStrategyModal(true)}
+            disabled={isLoadingStrategy}
             className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              showResultsPanel
-                ? 'bg-gray-700 text-white'
-                : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+              isLoadingStrategy
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
-            📁 {showResultsPanel ? 'Hide' : 'Show'} Saved Results ({savedResults.length})
+            📚 {isLoadingStrategy ? 'Loading...' : 'Load Strategy'}
           </button>
           {hasData && !isHistoricalData && onEditStrategy && (
             <button
@@ -748,7 +758,17 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
           </div>
         </div>
       )}
-    </div>
+
+      {/* Strategy Library Modal */}
+      {showStrategyModal && (
+        <StrategyLibraryModal
+          onSelect={handleStrategySelect}
+          onClose={() => setShowStrategyModal(false)}
+          title="Load Strategy for Simulation"
+          description="Select a strategy to run simulation and view results"
+          selectButtonText="Run Simulation"
+        />
+      )}
     </div>
   );
 }

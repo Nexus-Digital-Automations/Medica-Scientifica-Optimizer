@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useStrategyStore } from '../../stores/strategyStore';
+import { useStrategyStore, type SavedStrategy } from '../../stores/strategyStore';
+import StrategyLibraryModal from '../common/StrategyLibraryModal';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import type { ConstraintSuggestion } from '../../utils/constraintSuggestions';
@@ -60,7 +61,7 @@ interface OptimizationConstraints {
 }
 
 export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerProps = {}) {
-  const { strategy, currentScenarioId, loadStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
+  const { strategy, currentScenarioId, loadStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
     fixedPolicies: {
@@ -294,6 +295,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
   const [phase1Results, setPhase1Results] = useState<OptimizationCandidate[]>([]);
   const [phase2Results, setPhase2Results] = useState<OptimizationCandidate[]>([]);
   const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
+  const [showStrategyModal, setShowStrategyModal] = useState(false);
 
   // Convert strategy parameters to policy decision actions for a specific day
   const createPolicyActionsForDay = (
@@ -2247,49 +2249,31 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         </div>
       )}
 
-      {/* Saved Strategies */}
-      {savedStrategies.length > 0 && (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-          <h4 className="text-lg font-semibold text-white mb-4">💾 Saved Strategies</h4>
-          <div className="space-y-3">
-            {savedStrategies.map(saved => (
-              <div key={saved.id} className="p-4 bg-gray-750 border border-gray-600 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h5 className="text-white font-semibold">{saved.name}</h5>
-                    <p className="text-xs text-gray-400">
-                      Saved: {new Date(saved.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => loadStrategy(saved.strategy)}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
-                    >
-                      Load
-                    </button>
-                    <button
-                      onClick={() => exportStrategy(saved.strategy)}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
-                    >
-                      Export
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Delete strategy "${saved.name}"?`)) {
-                          deleteSavedStrategy(saved.id);
-                        }
-                      }}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Load Strategy Button */}
+      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-lg font-semibold text-white mb-2">Load Strategy</h4>
+            <p className="text-sm text-gray-400">Load a saved strategy to use as the starting point for optimization</p>
           </div>
+          <button
+            onClick={() => setShowStrategyModal(true)}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+          >
+            📚 Load Strategy
+          </button>
         </div>
+      </div>
+
+      {/* Strategy Library Modal */}
+      {showStrategyModal && (
+        <StrategyLibraryModal
+          onSelect={(strategy: SavedStrategy) => loadStrategy(strategy.strategy)}
+          onClose={() => setShowStrategyModal(false)}
+          title="Load Strategy for Optimization"
+          description="Select a strategy to load into the optimizer"
+          selectButtonText="Load into Optimizer"
+        />
       )}
     </div>
   );
