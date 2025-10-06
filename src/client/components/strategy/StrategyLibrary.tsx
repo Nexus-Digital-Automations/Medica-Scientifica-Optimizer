@@ -102,6 +102,11 @@ export default function StrategyLibrary({ onLoadStrategy }: StrategyLibraryProps
                   </h4>
                 )}
                 <div className="mt-1 text-sm text-gray-400 space-y-1">
+                  {strategy.description && (
+                    <div className="text-blue-400 font-medium">
+                      📊 {strategy.description}
+                    </div>
+                  )}
                   <div>
                     <span className="text-gray-500">Created:</span> {formatDate(strategy.createdAt)}
                   </div>

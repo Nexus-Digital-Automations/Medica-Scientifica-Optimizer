@@ -56,9 +56,10 @@ export const CONSTANTS = {
 } as const;
 
 /**
- * Initial State at Day 51 (Start of Simulation)
+ * Initial State at Day 51 - Business Case (Reference Guide Values)
+ * From textbook: Cash $8.2K, Debt $70K, 0 inventory, 120 standard WIP, 295 custom WIP
  */
-export const INITIAL_STATE: SimulationState = {
+export const INITIAL_STATE_BUSINESS_CASE: SimulationState = {
   currentDay: 51,
   cash: 8206.12,
   debt: 70000.0,
@@ -157,6 +158,100 @@ export const INITIAL_STATE: SimulationState = {
 };
 
 /**
+ * Initial State at Day 51 - Historical Data (Actual Excel Values)
+ * From historical Excel file: Cash $384K, Debt $0, 164 inventory, 414 standard WIP, 300 custom WIP
+ * This represents the state after the first 50 days of a successful run
+ */
+export const INITIAL_STATE_HISTORICAL: SimulationState = {
+  currentDay: 51,
+  cash: 383919.70,
+  debt: 0.0,
+  rawMaterialInventory: 164,
+
+  // Work in Progress - Historical WIP levels from Excel
+  standardLineWIP: {
+    preStation1: [],
+    station1: [],
+    station2: [],
+    station3: [], // 414 units will be added in state.ts initialization
+  },
+
+  customLineWIP: {
+    orders: [], // 300 orders will be added in state.ts initialization
+  },
+
+  finishedGoods: {
+    standard: 0,
+    custom: 0,
+  },
+
+  // Workforce (same as business case)
+  workforce: {
+    experts: 1,
+    rookies: 0,
+    rookiesInTraining: [],
+    employeeOvertimeTracking: [],
+  },
+
+  // Capital Equipment (same as business case)
+  machines: {
+    MCE: 1,
+    WMA: 1,
+    PUC: 1,
+  },
+
+  // Pending Orders
+  pendingRawMaterialOrders: [],
+
+  // Penalty tracking for fitness function
+  rejectedMaterialOrders: 0,
+  stockoutDays: 0,
+  lostProductionDays: 0,
+
+  // Historical Tracking for Analytics
+  history: {
+    dailyCash: [],
+    dailyDebt: [],
+    dailyNetWorth: [],
+    dailyRevenue: [],
+    dailyExpenses: [],
+    dailyInterestPaid: [],
+    dailyInterestEarned: [],
+    dailyStandardProduction: [],
+    dailyCustomProduction: [],
+    dailyStandardWIP: [],
+    dailyCustomWIP: [],
+    dailyFinishedStandard: [],
+    dailyFinishedCustom: [],
+    dailyRawMaterial: [],
+    dailyRawMaterialOrders: [],
+    dailyRawMaterialOrdersPlaced: [],
+    dailyRawMaterialCost: [],
+    dailyExperts: [],
+    dailyRookies: [],
+    dailyRookiesInTraining: [],
+    dailySalaryCost: [],
+    dailyMCECount: [],
+    dailyWMACount: [],
+    dailyPUCCount: [],
+    dailyStandardPrice: [],
+    dailyCustomPrice: [],
+    dailyCustomDeliveryTime: [],
+    dailyReorderPoint: [],
+    dailyOrderQuantity: [],
+    dailyStandardBatchSize: [],
+    actionsPerformed: [],
+    policyChanges: [],
+  },
+};
+
+/**
+ * Default Initial State (Business Case)
+ * This is used when no specific initial state is requested
+ */
+export const INITIAL_STATE = INITIAL_STATE_BUSINESS_CASE;
+
+/**
  * Default Strategy Parameters (can be overridden by optimization)
  */
 export const DEFAULT_STRATEGY: Strategy = {
@@ -166,7 +261,7 @@ export const DEFAULT_STRATEGY: Strategy = {
 
   // Production Policy
   standardBatchSize: 20, // units per batch
-  mceAllocationCustom: 0.7, // 70% to custom, 30% to standard
+  mceAllocationCustom: 0.50, // 50% to custom, 50% to standard (from historical data day 50)
 
   // Pricing Policy
   standardPrice: 225, // $ per unit (competitive market price - business case page 2)

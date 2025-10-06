@@ -42,7 +42,7 @@ interface OptimizationConstraints {
 }
 
 export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerProps = {}) {
-  const { strategy, loadStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
+  const { strategy, currentScenarioId, loadStrategy, savedStrategies, deleteSavedStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
     fixedPolicies: {
@@ -543,7 +543,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                 'Cache-Control': 'no-cache, no-store, must-revalidate'
               },
               cache: 'no-store',
-              body: JSON.stringify({ strategy: testStrategy }),
+              body: JSON.stringify({ strategy: testStrategy, scenarioId: currentScenarioId }),
             });
 
             if (!response.ok) {
@@ -784,7 +784,7 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
               },
               cache: 'no-store',
-              body: JSON.stringify({ strategy: testStrategy }),
+              body: JSON.stringify({ strategy: testStrategy, scenarioId: currentScenarioId }),
             });
 
             if (!response.ok) {

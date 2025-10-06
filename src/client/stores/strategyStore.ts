@@ -11,6 +11,8 @@ export interface SavedStrategy {
   id: string;
   name: string;
   strategy: Strategy;
+  scenarioId?: string; // ID to determine which initial state to use ('business-case-day51' | 'historical-data-day51')
+  description?: string; // Optional description of the scenario
   createdAt: string;
   updatedAt: string;
 }
@@ -18,6 +20,7 @@ export interface SavedStrategy {
 interface StrategyStore {
   // Current strategy being edited
   strategy: Strategy;
+  currentScenarioId?: string; // Track which scenario this strategy is for
 
   // Simulation state
   simulationResult: SimulationResult | null;
@@ -98,13 +101,58 @@ const DEFAULT_STRATEGY: Strategy = {
 // LocalStorage helpers
 const STORAGE_KEY = 'medica-saved-strategies';
 
+// Pre-loaded default strategies
+const DEFAULT_STRATEGIES: SavedStrategy[] = [
+  {
+    id: 'business-case-day51',
+    name: 'Business Case (Day 51)',
+    strategy: {
+      ...DEFAULT_STRATEGY,
+      // Business Case specific values are already in DEFAULT_STRATEGY
+    },
+    scenarioId: 'business-case-day51',
+    description: 'Textbook starting point: Cash $8.2K, Debt $70K, 0 inventory, 120 WIP',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'historical-data-day51',
+    name: 'Historical Data (Day 51)',
+    strategy: {
+      ...DEFAULT_STRATEGY,
+      // Historical data uses same strategy parameters, just different initial state
+    },
+    scenarioId: 'historical-data-day51',
+    description: 'Excel data: Cash $384K, Debt $0, 164 inventory, 414 WIP',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+];
+
 const loadSavedStrategiesFromStorage = (): SavedStrategy[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const userStrategies = stored ? JSON.parse(stored) : [];
+
+    // Check if default strategies already exist
+    const hasBusinessCase = userStrategies.some((s: SavedStrategy) => s.id === 'business-case-day51');
+    const hasHistorical = userStrategies.some((s: SavedStrategy) => s.id === 'historical-data-day51');
+
+    // Add missing default strategies
+    const strategies = [...userStrategies];
+    if (!hasBusinessCase) {
+      strategies.unshift(DEFAULT_STRATEGIES[0]);
+    }
+    if (!hasHistorical) {
+      // Add historical after business case
+      const businessCaseIndex = strategies.findIndex(s => s.id === 'business-case-day51');
+      strategies.splice(businessCaseIndex + 1, 0, DEFAULT_STRATEGIES[1]);
+    }
+
+    return strategies;
   } catch (error) {
     console.error('Failed to load saved strategies from localStorage:', error);
-    return [];
+    return DEFAULT_STRATEGIES;
   }
 };
 
@@ -118,6 +166,7 @@ const saveSavedStrategiesToStorage = (strategies: SavedStrategy[]): void => {
 
 export const useStrategyStore = create<StrategyStore>((set, get) => ({
   strategy: DEFAULT_STRATEGY,
+  currentScenarioId: 'business-case-day51', // Default to business case scenario
   simulationResult: null,
   isSimulating: false,
   simulationError: null,
@@ -167,6 +216,7 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
   resetStrategy: () =>
     set({
       strategy: DEFAULT_STRATEGY,
+      currentScenarioId: 'business-case-day51', // Reset to default scenario
       simulationResult: null,
       simulationError: null,
     }),
@@ -199,6 +249,7 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
     if (saved) {
       set({
         strategy: { ...saved.strategy },
+        currentScenarioId: saved.scenarioId, // Set the scenario ID from saved strategy
         simulationResult: null,
         simulationError: null,
       });

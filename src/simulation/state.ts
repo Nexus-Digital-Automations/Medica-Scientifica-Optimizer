@@ -4,7 +4,7 @@
  */
 
 import type { SimulationState, DailyMetrics } from './types.js';
-import { INITIAL_STATE } from './constants.js';
+import { INITIAL_STATE, INITIAL_STATE_BUSINESS_CASE, INITIAL_STATE_HISTORICAL } from './constants.js';
 
 /**
  * Creates a deep clone of the simulation state
@@ -15,24 +15,33 @@ export function cloneState(state: SimulationState): SimulationState {
 
 /**
  * Initializes a new simulation state from initial conditions
+ * @param baseState - Optional initial state to use (defaults to INITIAL_STATE)
  */
-export function initializeState(): SimulationState {
-  const state = cloneState(INITIAL_STATE);
+export function initializeState(baseState: SimulationState = INITIAL_STATE): SimulationState {
+  const state = cloneState(baseState);
 
-  // Initialize standard line WIP with starting units (120 units distributed)
-  // Distribute initial units across stations
-  for (let i = 0; i < 40; i++) {
+  // Determine WIP counts based on which initial state is being used
+  const isHistorical = state.cash > 100000; // Historical has ~$384K, business case has ~$8K
+  const standardWIPCount = isHistorical ? 414 : 120;
+  const customWIPCount = isHistorical ? 300 : 295;
+
+  // Initialize standard line WIP with starting units
+  // Distribute initial units across stations (evenly split for simplicity)
+  const unitsPerStation = Math.floor(standardWIPCount / 3);
+  const remainder = standardWIPCount % 3;
+
+  for (let i = 0; i < unitsPerStation; i++) {
     state.standardLineWIP.station1.push({ units: 1, startDay: 50, batchingDaysRemaining: 0 });
   }
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < unitsPerStation; i++) {
     state.standardLineWIP.station2.push({ units: 1, startDay: 48, batchingDaysRemaining: 2 });
   }
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < unitsPerStation + remainder; i++) {
     state.standardLineWIP.station3.push({ units: 1, startDay: 47, batchingDaysRemaining: 0 });
   }
 
-  // Initialize custom line WIP with starting orders (295 orders)
-  for (let i = 0; i < 295; i++) {
+  // Initialize custom line WIP with starting orders
+  for (let i = 0; i < customWIPCount; i++) {
     const daysInProd = Math.floor(Math.random() * 10);
     state.customLineWIP.orders.push({
       orderId: `initial-${i}`,
@@ -44,6 +53,17 @@ export function initializeState(): SimulationState {
   }
 
   return state;
+}
+
+/**
+ * Get initial state by scenario ID
+ */
+export function getInitialStateByScenario(scenarioId?: string): SimulationState {
+  if (scenarioId === 'historical-data-day51') {
+    return INITIAL_STATE_HISTORICAL;
+  }
+  // Default to business case
+  return INITIAL_STATE_BUSINESS_CASE;
 }
 
 /**

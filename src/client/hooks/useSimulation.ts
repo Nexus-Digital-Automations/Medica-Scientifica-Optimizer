@@ -21,7 +21,7 @@ interface SimulationResponse {
 }
 
 export function useSimulation() {
-  const { strategy, setSimulationResult, setSimulating, setSimulationError } = useStrategyStore();
+  const { strategy, currentScenarioId, setSimulationResult, setSimulating, setSimulationError } = useStrategyStore();
   const [progress, setProgress] = useState(0);
 
   const runSimulation = async () => {
@@ -35,7 +35,7 @@ export function useSimulation() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ strategy }),
+        body: JSON.stringify({ strategy, scenarioId: currentScenarioId }),
       });
 
       if (!response.ok) {

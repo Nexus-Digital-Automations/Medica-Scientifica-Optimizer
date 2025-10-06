@@ -5,11 +5,13 @@
 
 import { runSimulation } from '../../simulation/simulationEngine.js';
 import { validateBusinessRules } from '../../simulation/businessRules.js';
-import { CONSTANTS, INITIAL_STATE } from '../../simulation/constants.js';
+import { CONSTANTS } from '../../simulation/constants.js';
+import { getInitialStateByScenario, initializeState } from '../../simulation/state.js';
 import type { Strategy, SimulationResult } from '../../simulation/types.js';
 
 export interface SimulationRequest {
   strategy: Strategy;
+  scenarioId?: string; // Optional scenario ID to select initial state
 }
 
 export interface SimulationResponse {
@@ -34,11 +36,15 @@ export async function executeSimulation(request: SimulationRequest): Promise<Sim
   const startTime = Date.now();
 
   try {
-    // Run simulation with user's strategy
+    // Get the appropriate initial state based on scenarioId
+    const baseState = getInitialStateByScenario(request.scenarioId);
+    const initialState = initializeState(baseState);
+
+    // Run simulation with user's strategy and selected initial state
     const result = await runSimulation(
       request.strategy,
       CONSTANTS.SIMULATION_END_DAY,
-      INITIAL_STATE
+      initialState
     );
 
     // Validate business rules

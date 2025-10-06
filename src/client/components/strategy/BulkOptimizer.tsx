@@ -20,7 +20,7 @@ interface OptimizerResults {
 }
 
 export default function BulkOptimizer() {
-  const { strategy } = useStrategyStore();
+  const { strategy, currentScenarioId } = useStrategyStore();
   const [testDay, setTestDay] = useState<number>(51);
 
   // Version check - log when component loads
@@ -59,7 +59,7 @@ export default function BulkOptimizer() {
       const response = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ strategy: testStrategy }),
+        body: JSON.stringify({ strategy: testStrategy, scenarioId: currentScenarioId }),
       });
 
       if (!response.ok) {
