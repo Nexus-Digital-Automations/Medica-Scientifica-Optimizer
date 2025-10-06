@@ -272,7 +272,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
   };
 
   return (
-    <div className="space-y-4 w-full px-4">
+    <div className="space-y-4 w-full px-1">
       {/* Process Map Selector */}
       <ProcessMapSelector
         currentResult={simulationResult}
@@ -603,7 +603,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
 
       {/* Unified MCE Station */}
       <div className="flex justify-center mb-12">
-        <div className="relative bg-gradient-to-r from-purple-700 via-gray-700 to-blue-700 border-3 border-gray-500 rounded-3xl p-8 min-w-[600px] shadow-2xl">
+        <div className="relative bg-gradient-to-r from-purple-700 via-gray-700 to-blue-700 border-3 border-gray-500 rounded-3xl p-8 min-w-[900px] shadow-2xl">
           <div className="absolute top-4 right-4">
             <InfoPopup
               title="⚙️ Station 3 - MCE (Material Consumption & Forming)"
@@ -730,7 +730,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Animated Arrows: MCE → Custom Line & Standard Line */}
-      <div className="flex justify-center my-8 gap-32">
+      <div className="flex justify-center my-8 gap-64">
         <AnimatedFlowArrow
           fromStation="MCE"
           toStation="Custom Line"
@@ -748,7 +748,7 @@ export default function ProcessMap({ simulationResult }: ProcessMapProps) {
       </div>
 
       {/* Two Production Lines */}
-      <div className="grid grid-cols-2 gap-6 px-4">
+      <div className="grid grid-cols-2 gap-16 px-2">
         {/* CUSTOM LINE - Left */}
         <div className="space-y-6">
           <div className="border-3 border-purple-500 rounded-2xl p-8 bg-gradient-to-br from-purple-950 to-purple-900">

@@ -193,11 +193,11 @@ export const INITIAL_STATE_HISTORICAL: SimulationState = {
     employeeOvertimeTracking: [],
   },
 
-  // Capital Equipment (same as business case)
+  // Capital Equipment (from Excel Day 49)
   machines: {
-    MCE: 1,
-    WMA: 1,
-    PUC: 1,
+    MCE: 1, // 1 MCE machine
+    WMA: 2, // 2 WMA machines (Excel Day 49)
+    PUC: 2, // 2 PUC machines (Excel Day 49)
   },
 
   // Pending Orders

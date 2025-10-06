@@ -41,15 +41,64 @@ export function initializeState(baseState: SimulationState = INITIAL_STATE): Sim
   }
 
   // Initialize custom line WIP with starting orders
-  for (let i = 0; i < customWIPCount; i++) {
-    const daysInProd = Math.floor(Math.random() * 10);
-    state.customLineWIP.orders.push({
-      orderId: `initial-${i}`,
-      startDay: 50 - Math.floor(Math.random() * 10), // Stagger start days
-      daysInProduction: daysInProd,
-      currentStation: daysInProd < 2 ? 'WMA_PASS1' : daysInProd < 4 ? 'WMA_PASS2' : 'PUC', // Distribute across stations
-      daysAtCurrentStation: 0,
-    });
+  // For historical data (Day 49): Match Excel breakdown exactly
+  // - 264 waiting for MCE
+  // - 12 in WMA Pass 1
+  // - 12 in PUC
+  // - 12 in WMA Pass 2
+  if (isHistorical) {
+    // 264 orders waiting for MCE processing (Queue 1)
+    for (let i = 0; i < 264; i++) {
+      state.customLineWIP.orders.push({
+        orderId: `initial-waiting-${i}`,
+        startDay: 50 - Math.floor(i / 30), // Stagger arrival over ~9 days
+        daysInProduction: 0,
+        currentStation: 'WAITING',
+        daysAtCurrentStation: Math.floor(i / 30),
+      });
+    }
+    // 12 orders in WMA Pass 1 (Queue 2 First Pass)
+    for (let i = 0; i < 12; i++) {
+      state.customLineWIP.orders.push({
+        orderId: `initial-wma1-${i}`,
+        startDay: 48,
+        daysInProduction: 2,
+        currentStation: 'WMA_PASS1',
+        daysAtCurrentStation: 1,
+      });
+    }
+    // 12 orders in PUC (Queue 3)
+    for (let i = 0; i < 12; i++) {
+      state.customLineWIP.orders.push({
+        orderId: `initial-puc-${i}`,
+        startDay: 46,
+        daysInProduction: 4,
+        currentStation: 'PUC',
+        daysAtCurrentStation: 1,
+      });
+    }
+    // 12 orders in WMA Pass 2 (Queue 2 Second Pass)
+    for (let i = 0; i < 12; i++) {
+      state.customLineWIP.orders.push({
+        orderId: `initial-wma2-${i}`,
+        startDay: 45,
+        daysInProduction: 5,
+        currentStation: 'WMA_PASS2',
+        daysAtCurrentStation: 1,
+      });
+    }
+  } else {
+    // Business case: Use random distribution for initial WIP
+    for (let i = 0; i < customWIPCount; i++) {
+      const daysInProd = Math.floor(Math.random() * 10);
+      state.customLineWIP.orders.push({
+        orderId: `initial-${i}`,
+        startDay: 50 - Math.floor(Math.random() * 10), // Stagger start days
+        daysInProduction: daysInProd,
+        currentStation: daysInProd < 2 ? 'WMA_PASS1' : daysInProd < 4 ? 'WMA_PASS2' : 'PUC',
+        daysAtCurrentStation: 0,
+      });
+    }
   }
 
   return state;

@@ -35,35 +35,41 @@ interface Edge {
   getMetrics?: () => FlowMetrics;
 }
 
-// Custom line nodes (top section)
+// MCE Station (unified, shared between both lines) - centered above production lines
+const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1200, y: 60, color: '#6b7280', icon: '⚙️' };
+
+// Custom line nodes (single row, top section, 500px gaps)
 const customNodes: Node[] = [
-  { id: 'custom-orders', label: 'Orders', x: 20, y: 40, color: '#ef4444', icon: '📋' },
-  { id: 'custom-queue1', label: 'Queue 1', x: 170, y: 40, color: '#f97316', icon: '📦' },
-  { id: 'custom-station1', label: 'Station 1', x: 320, y: 40, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue2', label: 'Queue 2', x: 470, y: 40, color: '#f97316', icon: '📦' },
-  { id: 'custom-station2', label: 'Station 2', x: 620, y: 40, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-deliveries', label: 'Deliveries', x: 1070, y: 40, color: '#22c55e', icon: '📦' },
-  { id: 'custom-station3', label: 'Station 3', x: 320, y: 200, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-queue3', label: 'Queue 3', x: 470, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'shared', label: 'Shared\nResources', x: 20, y: 160, color: '#6b7280', icon: '📦' }
+  { id: 'custom-orders', label: 'Orders', x: 50, y: 240, color: '#ef4444', icon: '📋' },
+  { id: 'custom-queue1', label: 'Queue 1', x: 670, y: 240, color: '#f97316', icon: '📦' },
+  { id: 'custom-station1', label: 'Station 1', x: 1290, y: 240, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue2', label: 'Queue 2', x: 1910, y: 240, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 2530, y: 240, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-deliveries', label: 'Deliveries', x: 3150, y: 240, color: '#22c55e', icon: '📦' },
+  { id: 'custom-station3', label: 'Station 3', x: 1290, y: 400, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 1910, y: 400, color: '#f97316', icon: '📦' },
 ];
 
-// Standard line nodes (bottom section)
+// Standard line nodes (snake layout, 500px gaps)
+// Row 1: Left-to-right (y: 520)
+// Row 2: Right-to-left (y: 640)
 const standardNodes: Node[] = [
-  { id: 'std-orders', label: 'Orders', x: 50, y: 340, color: '#ef4444', icon: '📋' },
-  { id: 'std-queue1', label: 'Queue 1', x: 180, y: 340, color: '#f97316', icon: '📦' },
-  { id: 'std-station1', label: 'Station 1', x: 310, y: 340, color: '#2563eb', icon: '⚙️' },
-  { id: 'std-queue2', label: 'Queue 2', x: 440, y: 340, color: '#f97316', icon: '📦' },
-  { id: 'std-batch1', label: 'Initial\nBatching', x: 570, y: 340, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue3', label: 'Queue 3', x: 700, y: 340, color: '#f97316', icon: '📦' },
-  { id: 'std-arcp', label: 'Manual\nProcessing', x: 830, y: 340, color: '#ec4899', icon: '👥' },
-  { id: 'std-queue4', label: 'Queue 4', x: 960, y: 340, color: '#f97316', icon: '📦' },
-  { id: 'std-batch2', label: 'Final\nBatching', x: 1090, y: 340, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue5', label: 'Queue 5', x: 1220, y: 340, color: '#f97316', icon: '📦' },
-  { id: 'std-deliveries', label: 'Deliveries', x: 1350, y: 340, color: '#22c55e', icon: '📦' },
+  // Row 1 (left to right)
+  { id: 'std-orders', label: 'Orders', x: 670, y: 520, color: '#ef4444', icon: '📋' },
+  { id: 'std-queue1', label: 'Queue 1', x: 1290, y: 520, color: '#f97316', icon: '📦' },
+  { id: 'std-station1', label: 'Station 1', x: 1910, y: 520, color: '#2563eb', icon: '⚙️' },
+  { id: 'std-queue2', label: 'Queue 2', x: 2530, y: 520, color: '#f97316', icon: '📦' },
+  { id: 'std-batch1', label: 'Initial\nBatching', x: 3150, y: 520, color: '#a855f7', icon: '⏱️' },
+  // Row 2 (right to left)
+  { id: 'std-queue3', label: 'Queue 3', x: 3150, y: 640, color: '#f97316', icon: '📦' },
+  { id: 'std-arcp', label: 'Manual\nProcessing', x: 2530, y: 640, color: '#ec4899', icon: '👥' },
+  { id: 'std-queue4', label: 'Queue 4', x: 1910, y: 640, color: '#f97316', icon: '📦' },
+  { id: 'std-batch2', label: 'Final\nBatching', x: 1290, y: 640, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue5', label: 'Queue 5', x: 670, y: 640, color: '#f97316', icon: '📦' },
+  { id: 'std-deliveries', label: 'Deliveries', x: 50, y: 640, color: '#22c55e', icon: '📦' },
 ];
 
-const nodes: Node[] = [...customNodes, ...standardNodes];
+const nodes: Node[] = [mceNode, ...customNodes, ...standardNodes];
 
 function findNode(id: string): Node | undefined {
   return nodes.find((n) => n.id === id);
@@ -98,9 +104,9 @@ function getFlowColor(flowRate: number, demandRate: number): string {
 
 function getArrowWidth(flowRate: number, demandRate: number): number {
   const gap = flowRate - demandRate;
-  if (gap < -0.5) return 2; // Thin arrow - bottleneck/shortage
-  if (gap > 0.5) return 6;   // Thick arrow - excess supply
-  return 4;                   // Normal arrow - balanced
+  if (gap < -0.5) return 8;  // Thinner arrow - bottleneck/shortage (RED)
+  if (gap > 0.5) return 16;  // Thickest arrow - excess supply (GREEN)
+  return 12;                 // Medium arrow - balanced (BLUE)
 }
 
 function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
@@ -129,26 +135,22 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
   );
 }
 
-function Edge({ edge, index, metrics }: { edge: Edge; index: number; metrics?: FlowMetrics }) {
-  const [showPopup, setShowPopup] = useState(false);
+function Edge({ edge, index, metrics, activePopupId: _activePopupId, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
   if (!from || !to) return null;
 
+  const edgeId = `${edge.from}-${edge.to}-${index}`;
   const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
   const d = makeCurve(from, to, edge.isLoop ? 30 : 0);
   const strokeColor = edge.isDotted ? '#9ca3af' : getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
   const strokeWidth = edge.isDotted ? 2 : getArrowWidth(flowMetrics.flowRate, flowMetrics.demandRate);
 
-  const gap = flowMetrics.flowRate - flowMetrics.demandRate;
-  const isBottleneck = gap < -0.5;
-  const bottleneckRatio = flowMetrics.demandRate > 0 ? flowMetrics.flowRate / flowMetrics.demandRate : 1;
-
   return (
     <>
       <motion.path
-        key={`edge-${edge.from}-${edge.to}-${index}`}
+        key={`edge-${edgeId}`}
         d={d}
         fill="none"
         stroke={strokeColor}
@@ -160,7 +162,7 @@ function Edge({ edge, index, metrics }: { edge: Edge; index: number; metrics?: F
         transition={edge.isLoop ? { repeat: Infinity, repeatType: 'loop', duration: 2, ease: 'linear' } : {}}
         className="cursor-pointer"
         style={{ transition: 'stroke-width 0.3s ease' }}
-        onClick={() => setShowPopup(!showPopup)}
+        onClick={() => onPopupToggle(edgeId)}
       />
 
       {!edge.isDotted && (
@@ -183,57 +185,71 @@ function Edge({ edge, index, metrics }: { edge: Edge; index: number; metrics?: F
       )}
 
       <path id={`path-${edge.from}-${edge.to}`} d={d} fill="none" stroke="none" />
-
-      {showPopup && (
-        <foreignObject x={from.x + NODE_W + 50} y={from.y} width={300} height={250}>
-          <div
-            className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 rounded-xl shadow-2xl p-4"
-            style={{ borderColor: strokeColor }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-white">
-                {edge.from} → {edge.to}
-              </h3>
-              <button onClick={() => setShowPopup(false)} className="text-gray-400 hover:text-white">×</button>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Flow Rate:</span>
-                <span className="font-bold text-white">{flowMetrics.flowRate.toFixed(1)} units/day</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Demand Rate:</span>
-                <span className="font-bold text-white">{flowMetrics.demandRate.toFixed(1)} units/day</span>
-              </div>
-              <div className="flex justify-between border-t border-gray-700 pt-2">
-                <span className="text-gray-400">Gap:</span>
-                <span className={`font-bold ${gap < 0 ? 'text-red-400' : 'text-green-400'}`}>
-                  {gap.toFixed(1)} units/day
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Flow Efficiency:</span>
-                <span className="font-bold text-white">{(bottleneckRatio * 100).toFixed(1)}%</span>
-              </div>
-            </div>
-            {isBottleneck && (
-              <div className="mt-3 bg-red-900/30 border border-red-600 rounded p-2">
-                <div className="text-xs font-bold text-red-300">⚠️ BOTTLENECK DETECTED</div>
-                <div className="text-xs text-gray-300 mt-1">
-                  Flow is {(bottleneckRatio * 100).toFixed(0)}% of demand
-                </div>
-              </div>
-            )}
-          </div>
-        </foreignObject>
-      )}
     </>
+  );
+}
+
+function EdgePopup({ edge, index: _index, metrics, onClose }: { edge: Edge; index: number; metrics?: FlowMetrics; onClose: () => void }) {
+  const from = findNode(edge.from);
+  const to = findNode(edge.to);
+
+  if (!from || !to) return null;
+
+  const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
+  const strokeColor = edge.isDotted ? '#9ca3af' : getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
+  const gap = flowMetrics.flowRate - flowMetrics.demandRate;
+  const isBottleneck = gap < -0.5;
+  const bottleneckRatio = flowMetrics.demandRate > 0 ? flowMetrics.flowRate / flowMetrics.demandRate : 1;
+
+  return (
+    <foreignObject x={from.x + NODE_W + 50} y={from.y} width={300} height={250}>
+      <div
+        className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 rounded-xl shadow-2xl p-4"
+        style={{ borderColor: strokeColor }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-white">
+            {edge.from} → {edge.to}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">×</button>
+        </div>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-gray-400">Flow Rate:</span>
+            <span className="font-bold text-white">{flowMetrics.flowRate.toFixed(1)} units/day</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Demand Rate:</span>
+            <span className="font-bold text-white">{flowMetrics.demandRate.toFixed(1)} units/day</span>
+          </div>
+          <div className="flex justify-between border-t border-gray-700 pt-2">
+            <span className="text-gray-400">Gap:</span>
+            <span className={`font-bold ${gap < 0 ? 'text-red-400' : 'text-green-400'}`}>
+              {gap.toFixed(1)} units/day
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Flow Efficiency:</span>
+            <span className="font-bold text-white">{(bottleneckRatio * 100).toFixed(1)}%</span>
+          </div>
+        </div>
+        {isBottleneck && (
+          <div className="mt-3 bg-red-900/30 border border-red-600 rounded p-2">
+            <div className="text-xs font-bold text-red-300">⚠️ BOTTLENECK DETECTED</div>
+            <div className="text-xs text-gray-300 mt-1">
+              Flow is {(bottleneckRatio * 100).toFixed(0)}% of demand
+            </div>
+          </div>
+        )}
+      </div>
+    </foreignObject>
   );
 }
 
 export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) {
   const [showConstraintSuggestions, setShowConstraintSuggestions] = useState(false);
+  const [activePopupId, setActivePopupId] = useState<string | null>(null);
 
   const bottleneckAnalysis = useMemo(
     () => simulationResult ? analyzeBottlenecks(simulationResult) : { metrics: [], problems: [], overallHealth: 'optimal' as const, summaryStats: { totalBottlenecks: 0, criticalBottlenecks: 0, averageUtilization: 0, mostCriticalStation: null } },
@@ -295,6 +311,12 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     'std-queue5-deliveries': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
   };
 
+  // MCE station edges (feeds both lines)
+  const mceEdges: Edge[] = [
+    { from: 'mce-station', to: 'custom-orders', isDotted: true },
+    { from: 'mce-station', to: 'std-orders', isDotted: true },
+  ];
+
   // Custom line edges
   const customEdges: Edge[] = [
     { from: 'custom-orders', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
@@ -305,16 +327,15 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     { from: 'custom-station1', to: 'custom-station3', isLoop: true, getMetrics: () => edgeMetrics['custom-station1-station3'] },
     { from: 'custom-station3', to: 'custom-queue3', isLoop: true, getMetrics: () => edgeMetrics['custom-station3-queue3'] },
     { from: 'custom-queue3', to: 'custom-station2', isLoop: true, getMetrics: () => edgeMetrics['custom-queue3-station2'] },
-    { from: 'shared', to: 'custom-station1', isDotted: true },
   ];
 
-  // Standard line edges
+  // Standard line edges (snake pattern)
   const standardEdges: Edge[] = [
     { from: 'std-orders', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
     { from: 'std-queue1', to: 'std-station1', getMetrics: () => edgeMetrics['std-queue1-station1'] },
     { from: 'std-station1', to: 'std-queue2', getMetrics: () => edgeMetrics['std-station1-queue2'] },
     { from: 'std-queue2', to: 'std-batch1', getMetrics: () => edgeMetrics['std-queue2-batch1'] },
-    { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] },
+    { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] }, // Vertical drop
     { from: 'std-queue3', to: 'std-arcp', getMetrics: () => edgeMetrics['std-queue3-arcp'] },
     { from: 'std-arcp', to: 'std-queue4', getMetrics: () => edgeMetrics['std-arcp-queue4'] },
     { from: 'std-queue4', to: 'std-batch2', getMetrics: () => edgeMetrics['std-queue4-batch2'] },
@@ -322,7 +343,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     { from: 'std-queue5', to: 'std-deliveries', getMetrics: () => edgeMetrics['std-queue5-deliveries'] },
   ];
 
-  const edges: Edge[] = [...customEdges, ...standardEdges];
+  const edges: Edge[] = [...mceEdges, ...customEdges, ...standardEdges];
 
   const isCustomBottleneck = finalCustomWIP > 50;
   const isStandardBottleneck = finalStandardWIP > 100;
@@ -352,16 +373,26 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      <svg viewBox="0 0 1500 480" className="w-full h-full">
+      <svg viewBox="0 0 3300 750" className="w-full h-full">
         <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b" />
           </marker>
+          <filter id="arrow-shadow">
+            <feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.3"/>
+          </filter>
         </defs>
 
         <g>
           {edges.map((edge, i) => (
-            <Edge key={`e-${i}`} edge={edge} index={i} metrics={edge.getMetrics?.()} />
+            <Edge
+              key={`e-${i}`}
+              edge={edge}
+              index={i}
+              metrics={edge.getMetrics?.()}
+              activePopupId={activePopupId}
+              onPopupToggle={(id) => setActivePopupId(activePopupId === id ? null : id)}
+            />
           ))}
         </g>
 
@@ -419,6 +450,25 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             return <Node node={n} key={n.id} info={info} />;
           })}
         </g>
+
+        {/* Popup layer - renders on top of everything */}
+        <g>
+          {activePopupId && edges.map((edge, i) => {
+            const edgeId = `${edge.from}-${edge.to}-${i}`;
+            if (edgeId === activePopupId) {
+              return (
+                <EdgePopup
+                  key={`popup-${i}`}
+                  edge={edge}
+                  index={i}
+                  metrics={edge.getMetrics?.()}
+                  onClose={() => setActivePopupId(null)}
+                />
+              );
+            }
+            return null;
+          })}
+        </g>
       </svg>
 
       <div className="mt-6 space-y-4">
@@ -473,34 +523,46 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      <div className="mt-6 flex justify-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <svg width="40" height="16" viewBox="0 0 40 16">
-            <line x1="0" y1="8" x2="35" y2="8" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
-            <polygon points="40,8 35,5 35,11" fill="#ef4444" />
-          </svg>
-          <span className="text-gray-700 font-medium">Bottleneck (Thin)</span>
+      {/* Flow Arrow Legend */}
+      <div className="mt-6 bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-400 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">🎯 Flow Arrow Legend</h3>
+        <div className="flex justify-center gap-8 text-sm">
+          <div className="flex flex-col items-center gap-2">
+            <svg width="50" height="20" viewBox="0 0 50 20">
+              <line x1="0" y1="10" x2="42" y2="10" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
+              <polygon points="50,10 42,6 42,14" fill="#ef4444" />
+            </svg>
+            <div className="text-center">
+              <div className="text-red-600 font-bold">🔴 Supply Shortage</div>
+              <div className="text-gray-600 text-xs">Flow &lt; Demand</div>
+              <div className="text-gray-500 text-xs">Bottleneck</div>
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <svg width="50" height="20" viewBox="0 0 50 20">
+              <line x1="0" y1="10" x2="42" y2="10" stroke="#3b82f6" strokeWidth="10" strokeLinecap="round" />
+              <polygon points="50,10 42,6 42,14" fill="#3b82f6" />
+            </svg>
+            <div className="text-center">
+              <div className="text-blue-600 font-bold">🔵 Balanced Flow</div>
+              <div className="text-gray-600 text-xs">Flow ≈ Demand</div>
+              <div className="text-gray-500 text-xs">Healthy</div>
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <svg width="50" height="20" viewBox="0 0 50 20">
+              <line x1="0" y1="10" x2="42" y2="10" stroke="#22c55e" strokeWidth="14" strokeLinecap="round" />
+              <polygon points="50,10 42,6 42,14" fill="#22c55e" />
+            </svg>
+            <div className="text-center">
+              <div className="text-green-600 font-bold">🟢 Excess Supply</div>
+              <div className="text-gray-600 text-xs">Flow &gt; Demand</div>
+              <div className="text-gray-500 text-xs">Overcapacity</div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <svg width="40" height="16" viewBox="0 0 40 16">
-            <line x1="0" y1="8" x2="35" y2="8" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" />
-            <polygon points="40,8 35,5 35,11" fill="#3b82f6" />
-          </svg>
-          <span className="text-gray-700 font-medium">Balanced (Normal)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <svg width="40" height="16" viewBox="0 0 40 16">
-            <line x1="0" y1="8" x2="35" y2="8" stroke="#22c55e" strokeWidth="6" strokeLinecap="round" />
-            <polygon points="40,8 35,5 35,11" fill="#22c55e" />
-          </svg>
-          <span className="text-gray-700 font-medium">Excess (Thick)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <svg width="40" height="16" viewBox="0 0 40 16">
-            <line x1="0" y1="8" x2="35" y2="8" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 4" />
-            <polygon points="40,8 35,5 35,11" fill="#3b82f6" />
-          </svg>
-          <span className="text-gray-700 font-medium">Loop Path</span>
+        <div className="mt-4 text-center text-gray-600 text-xs">
+          Click any arrow for detailed flow metrics and bottleneck analysis
         </div>
       </div>
 

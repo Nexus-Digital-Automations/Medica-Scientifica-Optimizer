@@ -54,6 +54,9 @@ export interface OptimizationConfig {
   elitePercentage: number;
 }
 
+// Lock state for granular control
+type LockState = 'unlocked' | 'minimum' | 'maximum' | 'locked';
+
 export interface OptimizationConstraints {
   // Policy decisions - true means FIXED (don't change), false means VARIABLE (can optimize)
   fixedPolicies: {
@@ -87,6 +90,12 @@ export interface OptimizationConstraints {
     MCE?: { min?: number; max?: number };
     WMA?: { min?: number; max?: number };
     PUC?: { min?: number; max?: number };
+  };
+  // Policy lock states for optimization direction control
+  policyLockStates?: {
+    batchSize?: LockState;
+    price?: LockState;
+    mceAllocation?: LockState;
   };
 }
 
@@ -465,13 +474,13 @@ export function mutateStrategyParams(
  * Generate random strategy parameters respecting constraints
  */
 export function generateConstrainedStrategyParams(
-  _baseStrategy: Strategy,
+  baseStrategy: Strategy,
   constraints: OptimizationConstraints
 ): OptimizationCandidate['strategyParams'] {
   const params: OptimizationCandidate['strategyParams'] = {};
 
   // Only generate random values for variable (non-fixed) policies
-  // Respect min/max constraints from policyRanges
+  // Respect min/max constraints from policyRanges AND lock states
   if (!constraints.fixedPolicies.reorderPoint) {
     const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
     const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
@@ -482,21 +491,58 @@ export function generateConstrainedStrategyParams(
     const max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
     params.orderQuantity = Math.floor(min + Math.random() * (max - min));
   }
+
+  // Standard Price - respect lock state
   if (!constraints.fixedPolicies.standardPrice) {
-    const min = constraints.policyRanges?.standardPrice?.min ?? 500;
-    const max = constraints.policyRanges?.standardPrice?.max ?? 1200;
-    params.standardPrice = Math.floor(min + Math.random() * (max - min));
+    let min = constraints.policyRanges?.standardPrice?.min ?? 500;
+    let max = constraints.policyRanges?.standardPrice?.max ?? 1200;
+    const currentPrice = baseStrategy.standardPrice;
+    const lockState = constraints.policyLockStates?.price;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentPrice); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentPrice); // Can only decrease
+    }
+
+    params.standardPrice = Math.floor(min + Math.random() * (max - min + 1));
   }
+
+  // Standard Batch Size - respect lock state
   if (!constraints.fixedPolicies.standardBatchSize) {
-    const min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
-    const max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
-    params.standardBatchSize = Math.floor(min + Math.random() * (max - min));
+    let min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
+    let max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
+    const currentBatchSize = baseStrategy.standardBatchSize;
+    const lockState = constraints.policyLockStates?.batchSize;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentBatchSize); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentBatchSize); // Can only decrease
+    }
+
+    params.standardBatchSize = Math.floor(min + Math.random() * (max - min + 1));
   }
+
+  // MCE Allocation - respect lock state
   if (!constraints.fixedPolicies.mceAllocationCustom) {
-    const min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
-    const max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
+    let min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
+    let max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
+    const currentAllocation = baseStrategy.mceAllocationCustom;
+    const lockState = constraints.policyLockStates?.mceAllocation;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentAllocation); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentAllocation); // Can only decrease
+    }
+
     params.mceAllocationCustom = min + Math.random() * (max - min);
   }
+
   if (!constraints.fixedPolicies.dailyOvertimeHours) {
     const min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
     const max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
@@ -507,19 +553,20 @@ export function generateConstrainedStrategyParams(
 }
 
 /**
- * Mutate strategy parameters respecting constraints
+ * Mutate strategy parameters respecting constraints and lock states
  */
 export function mutateConstrainedStrategyParams(
   params: OptimizationCandidate['strategyParams'],
   constraints: OptimizationConstraints,
-  mutationRate: number
+  mutationRate: number,
+  baseStrategy?: Strategy
 ): OptimizationCandidate['strategyParams'] {
   if (!params) return {};
 
   const mutated = { ...params };
 
   // Only mutate variable (non-fixed) policies
-  // Respect min/max constraints from policyRanges
+  // Respect min/max constraints from policyRanges AND lock states
   if (!constraints.fixedPolicies.reorderPoint && Math.random() < mutationRate && mutated.reorderPoint) {
     const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
     const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
@@ -534,23 +581,53 @@ export function mutateConstrainedStrategyParams(
     mutated.orderQuantity = Math.max(min, Math.min(max, mutated.orderQuantity + change));
   }
 
+  // Standard Price - respect lock state
   if (!constraints.fixedPolicies.standardPrice && Math.random() < mutationRate && mutated.standardPrice) {
-    const min = constraints.policyRanges?.standardPrice?.min ?? 400;
-    const max = constraints.policyRanges?.standardPrice?.max ?? 1200;
+    let min = constraints.policyRanges?.standardPrice?.min ?? 400;
+    let max = constraints.policyRanges?.standardPrice?.max ?? 1200;
+    const lockState = constraints.policyLockStates?.price;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.standardPrice); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.standardPrice); // Can only decrease
+    }
+
     const change = Math.floor((Math.random() - 0.5) * 200);
     mutated.standardPrice = Math.max(min, Math.min(max, mutated.standardPrice + change));
   }
 
+  // Standard Batch Size - respect lock state
   if (!constraints.fixedPolicies.standardBatchSize && Math.random() < mutationRate && mutated.standardBatchSize) {
-    const min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
-    const max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
+    let min = constraints.policyRanges?.standardBatchSize?.min ?? 50;
+    let max = constraints.policyRanges?.standardBatchSize?.max ?? 500;
+    const lockState = constraints.policyLockStates?.batchSize;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.standardBatchSize); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.standardBatchSize); // Can only decrease
+    }
+
     const change = Math.floor((Math.random() - 0.5) * 100);
     mutated.standardBatchSize = Math.max(min, Math.min(max, mutated.standardBatchSize + change));
   }
 
+  // MCE Allocation - respect lock state
   if (!constraints.fixedPolicies.mceAllocationCustom && Math.random() < mutationRate && mutated.mceAllocationCustom !== undefined) {
-    const min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
-    const max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
+    let min = constraints.policyRanges?.mceAllocationCustom?.min ?? 0.2;
+    let max = constraints.policyRanges?.mceAllocationCustom?.max ?? 0.8;
+    const lockState = constraints.policyLockStates?.mceAllocation;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.mceAllocationCustom); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.mceAllocationCustom); // Can only decrease
+    }
+
     const change = (Math.random() - 0.5) * 0.2;
     mutated.mceAllocationCustom = Math.max(min, Math.min(max, mutated.mceAllocationCustom + change));
   }

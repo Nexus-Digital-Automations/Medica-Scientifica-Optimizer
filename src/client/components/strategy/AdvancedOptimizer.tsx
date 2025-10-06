@@ -628,12 +628,22 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
         return;
       }
 
+      // Add policyLockStates to constraints for genetic optimizer
+      const constraintsWithLockStates = {
+        ...constraints,
+        policyLockStates: {
+          batchSize: policyLockStates.batchSize,
+          price: policyLockStates.price,
+          mceAllocation: policyLockStates.mceAllocation,
+        },
+      };
+
       console.log(`🎯 Optimizing ${variablePolicies} variable policies on Day ${constraints.testDay}`);
 
       // Generate initial population with constrained strategy parameters
       let population: OptimizationCandidate[] = [];
       for (let i = 0; i < populationSize; i++) {
-        const strategyParams = generateConstrainedStrategyParams(strategy, constraints);
+        const strategyParams = generateConstrainedStrategyParams(strategy, constraintsWithLockStates);
         population.push({
           id: `gen0-${i}`,
           actions: createPolicyActionsForDay(constraints.testDay, strategyParams),
@@ -823,8 +833,8 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
             });
           }
 
-          // Mutate with constraints
-          const mutatedParams = mutateConstrainedStrategyParams(childParams, constraints, mutationRate);
+          // Mutate with constraints and lock states
+          const mutatedParams = mutateConstrainedStrategyParams(childParams, constraintsWithLockStates, mutationRate, strategy);
           childParams = mutatedParams;
 
           newPopulation.push({
@@ -1144,21 +1154,30 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     // Build merged action text list
     const mergedTexts: string[] = [];
 
-    // Add policy actions first (from otherActions)
+    // Add policy actions first (from otherActions) - show direction, not numbers
     otherActions.forEach(action => {
       let actionText = '';
       if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
-        actionText = `Set Reorder Point → ${action.newReorderPoint} units`;
+        const direction = action.newReorderPoint > currentValues.reorderPoint ? '⬆️ Increase' : '⬇️ Decrease';
+        actionText = `Reorder Point: ${direction}`;
       } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
-        actionText = `Set Order Quantity → ${action.newOrderQuantity} units`;
+        const direction = action.newOrderQuantity > currentValues.orderQuantity ? '⬆️ Increase' : '⬇️ Decrease';
+        actionText = `Order Quantity: ${direction}`;
       } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-        actionText = `Adjust Batch Size → ${action.newSize} units`;
+        const direction = action.newSize > currentValues.standardBatchSize ? '⬆️ Increase' : '⬇️ Decrease';
+        const lockContext = policyLockStates.batchSize === 'minimum' ? ' (can only increase)' :
+                           policyLockStates.batchSize === 'maximum' ? ' (can only decrease)' : '';
+        actionText = `Batch Size: ${direction}${lockContext}`;
       } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-        actionText = `Adjust Standard Price → $${action.newPrice}`;
+        const direction = action.newPrice > currentValues.standardPrice ? '⬆️ Increase' : '⬇️ Decrease';
+        const lockContext = policyLockStates.price === 'minimum' ? ' (can only increase)' :
+                           policyLockStates.price === 'maximum' ? ' (can only decrease)' : '';
+        actionText = `Standard Price: ${direction}${lockContext}`;
       } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-        const customPct = (action.newAllocation * 100).toFixed(0);
-        const standardPct = (100 - action.newAllocation * 100).toFixed(0);
-        actionText = `Adjust MCE Allocation → ${standardPct}% standard / ${customPct}% custom`;
+        const direction = action.newAllocation > currentValues.mceAllocationCustom ? '⬆️ Increase Custom' : '⬇️ Decrease Custom';
+        const lockContext = policyLockStates.mceAllocation === 'minimum' ? ' (can only increase)' :
+                           policyLockStates.mceAllocation === 'maximum' ? ' (can only decrease)' : '';
+        actionText = `MCE Allocation: ${direction}${lockContext}`;
       } else {
         actionText = action.type;
       }
