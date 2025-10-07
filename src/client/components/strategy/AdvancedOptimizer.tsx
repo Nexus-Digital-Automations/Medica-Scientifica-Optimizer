@@ -2048,6 +2048,138 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                  '🔒 Locked'}
               </button>
             </div>
+
+            {/* Reorder Point */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.reorderPoint === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.reorderPoint === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.reorderPoint === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
+              <div>
+                <p className="text-sm font-medium text-white">Reorder Point</p>
+                <p className="text-2xl font-bold text-white">{currentValues.reorderPoint || 100} units</p>
+                {policyLockStates.reorderPoint !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.reorderPoint === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.reorderPoint === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.reorderPoint === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.reorderPoint === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => handleLockPolicy('reorderPoint')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  policyLockStates.reorderPoint === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.reorderPoint === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.reorderPoint === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
+                }`}
+                title={
+                  policyLockStates.reorderPoint === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.reorderPoint === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.reorderPoint === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
+              >
+                {policyLockStates.reorderPoint === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.reorderPoint === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.reorderPoint === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
+              </button>
+            </div>
+
+            {/* Order Quantity */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.orderQuantity === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.orderQuantity === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.orderQuantity === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
+              <div>
+                <p className="text-sm font-medium text-white">Order Quantity</p>
+                <p className="text-2xl font-bold text-white">{currentValues.orderQuantity || 100} units</p>
+                {policyLockStates.orderQuantity !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.orderQuantity === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.orderQuantity === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.orderQuantity === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.orderQuantity === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => handleLockPolicy('orderQuantity')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  policyLockStates.orderQuantity === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.orderQuantity === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.orderQuantity === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
+                }`}
+                title={
+                  policyLockStates.orderQuantity === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.orderQuantity === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.orderQuantity === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
+              >
+                {policyLockStates.orderQuantity === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.orderQuantity === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.orderQuantity === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
+              </button>
+            </div>
+
+            {/* Daily Overtime Hours */}
+            <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+              policyLockStates.dailyOvertimeHours === 'locked' ? 'bg-red-900/20 border-red-600/50' :
+              policyLockStates.dailyOvertimeHours === 'minimum' ? 'bg-blue-900/20 border-blue-600/50' :
+              policyLockStates.dailyOvertimeHours === 'maximum' ? 'bg-orange-900/20 border-orange-600/50' :
+              'bg-gray-700 border-gray-600'
+            }`}>
+              <div>
+                <p className="text-sm font-medium text-white">Daily Overtime Hours</p>
+                <p className="text-2xl font-bold text-white">{currentValues.dailyOvertimeHours || 0}h</p>
+                {policyLockStates.dailyOvertimeHours !== 'unlocked' && (
+                  <p className={`text-xs mt-1 ${
+                    policyLockStates.dailyOvertimeHours === 'minimum' ? 'text-blue-300' :
+                    policyLockStates.dailyOvertimeHours === 'maximum' ? 'text-orange-300' :
+                    'text-red-300'
+                  }`}>
+                    {policyLockStates.dailyOvertimeHours === 'minimum' ? '⬆️ Can only increase' :
+                     policyLockStates.dailyOvertimeHours === 'maximum' ? '⬇️ Can only decrease' :
+                     '🔒 Locked'}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => handleLockPolicy('dailyOvertimeHours')}
+                className={`px-4 py-2 rounded text-sm font-bold transition-colors ${
+                  policyLockStates.dailyOvertimeHours === 'unlocked' ? 'bg-gray-600 hover:bg-gray-700 text-white' :
+                  policyLockStates.dailyOvertimeHours === 'minimum' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  policyLockStates.dailyOvertimeHours === 'maximum' ? 'bg-orange-600 hover:bg-orange-700 text-white' :
+                  'bg-red-600 hover:bg-red-700 text-white'
+                }`}
+                title={
+                  policyLockStates.dailyOvertimeHours === 'unlocked' ? 'Click to set minimum (can only increase)' :
+                  policyLockStates.dailyOvertimeHours === 'minimum' ? 'Click to set maximum (can only decrease)' :
+                  policyLockStates.dailyOvertimeHours === 'maximum' ? 'Click to lock (no changes)' :
+                  'Click to unlock (allow all changes)'
+                }
+              >
+                {policyLockStates.dailyOvertimeHours === 'unlocked' ? '🔓 Unlocked' :
+                 policyLockStates.dailyOvertimeHours === 'minimum' ? '⬆️ Minimum' :
+                 policyLockStates.dailyOvertimeHours === 'maximum' ? '⬇️ Maximum' :
+                 '🔒 Locked'}
+              </button>
+            </div>
           </div>
         </div>
 
