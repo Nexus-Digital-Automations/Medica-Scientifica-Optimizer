@@ -182,6 +182,31 @@ export function recordDailyHistory(
   state.history.dailyFinishedStandard.push({ day, value: state.finishedGoods.standard });
   state.history.dailyFinishedCustom.push({ day, value: state.finishedGoods.custom });
 
+  // Per-queue WIP tracking for timeline visualization
+  // Custom line queues - count orders by station
+  const customQueue1 = state.customLineWIP.orders.filter(o => o.currentStation === 'WAITING').length;
+  const customQueue2 = state.customLineWIP.orders.filter(o => o.currentStation === 'MCE').length;
+  const customQueue3 = state.customLineWIP.orders.filter(o =>
+    o.currentStation === 'WMA_PASS1' || o.currentStation === 'WMA_PASS2' || o.currentStation === 'PUC'
+  ).length;
+
+  state.history.dailyCustomQueue1.push({ day, value: customQueue1 });
+  state.history.dailyCustomQueue2.push({ day, value: customQueue2 });
+  state.history.dailyCustomQueue3.push({ day, value: customQueue3 });
+
+  // Standard line queues - sum batch units at each station
+  const stdQueue1 = state.standardLineWIP.preStation1.reduce((sum, batch) => sum + batch.units, 0);
+  const stdQueue2 = state.standardLineWIP.station1.reduce((sum, batch) => sum + batch.units, 0);
+  const stdQueue3 = state.standardLineWIP.station2.reduce((sum, batch) => sum + batch.units, 0);
+  const stdQueue4 = state.standardLineWIP.station3.reduce((sum, batch) => sum + batch.units, 0);
+  const stdQueue5 = state.finishedGoods.standard;
+
+  state.history.dailyStdQueue1.push({ day, value: stdQueue1 });
+  state.history.dailyStdQueue2.push({ day, value: stdQueue2 });
+  state.history.dailyStdQueue3.push({ day, value: stdQueue3 });
+  state.history.dailyStdQueue4.push({ day, value: stdQueue4 });
+  state.history.dailyStdQueue5.push({ day, value: stdQueue5 });
+
   // Inventory tracking
   state.history.dailyRawMaterial.push({ day, value: state.rawMaterialInventory });
   state.history.dailyRawMaterialOrders.push({ day, value: dailyMetrics.rawMaterialOrdered || 0 });

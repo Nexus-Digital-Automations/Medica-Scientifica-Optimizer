@@ -794,21 +794,20 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     const avgStandardProduction = standardProductionData.reduce((sum, d) => sum + d.value, 0) / (dayIndex - startIdx + 1);
     const standardWIP = state.history.dailyStandardWIP[dayIndex]?.value || 0;
     const standardBatchSize = simulationResult?.strategy?.standardBatchSize ?? 60;
-    const finishedStandard = state.history.dailyFinishedStandard[dayIndex]?.value || 0;
 
-    // Calculate queue counts for display (estimate based on WIP and history)
+    // Get real per-queue WIP counts from history
     const queueCounts: Record<string, number> = {
-      // Custom line queues - distribute WIP across queues
-      'custom-queue1': Math.round(customWIP * 0.3),
-      'custom-queue2': Math.round(customWIP * 0.4),
-      'custom-queue3': Math.round(customWIP * 0.3),
+      // Custom line queues - real counts from simulation
+      'custom-queue1': state.history.dailyCustomQueue1[dayIndex]?.value || 0,
+      'custom-queue2': state.history.dailyCustomQueue2[dayIndex]?.value || 0,
+      'custom-queue3': state.history.dailyCustomQueue3[dayIndex]?.value || 0,
 
-      // Standard line queues - distribute WIP across queues
-      'std-queue1': Math.round(standardWIP * 0.2),
-      'std-queue2': Math.round(standardWIP * 0.2),
-      'std-queue3': Math.round(standardWIP * 0.3),
-      'std-queue4': Math.round(standardWIP * 0.2),
-      'std-queue5': finishedStandard,
+      // Standard line queues - real counts from simulation
+      'std-queue1': state.history.dailyStdQueue1[dayIndex]?.value || 0,
+      'std-queue2': state.history.dailyStdQueue2[dayIndex]?.value || 0,
+      'std-queue3': state.history.dailyStdQueue3[dayIndex]?.value || 0,
+      'std-queue4': state.history.dailyStdQueue4[dayIndex]?.value || 0,
+      'std-queue5': state.history.dailyStdQueue5[dayIndex]?.value || 0,
     };
 
     return {

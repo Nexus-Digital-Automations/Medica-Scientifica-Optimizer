@@ -109,6 +109,18 @@ export interface SimulationHistory {
   dailyFinishedStandard: DailyMetric[];
   dailyFinishedCustom: DailyMetric[];
 
+  // Per-queue WIP tracking for timeline visualization
+  // Custom line queues
+  dailyCustomQueue1: DailyMetric[]; // Orders in WAITING state
+  dailyCustomQueue2: DailyMetric[]; // Orders in MCE processing
+  dailyCustomQueue3: DailyMetric[]; // Orders in WMA_PASS2/PUC
+  // Standard line queues
+  dailyStdQueue1: DailyMetric[]; // preStation1 batch units
+  dailyStdQueue2: DailyMetric[]; // station1 batch units
+  dailyStdQueue3: DailyMetric[]; // station2 batch units
+  dailyStdQueue4: DailyMetric[]; // station3 batch units
+  dailyStdQueue5: DailyMetric[]; // finished goods
+
   // Inventory tracking
   dailyRawMaterial: DailyMetric[];
   dailyRawMaterialOrders: DailyMetric[]; // Materials ARRIVED (ordered 4 days ago)
