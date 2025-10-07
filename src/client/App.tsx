@@ -18,6 +18,7 @@ function App() {
 
   const handleLoadStrategy = (strategy: SavedStrategy) => {
     loadSavedStrategy(strategy.id);
+    setActiveTab('builder');
   };
 
   return (

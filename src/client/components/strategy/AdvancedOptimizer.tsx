@@ -945,16 +945,27 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
   };
 
   const runPhase2 = async (seedStrategies: OptimizationCandidate[]) => {
+    console.log('🔵🔵🔵 PHASE 2 START - runPhase2 called');
+    console.log('🔵 Phase 2 Params:', phase2Params);
+    console.log('🔵 Seed Strategies:', seedStrategies);
+    console.log('🔵 Current Phase State:', currentPhase);
+    console.log('🔵 Is Optimizing:', isOptimizing);
+
     const { populationSize, generations, mutationRate, eliteCount, refinementIntensity } = phase2Params;
 
     try {
+      console.log('🔵 About to import geneticOptimizer functions...');
       // Import generateSeededPopulation and related functions
       const { generateSeededPopulation, mutateRefinement, generateLocalVariations } = await import('../../utils/geneticOptimizer');
+      console.log('🔵 Successfully imported geneticOptimizer functions');
 
+      console.log('🔵 About to generate seeded population...');
       // Generate seeded population from Phase 1 results with constraints
       let population = generateSeededPopulation(seedStrategies, populationSize, refinementIntensity, constraints);
+      console.log('🔵 Generated population:', population.length, 'candidates');
 
       if (population.length === 0) {
+        console.error('🔵 ❌ Population length is 0!');
         alert('⚠️ Failed to generate Phase 2 population from Phase 1 results.');
         return;
       }
@@ -964,7 +975,9 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
       // Evolution loop for Phase 2
       for (let gen = 0; gen < generations; gen++) {
         console.log(`🧬 Phase 2 Generation ${gen + 1}/${generations}`);
+        console.log('🔵 About to setOptimizationProgress...');
         setOptimizationProgress({ current: gen, total: generations });
+        console.log('🔵 setOptimizationProgress completed');
 
         // Evaluate fitness for all candidates
         const testPromises = population.map(async (candidate) => {
@@ -1049,17 +1062,35 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
 
         // If last generation, save results
         if (gen === generations - 1) {
+          console.log('🔵 Last generation reached, preparing top results...');
           const topResults = [...population]
             .sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0))
             .slice(0, 5);
 
+          console.log('🔵 Top results prepared:', topResults.length, 'results');
+          console.log('🔵 About to call setPhase2Results...');
+          console.log('🔵 Top results structure:', JSON.stringify(topResults.map(r => ({
+            id: r.id,
+            fitness: r.fitness,
+            netWorth: r.netWorth,
+            growthRate: r.growthRate,
+            hasHistory: !!r.history,
+            historyLength: r.history?.length,
+            hasFullState: !!r.fullState,
+            hasActions: !!r.actions,
+            actionsLength: r.actions?.length
+          }))));
+
           setPhase2Results(topResults);
+          console.log('🔵 setPhase2Results completed successfully!');
           console.log('✅ Phase 2 refinement complete!');
           console.log('🚀 Top 5 Results:', topResults);
 
           // Notify parent component
           if (onResultsReady) {
+            console.log('🔵 Notifying parent component via onResultsReady...');
             onResultsReady(topResults, constraints.evaluationWindow);
+            console.log('🔵 Parent component notified');
           }
           break;
         }
@@ -1116,11 +1147,16 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
         population = nextGen;
       }
 
+      console.log('🔵 About to set current phase to idle...');
       setCurrentPhase('idle');
+      console.log('🔵 Current phase set to idle successfully!');
     } catch (error) {
-      console.error('❌ Phase 2 refinement failed:', error);
+      console.error('🔵 ❌❌❌ Phase 2 refinement failed with error:', error);
+      console.error('🔵 Error stack:', error instanceof Error ? error.stack : 'No stack');
       alert('Phase 2 refinement failed. Check console for details.');
+      console.log('🔵 About to set current phase to idle after error...');
       setCurrentPhase('idle');
+      console.log('🔵 Current phase set to idle after error');
     }
   };
 
@@ -1442,21 +1478,31 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     window.URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Introduction */}
-      <div className="bg-gradient-to-r from-purple-900 to-blue-900 border border-purple-600 rounded-lg p-6">
-        <h3 className="text-xl font-bold text-white mb-2">
-          🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v3.0-MAXIMUM-DIVERSITY</span>
-        </h3>
-        <p className="text-sm text-gray-200">
-          Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
-          but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
-        </p>
-        <p className="text-xs text-yellow-300 mt-2">
-          ✨ Testing diverse action combinations: HIRE_ROOKIE (70%, 1-10 workers), BUY_MACHINE (70%, 1-5 machines), FIRE_EMPLOYEE (30%, 1-3), SELL_MACHINE (30%, 1-2), automatic loans
-        </p>
-      </div>
+  // Massive logging for debugging blank screen
+  console.log('🟠🟠🟠 COMPONENT RENDER - AdvancedOptimizer rendering');
+  console.log('🟠 currentPhase:', currentPhase);
+  console.log('🟠 isOptimizing:', isOptimizing);
+  console.log('🟠 phase1Results length:', phase1Results.length);
+  console.log('🟠 phase2Results length:', phase2Results.length);
+  console.log('🟠 optimizationProgress:', optimizationProgress);
+
+  try {
+    console.log('🟠 About to render JSX...');
+    return (
+      <div className="space-y-6">
+        {/* Introduction */}
+        <div className="bg-gradient-to-r from-purple-900 to-blue-900 border border-purple-600 rounded-lg p-6">
+          <h3 className="text-xl font-bold text-white mb-2">
+            🎯 Advanced Optimizer <span className="text-xs text-green-400 ml-2">v3.0-MAXIMUM-DIVERSITY</span>
+          </h3>
+          <p className="text-sm text-gray-200">
+            Configure exactly which parameters the optimizer can change. The optimizer will use your current strategy values as a starting point,
+            but only vary the parameters you mark as "Variable" (🔓). Mark policies and actions as "Fixed" (🔒) to lock them.
+          </p>
+          <p className="text-xs text-yellow-300 mt-2">
+            ✨ Testing diverse action combinations: HIRE_ROOKIE (70%, 1-10 workers), BUY_MACHINE (70%, 1-5 machines), FIRE_EMPLOYEE (30%, 1-3), SELL_MACHINE (30%, 1-2), automatic loans
+          </p>
+        </div>
 
       {/* Optimization Settings */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
@@ -2399,15 +2445,31 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
       )}
 
       {/* Phase 2 Results */}
-      {phase2Results.length > 0 && (
-        <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
-          <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
-          <p className="text-sm text-gray-400 mb-4">
-            Top 5 refined strategies - these are the final optimized recommendations
-          </p>
+      {phase2Results.length > 0 && (() => {
+        console.log('🟠 About to render Phase 2 Results section');
+        console.log('🟠 phase2Results:', phase2Results);
+        console.log('🟠 phase2Results structure:', phase2Results.map((r, i) => ({
+          index: i,
+          id: r.id,
+          hasHistory: !!r.history,
+          historyLength: r.history?.length,
+          hasFullState: !!r.fullState,
+          growthRate: r.growthRate,
+          netWorth: r.netWorth
+        })));
+        return (
+          <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
+            <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
+            <p className="text-sm text-gray-400 mb-4">
+              Top 5 refined strategies - these are the final optimized recommendations
+            </p>
 
-          <div className="space-y-4">
-            {phase2Results.map((result, idx) => (
+            <div className="space-y-4">
+              {(() => {
+                console.log('🟠 About to map over phase2Results...');
+                return phase2Results.map((result, idx) => {
+                  console.log(`🟠 Rendering Phase 2 result ${idx}:`, result.id);
+                  return (
                   <div
                     key={result.id}
                     className="p-4 bg-gradient-to-r from-green-900/20 to-green-800/20 border border-green-600 rounded-lg"
@@ -2562,5 +2624,20 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
         />
       )}
     </div>
-  );
+    );
+  } catch (renderError) {
+    console.error('🟠 ❌❌❌ RENDER ERROR - Component failed to render:', renderError);
+    console.error('🟠 Render error stack:', renderError instanceof Error ? renderError.stack : 'No stack');
+    return (
+      <div className="bg-red-900 border border-red-600 rounded-lg p-6">
+        <h3 className="text-xl font-bold text-white mb-2">⚠️ Rendering Error</h3>
+        <p className="text-gray-200">
+          The optimizer component encountered a rendering error. Check the console for details.
+        </p>
+        <pre className="mt-4 p-4 bg-black rounded text-xs text-red-400 overflow-auto">
+          {renderError instanceof Error ? renderError.message : String(renderError)}
+        </pre>
+      </div>
+    );
+  }
 }
