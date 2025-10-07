@@ -103,6 +103,9 @@ export interface SimulationHistory {
   dailyDebtPaydown: DailyMetric[]; // Automated debt paydown amount
   dailyPreemptiveLoan: DailyMetric[]; // Preemptive loans to avoid wage advances
   dailyDebtSavings: DailyMetric[]; // Interest savings from debt paydown
+  dailyDebtToAssetRatio: DailyMetric[]; // Debt / Total Assets ratio
+  dailyInterestCoverageRatio: DailyMetric[]; // Revenue / Interest Paid ratio
+  dailyDebtToRevenueRatio: DailyMetric[]; // Debt / Trailing Annual Revenue ratio
 
   // Production tracking
   dailyStandardProduction: DailyMetric[];
@@ -218,6 +221,11 @@ export interface Strategy {
   preemptiveWageLoanDays: number;   // Days before payroll to take 2% loan vs 5% wage advance (3-5 typical)
   maxDebtThreshold: number;         // Maximum debt level before emergency measures ($150K-$250K typical)
   emergencyLoanBuffer: number;      // Minimum cash buffer before taking emergency loans ($10K-$20K typical)
+
+  // Financial Health Ratio Constraints (hard-enforced, user-controlled)
+  maxDebtToAssetRatio: number;      // 0.5-0.9 (50%-90% max leverage) - debt cannot exceed this % of total assets
+  minInterestCoverageRatio: number; // 2.0-5.0x (revenue must cover interest) - revenue must be this multiple of interest
+  maxDebtToRevenueRatio: number;    // 1.0-3.0x (debt relative to income) - debt cannot exceed this multiple of annual revenue
 
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];

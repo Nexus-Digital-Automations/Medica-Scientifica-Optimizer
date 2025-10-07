@@ -33,7 +33,7 @@ import {
 } from './productionModule.js';
 import { processSales, getCurrentPricing } from './pricingModule.js';
 import { getDemandForDay, type DemandForecast } from './demandModule.js';
-import { automatedDebtManagement } from './debtManager.js';
+import { automatedDebtManagement, calculateMaxAllowableLoan } from './debtManager.js';
 
 /**
  * Calculates the value of all remaining inventory at end of simulation
@@ -128,10 +128,26 @@ function executeTimedActions(
 
   for (const action of actionsToday) {
     switch (action.type) {
-      case 'TAKE_LOAN':
-        takeLoan(state, action.amount, false);
-        executedActions.push(action);
+      case 'TAKE_LOAN': {
+        // HARD CAP: Check ratio constraints before taking loan
+        const maxAllowableLoan = calculateMaxAllowableLoan(state, strategy);
+        const cappedLoanAmount = Math.min(action.amount, maxAllowableLoan);
+
+        if (cappedLoanAmount < action.amount) {
+          console.log(`⚠️ Day ${state.currentDay}: TAKE_LOAN capped by ratio constraints`);
+          console.log(`  Requested: $${Math.round(action.amount).toLocaleString()}`);
+          console.log(`  Allowed: $${Math.round(cappedLoanAmount).toLocaleString()}`);
+          console.log(`  Reduction: $${Math.round(action.amount - cappedLoanAmount).toLocaleString()}`);
+        }
+
+        if (cappedLoanAmount > 0) {
+          takeLoan(state, cappedLoanAmount, false);
+          executedActions.push({ ...action, amount: cappedLoanAmount });
+        } else {
+          console.log(`❌ Day ${state.currentDay}: TAKE_LOAN blocked - would violate ratio constraints`);
+        }
         break;
+      }
 
       case 'PAY_DEBT':
         payDebt(state, action.amount);

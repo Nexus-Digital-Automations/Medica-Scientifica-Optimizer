@@ -30,6 +30,9 @@ const PLACEHOLDER_STRATEGY: Strategy = {
   preemptiveWageLoanDays: 4,
   maxDebtThreshold: 200000,
   emergencyLoanBuffer: 15000,
+  maxDebtToAssetRatio: 0.70,
+  minInterestCoverageRatio: 3.0,
+  maxDebtToRevenueRatio: 2.0,
   timedActions: [],
 };
 
@@ -59,6 +62,9 @@ export function loadHistoricalData(): SimulationResult | null {
       dailyDebtPaydown: [],
       dailyPreemptiveLoan: [],
       dailyDebtSavings: [],
+      dailyDebtToAssetRatio: [],
+      dailyInterestCoverageRatio: [],
+      dailyDebtToRevenueRatio: [],
       dailyStandardProduction: [],
       dailyCustomProduction: [],
       dailyStandardWIP: [],

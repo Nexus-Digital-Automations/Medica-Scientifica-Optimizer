@@ -1,4 +1,5 @@
 import { useStrategyStore } from '../../stores/strategyStore';
+import { DebtManagementInfoButton } from './DebtManagementInfo';
 
 export default function PolicyForm() {
   const { strategy, updateStrategy } = useStrategyStore();
@@ -178,12 +179,17 @@ export default function PolicyForm() {
       {/* Debt Management Policy */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 px-8 py-6">
-          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <span>💰</span> Automated Debt Management
-          </h3>
-          <p className="text-gray-600 text-sm mt-1">
-            <strong className="text-green-600">20% Annual ROI:</strong> Paying down debt saves 0.05%/day + avoids 5% wage advances
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <span>💰</span> Automated Debt Management
+              </h3>
+              <p className="text-gray-600 text-sm mt-1">
+                <strong className="text-green-600">20% Annual ROI:</strong> Paying down debt saves 0.05%/day + avoids 5% wage advances
+              </p>
+            </div>
+            <DebtManagementInfoButton />
+          </div>
         </div>
         <div className="p-8">
           {/* Enable/Disable Toggle */}
@@ -224,7 +230,7 @@ export default function PolicyForm() {
                 disabled={!strategy.autoDebtPaydown}
               />
               <p className="text-xs text-gray-500 mt-2">
-                💡 Typical: 7-10 days (operating safety buffer)
+                💡 Safety buffer: <strong>5-7 days</strong> = aggressive, <strong>7-10 days</strong> = balanced, <strong>10-15 days</strong> = conservative
               </p>
             </div>
 
@@ -245,7 +251,7 @@ export default function PolicyForm() {
                 disabled={!strategy.autoDebtPaydown}
               />
               <p className="text-xs text-gray-500 mt-2">
-                🎯 {(strategy.debtPaydownAggressiveness * 100).toFixed(0)}% of excess cash → debt paydown
+                🎯 Currently using <strong>{(strategy.debtPaydownAggressiveness * 100).toFixed(0)}%</strong> of excess cash for debt paydown (0.8 = recommended balance)
               </p>
             </div>
 
@@ -266,7 +272,7 @@ export default function PolicyForm() {
                 disabled={!strategy.autoDebtPaydown}
               />
               <p className="text-xs text-gray-500 mt-2">
-                💡 Take 2% loan early to avoid 5% wage advance
+                💡 Take 2% loan <strong>{strategy.preemptiveWageLoanDays} days</strong> before payroll to avoid 5% wage advance (saves 3% = 60% ROI)
               </p>
             </div>
 
@@ -287,7 +293,7 @@ export default function PolicyForm() {
                 disabled={!strategy.autoDebtPaydown}
               />
               <p className="text-xs text-gray-500 mt-2">
-                🚨 Emergency measures trigger at this debt level
+                🚨 Emergency warnings trigger at <strong>${(strategy.maxDebtThreshold / 1000).toFixed(0)}K</strong> debt ($150K-$200K = typical)
               </p>
             </div>
 
@@ -308,8 +314,85 @@ export default function PolicyForm() {
                 disabled={!strategy.autoDebtPaydown}
               />
               <p className="text-xs text-gray-500 mt-2">
-                🛡️ Minimum cash before triggering emergency loan
+                🛡️ Emergency cushion: <strong>${(strategy.emergencyLoanBuffer / 1000).toFixed(0)}K</strong> minimum cash ($10K-$15K = recommended)
               </p>
+            </div>
+          </div>
+
+          {/* Financial Health Ratio Constraints */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <span>📊</span> Financial Health Ratio Constraints
+            </h4>
+            <p className="text-sm text-gray-600 mb-6">
+              Hard limits that automatically cap loan amounts to maintain financial health
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Max Debt-to-Asset Ratio */}
+              <div>
+                <label htmlFor="max-debt-to-asset-ratio" className="block text-sm font-medium text-gray-700 mb-2">
+                  📈 Max Debt-to-Asset Ratio
+                </label>
+                <input
+                  id="max-debt-to-asset-ratio"
+                  type="number"
+                  value={strategy.maxDebtToAssetRatio}
+                  onChange={(e) => handleInputChange('maxDebtToAssetRatio', Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  min="0.5"
+                  max="0.9"
+                  step="0.05"
+                  disabled={!strategy.autoDebtPaydown}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  📊 Current: <strong>{(strategy.maxDebtToAssetRatio * 100).toFixed(0)}%</strong> max leverage<br />
+                  💡 Debt cannot exceed this % of total assets
+                </p>
+              </div>
+
+              {/* Min Interest Coverage Ratio */}
+              <div>
+                <label htmlFor="min-interest-coverage-ratio" className="block text-sm font-medium text-gray-700 mb-2">
+                  💵 Min Interest Coverage Ratio
+                </label>
+                <input
+                  id="min-interest-coverage-ratio"
+                  type="number"
+                  value={strategy.minInterestCoverageRatio}
+                  onChange={(e) => handleInputChange('minInterestCoverageRatio', Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  min="2.0"
+                  max="5.0"
+                  step="0.1"
+                  disabled={!strategy.autoDebtPaydown}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  📊 Current: <strong>{strategy.minInterestCoverageRatio.toFixed(1)}x</strong> coverage<br />
+                  💡 Revenue must be this multiple of interest paid
+                </p>
+              </div>
+
+              {/* Max Debt-to-Revenue Ratio */}
+              <div>
+                <label htmlFor="max-debt-to-revenue-ratio" className="block text-sm font-medium text-gray-700 mb-2">
+                  📉 Max Debt-to-Revenue Ratio
+                </label>
+                <input
+                  id="max-debt-to-revenue-ratio"
+                  type="number"
+                  value={strategy.maxDebtToRevenueRatio}
+                  onChange={(e) => handleInputChange('maxDebtToRevenueRatio', Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  min="1.0"
+                  max="3.0"
+                  step="0.1"
+                  disabled={!strategy.autoDebtPaydown}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  📊 Current: <strong>{strategy.maxDebtToRevenueRatio.toFixed(1)}x</strong> revenue<br />
+                  💡 Debt cannot exceed this multiple of annual revenue
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@
 
 import type { SimulationState, DailyMetrics } from './types.js';
 import { INITIAL_STATE, INITIAL_STATE_BUSINESS_CASE, INITIAL_STATE_HISTORICAL } from './constants.js';
+import { calculateCurrentRatios } from './debtManager.js';
 
 /**
  * Creates a deep clone of the simulation state
@@ -176,6 +177,12 @@ export function recordDailyHistory(
   state.history.dailyDebtPaydown.push({ day, value: dailyMetrics.debtPaidDown || 0 });
   state.history.dailyPreemptiveLoan.push({ day, value: dailyMetrics.preemptiveLoan || 0 });
   state.history.dailyDebtSavings.push({ day, value: dailyMetrics.debtSavings || 0 });
+
+  // Financial health ratio tracking
+  const ratios = calculateCurrentRatios(state, dailyMetrics as import('./types.js').DailyMetrics);
+  state.history.dailyDebtToAssetRatio.push({ day, value: ratios.debtToAssetRatio });
+  state.history.dailyInterestCoverageRatio.push({ day, value: ratios.interestCoverageRatio });
+  state.history.dailyDebtToRevenueRatio.push({ day, value: ratios.debtToRevenueRatio });
 
   // Production tracking
   state.history.dailyStandardProduction.push({ day, value: dailyMetrics.standardProduced || 0 });

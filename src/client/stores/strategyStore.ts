@@ -111,6 +111,11 @@ const DEFAULT_STRATEGY: Strategy = {
   maxDebtThreshold: 200000, // Emergency measures at $200K debt
   emergencyLoanBuffer: 15000, // Maintain $15K minimum cash before emergency loan
 
+  // Financial Health Ratio Constraints (hard-enforced, user-controlled)
+  maxDebtToAssetRatio: 0.70, // 70% max leverage - balanced approach
+  minInterestCoverageRatio: 3.0, // 3x revenue-to-interest coverage - balanced safety
+  maxDebtToRevenueRatio: 2.0, // 2x debt-to-revenue ratio - balanced growth
+
   // Timed Actions
   timedActions: [],
 };
