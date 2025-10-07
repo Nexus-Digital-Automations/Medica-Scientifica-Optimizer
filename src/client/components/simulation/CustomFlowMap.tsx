@@ -264,7 +264,64 @@ function getQueueHealthStatus(percentChange: number, currentCount: number): {
   };
 }
 
-function Node({ node, info, efficiency, queueCount, healthColor }: { node: Node; info?: React.ReactNode; efficiency?: number; queueCount?: number; healthColor?: string }) {
+// Total Custom WIP capacity tracking (360 order limit - hard business constraint)
+function getCustomWIPCapacityStatus(totalWIP: number): {
+  color: string;
+  bgColor: string;
+  label: string;
+  severity: 'safe' | 'warning' | 'danger' | 'critical' | 'failure';
+  percentage: number;
+} {
+  const CUSTOM_WIP_LIMIT = 360;
+  const percentage = (totalWIP / CUSTOM_WIP_LIMIT) * 100;
+
+  // Failure: At or over limit (360+) - business failure, orders rejected
+  if (totalWIP >= 360) return {
+    color: '#000000',
+    bgColor: '#1f2937',
+    label: 'FAILURE',
+    severity: 'failure',
+    percentage
+  };
+
+  // Critical: 92-99% of limit (331-359) - imminent failure
+  if (totalWIP >= 331) return {
+    color: '#ef4444',
+    bgColor: '#dc2626',
+    label: 'CRITICAL',
+    severity: 'critical',
+    percentage
+  };
+
+  // Danger: 84-91% of limit (301-330) - urgent action needed
+  if (totalWIP >= 301) return {
+    color: '#f97316',
+    bgColor: '#ea580c',
+    label: 'DANGER',
+    severity: 'danger',
+    percentage
+  };
+
+  // Warning: 67-83% of limit (241-300) - monitor closely
+  if (totalWIP >= 241) return {
+    color: '#eab308',
+    bgColor: '#ca8a04',
+    label: 'WARNING',
+    severity: 'warning',
+    percentage
+  };
+
+  // Safe: 0-66% of limit (0-240) - healthy operation
+  return {
+    color: '#22c55e',
+    bgColor: '#16a34a',
+    label: 'SAFE',
+    severity: 'safe',
+    percentage
+  };
+}
+
+function Node({ node, info, efficiency, queueCount, healthColor, capacityWarning }: { node: Node; info?: React.ReactNode; efficiency?: number; queueCount?: number; healthColor?: string; capacityWarning?: boolean }) {
   const IconComponent = getIconComponent(node.icon);
 
   // Use healthColor if provided (for queues), otherwise use node.color (for stations)
@@ -314,6 +371,32 @@ function Node({ node, info, efficiency, queueCount, healthColor }: { node: Node;
             fill="white"
           >
             {queueCount}
+          </text>
+        </g>
+      )}
+      {/* Capacity warning badge - displayed when custom queue dominates capacity (>120 orders = 33%+ of 360 limit) */}
+      {capacityWarning && (
+        <g>
+          <rect
+            x={NODE_W - 30}
+            y={NODE_H - 30}
+            width={26}
+            height={26}
+            rx={13}
+            fill="#f97316"
+            stroke="#ea580c"
+            strokeWidth={2}
+            className="animate-pulse"
+          />
+          <text
+            x={NODE_W - 17}
+            y={NODE_H - 11}
+            textAnchor="middle"
+            fontSize={18}
+            fontWeight={700}
+            fill="white"
+          >
+            ⚠️
           </text>
         </g>
       )}
@@ -811,6 +894,12 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
       };
     });
 
+    // Calculate total Custom WIP for 360 limit tracking
+    const totalCustomWIP = (queueCounts['custom-queue1'] || 0) +
+                           (queueCounts['custom-queue2'] || 0) +
+                           (queueCounts['custom-queue3'] || 0);
+    const customWIPCapacity = getCustomWIPCapacityStatus(totalCustomWIP);
+
     return {
       avgCustomProduction,
       avgStandardProduction,
@@ -823,6 +912,8 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
       queueHealthData,
       experts,
       rookies,
+      totalCustomWIP,
+      customWIPCapacity,
     };
   };
 
@@ -830,7 +921,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const dayIndex = Math.min(timelineDay, maxDayIndex);
   const metrics = getMetricsForDay(dayIndex);
   const { avgCustomProduction, avgStandardProduction, customWIP: finalCustomWIP, standardWIP: finalStandardWIP,
-    arcpCapacity, mceAllocation, standardBatchSize, queueCounts, queueHealthData } = metrics;
+    arcpCapacity, mceAllocation, standardBatchSize, queueCounts, queueHealthData, totalCustomWIP, customWIPCapacity } = metrics;
 
   // Flow metrics for each edge
   const edgeMetrics: Record<string, FlowMetrics> = {
@@ -1213,6 +1304,16 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
             // Add health info popup for queues
             if (queueHealth && n.label.includes('Queue')) {
+              // Check if this is a custom queue for additional 360 limit tracking
+              const isCustomQueue = n.id.startsWith('custom-queue');
+              const queueContribution = isCustomQueue && totalCustomWIP > 0
+                ? (queueHealth.current / totalCustomWIP) * 100
+                : 0;
+              const queueCapacityShare = isCustomQueue && totalCustomWIP > 0
+                ? (queueHealth.current / 360) * 100
+                : 0;
+              const isDominatingCapacity = isCustomQueue && queueHealth.current > 120;
+
               info = (
                 <InfoPopup
                   title={`${n.label} - Health Status`}
@@ -1250,6 +1351,47 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                         </div>
                       </div>
 
+                      {/* Custom Queue WIP Contribution Metrics (360 Limit Tracking) */}
+                      {isCustomQueue && (
+                        <div className={`rounded-lg p-3 border ${
+                          isDominatingCapacity
+                            ? 'bg-orange-900/30 border-orange-600'
+                            : 'bg-purple-900/30 border-purple-600'
+                        }`}>
+                          <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                            {isDominatingCapacity && '⚠️'} 360 Limit Contribution
+                          </h4>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Total Custom WIP:</span>
+                              <span className="text-white font-bold">{totalCustomWIP} / 360</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">This Queue's Share:</span>
+                              <span className="text-purple-300 font-bold">{queueContribution.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                              <span className="text-gray-400">Capacity Used:</span>
+                              <span className={`font-bold ${
+                                queueCapacityShare > 33 ? 'text-orange-400' :
+                                queueCapacityShare > 20 ? 'text-yellow-400' :
+                                'text-green-400'
+                              }`}>
+                                {queueCapacityShare.toFixed(1)}% of limit
+                              </span>
+                            </div>
+                          </div>
+                          {isDominatingCapacity && (
+                            <div className="mt-2 pt-2 border-t border-orange-700">
+                              <div className="text-xs font-bold text-orange-300">⚠️ CAPACITY WARNING</div>
+                              <div className="text-xs text-gray-300 mt-1">
+                                This queue alone holds {queueHealth.current} orders (33%+ of 360 limit)
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Diagnostic warnings based on health status */}
                       {queueHealth.status.severity === 'critical' && (
                         <div className="bg-red-900/30 border border-red-600 rounded p-2">
@@ -1274,13 +1416,63 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               );
             }
 
-            return <Node node={n} key={n.id} info={info} queueCount={queueCount} healthColor={queueHealth?.color} />;
+            // Check if this custom queue dominates capacity (>120 orders = 33%+ of 360 limit)
+            const showCapacityWarning = n.id.startsWith('custom-queue') && (queueCount || 0) > 120;
+
+            return <Node node={n} key={n.id} info={info} queueCount={queueCount} healthColor={queueHealth?.color} capacityWarning={showCapacityWarning} />;
           })}
         </g>
 
         {/* External line labels - positioned far left, clear of raw materials */}
         <g>
           <text x={5} y={250} fontSize={18} fontWeight={700} fill="#9333ea" textAnchor="start">CUSTOM</text>
+
+          {/* Total Custom WIP capacity badge - shows proximity to 360 limit */}
+          <g transform="translate(5, 270)">
+            <rect
+              width={140}
+              height={36}
+              rx={8}
+              fill={customWIPCapacity.bgColor}
+              stroke={customWIPCapacity.color}
+              strokeWidth={2}
+              opacity={0.95}
+            />
+            <text
+              x={70}
+              y={14}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={600}
+              fill="white"
+              opacity={0.9}
+            >
+              Total WIP
+            </text>
+            <text
+              x={70}
+              y={28}
+              textAnchor="middle"
+              fontSize={14}
+              fontWeight={700}
+              fill="white"
+            >
+              {totalCustomWIP} / 360
+            </text>
+          </g>
+
+          {/* Capacity status label below badge */}
+          <text
+            x={75}
+            y={320}
+            textAnchor="middle"
+            fontSize={9}
+            fontWeight={700}
+            fill={customWIPCapacity.color}
+          >
+            {customWIPCapacity.label} ({customWIPCapacity.percentage.toFixed(0)}%)
+          </text>
+
           <text x={5} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="start">STANDARD</text>
         </g>
 

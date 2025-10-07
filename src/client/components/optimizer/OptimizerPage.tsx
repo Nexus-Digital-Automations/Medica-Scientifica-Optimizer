@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import AdvancedOptimizer from '../strategy/AdvancedOptimizer';
 import BottleneckRecommendations from './BottleneckRecommendations';
 
 export default function OptimizerPage() {
+  // Hold the applyRecommendation function from AdvancedOptimizer
+  const [applyRecommendationFn, setApplyRecommendationFn] = useState<((parameter: string, toggle: 'minimum' | 'maximum') => void) | null>(null);
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -25,10 +29,12 @@ export default function OptimizerPage() {
       </div>
 
       {/* Bottleneck Recommendations */}
-      <BottleneckRecommendations />
+      <BottleneckRecommendations onApplyRecommendation={applyRecommendationFn} />
 
       {/* Unified Optimizer - Runs Both Phases Automatically */}
-      <AdvancedOptimizer />
+      <AdvancedOptimizer
+        onExposeApplyRecommendation={(fn) => setApplyRecommendationFn(() => fn)}
+      />
     </div>
   );
 }

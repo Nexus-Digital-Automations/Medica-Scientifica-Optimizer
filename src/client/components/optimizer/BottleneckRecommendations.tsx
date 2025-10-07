@@ -10,14 +10,11 @@ interface GroupedRecommendations {
   Machines: ConstraintSuggestion[];
 }
 
-// Lock state storage interface
-interface LockStateStorage {
-  policies: Record<string, LockStateToggle>;
-  workforce?: LockStateToggle;
-  machines: Record<string, LockStateToggle>;
+interface BottleneckRecommendationsProps {
+  onApplyRecommendation?: ((parameter: string, toggle: LockStateToggle) => void) | null;
 }
 
-export default function BottleneckRecommendations() {
+export default function BottleneckRecommendations({ onApplyRecommendation }: BottleneckRecommendationsProps) {
   const { simulationResult } = useStrategyStore();
   const [recommendations, setRecommendations] = useState<ConstraintSuggestion[]>([]);
   const [appliedToggles, setAppliedToggles] = useState<Set<string>>(new Set());
@@ -40,55 +37,40 @@ export default function BottleneckRecommendations() {
   };
 
   const handleApplyToggle = (suggestion: ConstraintSuggestion) => {
-    // Get existing lock states from localStorage
-    const stored = localStorage.getItem('optimizerLockStates');
-    const lockStates: LockStateStorage = stored ? JSON.parse(stored) : { policies: {}, machines: {} };
+    // Use callback to directly update optimizer lock states (no page reload!)
+    if (onApplyRecommendation) {
+      onApplyRecommendation(suggestion.parameter, suggestion.toggle);
 
-    // Apply the toggle based on parameter type
-    if (suggestion.parameter === 'workforce') {
-      lockStates.workforce = suggestion.toggle;
-    } else if (suggestion.parameter === 'MCE' || suggestion.parameter === 'WMA' || suggestion.parameter === 'PUC') {
-      lockStates.machines[suggestion.parameter] = suggestion.toggle;
+      // Update local state to show visual feedback
+      setAppliedToggles(prev => new Set([...prev, suggestion.id]));
+
+      console.log(`✅ Applied: ${suggestion.parameter} → ${suggestion.toggle}`);
     } else {
-      // Policy parameter
-      lockStates.policies[suggestion.parameter] = suggestion.toggle;
+      console.warn('No applyRecommendation callback available');
     }
-
-    // Save to localStorage
-    localStorage.setItem('optimizerLockStates', JSON.stringify(lockStates));
-
-    // Update local state
-    setAppliedToggles(prev => new Set([...prev, suggestion.id]));
-
-    // Trigger page reload to apply lock states
-    window.location.reload();
   };
 
   const handleApplyAll = () => {
-    const lockStates: LockStateStorage = { policies: {}, machines: {} };
+    // Use callback to directly update optimizer lock states for all recommendations
+    if (onApplyRecommendation) {
+      recommendations.forEach(suggestion => {
+        onApplyRecommendation(suggestion.parameter, suggestion.toggle);
+      });
 
-    // Apply all recommendations
-    recommendations.forEach(suggestion => {
-      if (suggestion.parameter === 'workforce') {
-        lockStates.workforce = suggestion.toggle;
-      } else if (suggestion.parameter === 'MCE' || suggestion.parameter === 'WMA' || suggestion.parameter === 'PUC') {
-        lockStates.machines[suggestion.parameter] = suggestion.toggle;
-      } else {
-        lockStates.policies[suggestion.parameter] = suggestion.toggle;
-      }
-    });
+      // Update local state to show all as applied
+      const allIds = new Set(recommendations.map(r => r.id));
+      setAppliedToggles(allIds);
 
-    // Save to localStorage
-    localStorage.setItem('optimizerLockStates', JSON.stringify(lockStates));
-
-    // Trigger page reload to apply lock states
-    window.location.reload();
+      console.log(`✅ Applied all ${recommendations.length} recommendations`);
+    } else {
+      console.warn('No applyRecommendation callback available');
+    }
   };
 
   const handleClearAll = () => {
-    localStorage.removeItem('optimizerLockStates');
+    // Clear applied toggles (visual feedback only - lock states remain until user changes them)
     setAppliedToggles(new Set());
-    window.location.reload();
+    console.log('Cleared all applied toggle markers');
   };
 
   // If no simulation result, show placeholder

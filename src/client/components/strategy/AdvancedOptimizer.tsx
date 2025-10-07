@@ -14,6 +14,7 @@ type LockState = 'unlocked' | 'minimum' | 'maximum' | 'locked';
 
 interface AdvancedOptimizerProps {
   onResultsReady?: (results: OptimizationCandidate[], evaluationWindow: number) => void;
+  onExposeApplyRecommendation?: (applyFn: (parameter: string, toggle: 'minimum' | 'maximum') => void) => void;
 }
 
 interface OptimizationConstraints {
@@ -59,7 +60,7 @@ interface OptimizationConstraints {
   };
 }
 
-export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerProps = {}) {
+export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecommendation }: AdvancedOptimizerProps = {}) {
   const { strategy, currentScenarioId, loadStrategy } = useStrategyStore();
 
   const [constraints, setConstraints] = useState<OptimizationConstraints>({
@@ -205,6 +206,62 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []); // Run once on mount
+
+  // Function to apply recommendation directly (called from BottleneckRecommendations)
+  const applyRecommendation = (parameter: string, toggle: 'minimum' | 'maximum') => {
+    console.log(`Applying recommendation: ${parameter} → ${toggle}`);
+
+    // Handle workforce
+    if (parameter === 'workforce') {
+      setWorkforceLockState(toggle);
+      setConstraints(c => ({ ...c, workforceLockState: toggle }));
+      return;
+    }
+
+    // Handle machines
+    if (parameter === 'MCE' || parameter === 'WMA' || parameter === 'PUC') {
+      setMachineLockStates(prev => ({
+        ...prev,
+        [parameter]: toggle
+      }));
+      setConstraints(c => ({
+        ...c,
+        machineLockStates: {
+          ...c.machineLockStates,
+          [parameter]: toggle
+        }
+      }));
+      return;
+    }
+
+    // Handle policy parameters - map to lock state keys
+    const policyMapping: Record<string, 'batchSize' | 'price' | 'mceAllocation' | null> = {
+      'standardBatchSize': 'batchSize',
+      'standardPrice': 'price',
+      'mceAllocationCustom': 'mceAllocation',
+      'reorderPoint': null, // Not in lock states
+      'orderQuantity': null, // Not in lock states
+      'dailyOvertimeHours': null, // Not in lock states
+    };
+
+    const policyKey = policyMapping[parameter];
+    if (policyKey) {
+      setPolicyLockStates(prev => ({
+        ...prev,
+        [policyKey]: toggle
+      }));
+      console.log(`Applied policy lock: ${policyKey} → ${toggle}`);
+    } else {
+      console.warn(`Parameter ${parameter} not supported in lock states (skipped)`);
+    }
+  };
+
+  // Expose applyRecommendation function to parent via callback
+  useEffect(() => {
+    if (onExposeApplyRecommendation) {
+      onExposeApplyRecommendation(applyRecommendation);
+    }
+  }, [onExposeApplyRecommendation]);
 
   // Handler functions for current state locks - cycle through states
   const handleLockWorkforce = () => {
