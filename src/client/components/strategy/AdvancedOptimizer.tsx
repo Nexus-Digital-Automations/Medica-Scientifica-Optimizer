@@ -8,6 +8,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { debugLogger } from '../../utils/debugLogger';
 import ExcelJS from 'exceljs';
 import historicalDataImport from '../../data/historicalData.json';
+import { calculateFitness } from '../../../optimization/objectiveFunction.js';
+import { validateActionSequence } from '../../../utils/simulationValidator.js';
+import { HybridGeneticOptimizer } from '../../../optimization/hybridGeneticOptimizer.js';
+import { GeneInspector } from './GeneInspector';
+import { ConvergenceChart } from './ConvergenceChart';
+import type { StrategyGenes } from '../../../optimization/strategyGenes.js';
 
 // Lock state for granular control
 type LockState = 'unlocked' | 'minimum' | 'maximum' | 'locked';
@@ -419,6 +425,13 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
   const [optimizationProgress, setOptimizationProgress] = useState({ current: 0, total: 0 });
   const [showStrategyModal, setShowStrategyModal] = useState(false);
 
+  // Hybrid GA state
+  const [useHybridGA, setUseHybridGA] = useState(true); // Default to hybrid mode
+  const [hybridResults, setHybridResults] = useState<{
+    bestGenes: StrategyGenes | null;
+    convergenceHistory: number[];
+  }>({ bestGenes: null, convergenceHistory: [] });
+
   // Convert strategy parameters to policy decision actions for a specific day
   const createPolicyActionsForDay = (
     day: number,
@@ -649,6 +662,71 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     return actionsWithLoans;
   };
 
+  // Hybrid GA Optimization (Week 3)
+  const runHybridOptimization = async () => {
+    setIsOptimizing(true);
+    setCurrentPhase('phase1');
+    setPhase1Results([]);
+    setPhase2Results([]);
+    setHybridResults({ bestGenes: null, convergenceHistory: [] });
+
+    console.log('🧬 Starting Hybrid GA Optimization');
+
+    try {
+      const hybridGA = new HybridGeneticOptimizer();
+
+      const result = await hybridGA.optimize(
+        {
+          currentDay: constraints.testDay,
+          machines: { MCE: 3, WMA: 2, PUC: 2 },
+          workforce: { experts: 5, rookies: 5 },
+          cash: 125000
+        },
+        {
+          populationSize: 20,
+          generations: 15,
+          mutationRate: 0.15,
+          eliteCount: 3,
+          convergenceThreshold: 0.01
+        },
+        (gen, _best, _avg) => {
+          setOptimizationProgress({ current: gen, total: 15 });
+        }
+      );
+
+      // Store results
+      setHybridResults({
+        bestGenes: result.bestIndividual.genes,
+        convergenceHistory: result.convergenceHistory
+      });
+
+      // Convert to OptimizationCandidate format for display
+      const topCandidates: OptimizationCandidate[] = result.population.slice(0, 5).map((ind, i) => ({
+        id: `hybrid-${i}`,
+        actions: ind.strategy?.timedActions || [],
+        fitness: ind.fitness,
+        netWorth: ind.fitnessBreakdown?.terminalWealth || 0,
+        fitnessBreakdown: ind.fitnessBreakdown || undefined,
+        strategyParams: {
+          mceAllocationCustom: ind.genes.mceAllocationCustom,
+          minCashReserveDays: ind.genes.minCashReserveDays,
+          debtPaydownAggressiveness: ind.genes.debtPaydownAggressiveness
+        },
+        fullState: undefined
+      }));
+
+      setPhase2Results(topCandidates);
+
+      console.log('🏆 Hybrid GA Complete!');
+    } catch (error) {
+      console.error('❌ Hybrid GA failed:', error);
+      alert(`Optimization failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsOptimizing(false);
+      setCurrentPhase('idle');
+    }
+  };
+
   const runConstrainedOptimization = async () => {
     setIsOptimizing(true);
     setCurrentPhase('phase1');
@@ -767,6 +845,32 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
             });
           }
 
+          // Pre-simulation validation to reject invalid candidates fast
+          // TODO: Get actual state at test day from base strategy simulation
+          // For now, use sensible defaults that catch catastrophic errors
+          const estimatedState = {
+            machines: {
+              MCE: 3,  // Default starting machines
+              WMA: 2,
+              PUC: 2,
+            },
+            workforce: {
+              experts: 5,  // Default starting workforce
+              rookies: 5,
+            },
+            cash: 50000, // Assume reasonable cash buffer
+          };
+
+          const validation = validateActionSequence(candidate.actions, estimatedState);
+
+          if (!validation.valid) {
+            console.warn(`❌ Candidate ${candidate.id} REJECTED (pre-simulation):`, validation.reason);
+            candidate.fitness = -Infinity;
+            candidate.netWorth = -Infinity;
+            candidate.error = `Validation failed: ${validation.reason}`;
+            return; // Skip expensive simulation
+          }
+
           try {
             const response = await fetch('/api/simulate', {
               method: 'POST',
@@ -793,40 +897,56 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
             // Store full simulation state for comprehensive CSV export
             candidate.fullState = result;
 
-            // Calculate dual fitness metrics: Growth Rate + Peak Growth
-            let growthRate = 0;
-            let endNetWorth = result.finalNetWorth;
+            // Calculate enhanced fitness with violation penalties
+            const { score, breakdown } = calculateFitness(result, {
+              testDay: constraints.testDay,
+              endDay: constraints.endDay,
+              evaluationWindow: constraints.evaluationWindow,
+            });
 
+            // Store fitness and breakdown
+            candidate.fitness = score;
+            candidate.fitnessBreakdown = breakdown;
+
+            // Keep legacy metrics for backward compatibility
             if (result.state?.history?.dailyNetWorth) {
               const dailyNetWorth = result.state.history.dailyNetWorth;
               const startDay = constraints.testDay;
               const evaluationEndDay = Math.min(startDay + constraints.evaluationWindow, constraints.endDay);
 
-              // Get net worth at start (testDay)
               const startNetWorth = dailyNetWorth.find((d: { day: number; value: number }) => d.day === startDay)?.value || 0;
-
-              // Growth Rate ($/day over evaluation window)
               const endDayData = dailyNetWorth.find((d: { day: number; value: number }) => d.day === evaluationEndDay);
-              endNetWorth = endDayData?.value || result.finalNetWorth;
-              growthRate = (endNetWorth - startNetWorth) / constraints.evaluationWindow;
+              const endNetWorth = endDayData?.value || result.finalNetWorth;
+              const growthRate = (endNetWorth - startNetWorth) / constraints.evaluationWindow;
 
-              // Store complete history for graphing
+              candidate.netWorth = endNetWorth;
+              candidate.growthRate = growthRate;
               candidate.history = dailyNetWorth;
+            } else {
+              candidate.netWorth = result.finalNetWorth;
+              candidate.growthRate = 0;
+            }
+
+            // Log violations for debugging
+            if (breakdown.violations.total > 0) {
+              console.warn(`⚠️ Candidate ${candidate.id} has ${breakdown.violations.total} violation penalties:`, {
+                zeroMachines: breakdown.violations.zeroMachines,
+                bankruptcy: breakdown.violations.bankruptcy,
+                customQueueOverflow: breakdown.violations.customQueueOverflow,
+                deliveryViolations: breakdown.violations.deliveryViolations,
+                stockoutDays: breakdown.violations.stockoutDays,
+              });
             }
 
             // Debug logging
             console.log(`Candidate ${candidate.id}:`, {
-              growthRate: `$${growthRate.toFixed(0)}/day`,
-              totalGain: `+$${(growthRate * constraints.evaluationWindow).toLocaleString()}`,
-              endNetWorth: endNetWorth.toLocaleString(),
-              evaluationWindow: constraints.evaluationWindow,
-              testDay: constraints.testDay,
+              fitness: score.toFixed(0),
+              terminalWealth: breakdown.terminalWealth.toLocaleString(),
+              serviceLevel: `${(breakdown.serviceLevel * 100).toFixed(1)}%`,
+              violations: breakdown.violations.total,
+              netWorth: candidate.netWorth?.toLocaleString() || 'N/A',
               params: candidate.strategyParams
             });
-
-            candidate.netWorth = endNetWorth;
-            candidate.growthRate = growthRate;
-            candidate.fitness = growthRate; // Primary fitness for GA selection
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
             console.error(`❌ Simulation error for candidate ${candidate.id}:`, errorMsg);
@@ -2306,9 +2426,32 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
 
       {/* Run Optimization Button */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        {/* Mode Selector */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setUseHybridGA(true)}
+            className={`flex-1 px-4 py-2 rounded ${useHybridGA ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          >
+            🧬 Hybrid GA (Recommended)
+          </button>
+          <button
+            onClick={() => setUseHybridGA(false)}
+            className={`flex-1 px-4 py-2 rounded ${!useHybridGA ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          >
+            Traditional GA
+          </button>
+        </div>
+
+        {useHybridGA && (
+          <div className="bg-blue-900/20 border border-blue-600 p-3 rounded mb-4 text-sm text-gray-300">
+            <strong>Hybrid GA:</strong> Optimizes 8 high-level parameters that tune proven
+            analytical models (EOQ, Newsvendor, DP). Faster and more reliable than traditional GA.
+          </div>
+        )}
+
         <button
           className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-          onClick={runConstrainedOptimization}
+          onClick={useHybridGA ? runHybridOptimization : runConstrainedOptimization}
           disabled={isOptimizing}
         >
           {isOptimizing ? (
@@ -2387,6 +2530,50 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                         <p className="text-sm text-gray-400">
                           Total gain: ${((result.growthRate || 0) * constraints.evaluationWindow).toLocaleString()}
                         </p>
+                        {result.fitnessBreakdown && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">Fitness Score:</span>
+                              <span className="text-xs text-white font-semibold">{result.fitness.toLocaleString()}</span>
+                              {result.fitnessBreakdown.violations.total > 0 && (
+                                <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded-full font-bold">
+                                  ⚠️ {result.fitnessBreakdown.violations.total} violations
+                                </span>
+                              )}
+                              {result.fitnessBreakdown.violations.total === 0 && (
+                                <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded-full font-bold">
+                                  ✓ Clean
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Terminal Wealth: ${result.fitnessBreakdown.terminalWealth.toLocaleString()} |
+                              Service: {(result.fitnessBreakdown.serviceLevel * 100).toFixed(1)}%
+                            </div>
+                            {result.fitnessBreakdown.violations.total > 0 && (
+                              <details className="text-xs text-red-400 cursor-pointer">
+                                <summary className="hover:text-red-300">View violations</summary>
+                                <ul className="ml-4 mt-1 space-y-0.5">
+                                  {result.fitnessBreakdown.violations.zeroMachines > 0 && (
+                                    <li>🚫 Zero machines: ${result.fitnessBreakdown.violations.zeroMachines.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.bankruptcy > 0 && (
+                                    <li>💸 Bankruptcy: ${result.fitnessBreakdown.violations.bankruptcy.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.customQueueOverflow > 0 && (
+                                    <li>📦 Queue overflow: ${result.fitnessBreakdown.violations.customQueueOverflow.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.deliveryViolations > 0 && (
+                                    <li>⏰ Late deliveries: ${result.fitnessBreakdown.violations.deliveryViolations.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.stockoutDays > 0 && (
+                                    <li>📉 Stockout days: ${result.fitnessBreakdown.violations.stockoutDays.toLocaleString()} penalty</li>
+                                  )}
+                                </ul>
+                              </details>
+                            )}
+                          </div>
+                        )}
                       </div>
                   <div className="flex gap-2">
                     <button
@@ -2503,12 +2690,24 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
         </div>
       )}
 
+      {/* Hybrid GA Results Visualizations */}
+      {useHybridGA && hybridResults.convergenceHistory.length > 0 && (
+        <div className="space-y-4 mb-6">
+          <ConvergenceChart convergenceHistory={hybridResults.convergenceHistory} />
+          {hybridResults.bestGenes && <GeneInspector genes={hybridResults.bestGenes} />}
+        </div>
+      )}
+
       {/* Phase 2 Results */}
       {phase2Results.length > 0 && (
         <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
-          <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
+          <h4 className="text-lg font-semibold text-green-300 mb-4">
+            {useHybridGA ? '🧬 Hybrid GA Results' : '🟢 Phase 2: Refinement Results (FINAL)'}
+          </h4>
           <p className="text-sm text-gray-400 mb-4">
-            Top 5 refined strategies - these are the final optimized recommendations
+            {useHybridGA
+              ? 'Top 5 strategies optimized using hybrid GA with analytical models'
+              : 'Top 5 refined strategies - these are the final optimized recommendations'}
           </p>
 
           <div className="space-y-4">
@@ -2529,6 +2728,50 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                         <p className="text-sm text-gray-400">
                           Total gain: ${((result.growthRate ?? 0) * (constraints.evaluationWindow ?? 0)).toLocaleString()}
                         </p>
+                        {result.fitnessBreakdown && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">Fitness Score:</span>
+                              <span className="text-xs text-white font-semibold">{result.fitness.toLocaleString()}</span>
+                              {result.fitnessBreakdown.violations.total > 0 && (
+                                <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded-full font-bold">
+                                  ⚠️ {result.fitnessBreakdown.violations.total} violations
+                                </span>
+                              )}
+                              {result.fitnessBreakdown.violations.total === 0 && (
+                                <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded-full font-bold">
+                                  ✓ Clean
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Terminal Wealth: ${result.fitnessBreakdown.terminalWealth.toLocaleString()} |
+                              Service: {(result.fitnessBreakdown.serviceLevel * 100).toFixed(1)}%
+                            </div>
+                            {result.fitnessBreakdown.violations.total > 0 && (
+                              <details className="text-xs text-red-400 cursor-pointer">
+                                <summary className="hover:text-red-300">View violations</summary>
+                                <ul className="ml-4 mt-1 space-y-0.5">
+                                  {result.fitnessBreakdown.violations.zeroMachines > 0 && (
+                                    <li>🚫 Zero machines: ${result.fitnessBreakdown.violations.zeroMachines.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.bankruptcy > 0 && (
+                                    <li>💸 Bankruptcy: ${result.fitnessBreakdown.violations.bankruptcy.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.customQueueOverflow > 0 && (
+                                    <li>📦 Queue overflow: ${result.fitnessBreakdown.violations.customQueueOverflow.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.deliveryViolations > 0 && (
+                                    <li>⏰ Late deliveries: ${result.fitnessBreakdown.violations.deliveryViolations.toLocaleString()} penalty</li>
+                                  )}
+                                  {result.fitnessBreakdown.violations.stockoutDays > 0 && (
+                                    <li>📉 Stockout days: ${result.fitnessBreakdown.violations.stockoutDays.toLocaleString()} penalty</li>
+                                  )}
+                                </ul>
+                              </details>
+                            )}
+                          </div>
+                        )}
                       </div>
                   <div className="flex gap-2">
                     <button

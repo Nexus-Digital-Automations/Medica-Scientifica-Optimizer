@@ -1,5 +1,6 @@
 import type { Strategy, StrategyAction } from '../types/ui.types';
 import { calculateEOQ, calculateROP, calculateEPQ, calculateNPV, calculateQueueMetrics, calculateOptimalPrice } from './formulaCalculations';
+import type { FitnessBreakdown } from '../../optimization/objectiveFunction.js';
 
 export interface SimulationState {
   finalNetWorth?: number;
@@ -36,6 +37,8 @@ export interface OptimizationCandidate {
   history?: Array<{ day: number; value: number }>;
   // Full simulation state for comprehensive CSV export
   fullState?: SimulationState; // Contains complete simulation results
+  // Enhanced fitness breakdown with violation penalties
+  fitnessBreakdown?: FitnessBreakdown;
   // Strategy parameter overrides
   strategyParams?: {
     reorderPoint?: number;

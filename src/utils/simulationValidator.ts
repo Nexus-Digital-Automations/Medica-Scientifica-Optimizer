@@ -273,3 +273,191 @@ export function validateSimulationResults(result: SimulationResult): ValidationR
     allPassed: errors.length === 0,
   };
 }
+
+// ============================================================================
+// PRE-SIMULATION ACTION VALIDATION
+// ============================================================================
+
+import type { StrategyAction } from '../simulation/types.js';
+
+/**
+ * Validation result for action sequences
+ */
+export interface ValidationResult {
+  valid: boolean;
+  reason?: string;
+  failedAction?: StrategyAction;
+  estimatedState?: {
+    machines: { MCE: number; WMA: number; PUC: number };
+    workforce: { experts: number; rookies: number };
+    cash: number;
+    day: number;
+  };
+}
+
+/**
+ * Machine costs for validation calculations
+ */
+const MACHINE_COSTS = {
+  MCE: { buy: 20000, sell: 10000 },
+  WMA: { buy: 15000, sell: 7500 },
+  PUC: { buy: 8000, sell: 4000 },
+} as const;
+
+const ROOKIE_HIRE_COST = 5000;
+const BANKRUPTCY_THRESHOLD = -50000;
+const SHUTDOWN_DAY = 415;
+const ROOKIE_TRAINING_DAYS = 15;
+
+/**
+ * Validate action sequence BEFORE running full simulation
+ *
+ * Fast pre-validation that checks for:
+ * - Zero machine violations (MCE < 1)
+ * - Bankruptcy (cash < -$50K)
+ * - Late-game wasteful hiring (rookies won't finish training)
+ * - Zero workforce violations
+ *
+ * Saves compute time by rejecting invalid candidates early.
+ *
+ * @param actions Array of timed actions to validate
+ * @param initialState Starting state (machines, workforce, cash)
+ * @returns Validation result with detailed failure reason if invalid
+ */
+export function validateActionSequence(
+  actions: StrategyAction[],
+  initialState: {
+    machines: { MCE: number; WMA: number; PUC: number };
+    workforce: { experts: number; rookies: number };
+    cash: number;
+  }
+): ValidationResult {
+  // Fast state simulation (no full simulation needed)
+  const state = {
+    machines: { ...initialState.machines },
+    workforce: { ...initialState.workforce },
+    cash: initialState.cash,
+    day: 51 // Assume starting at day 51
+  };
+
+  // Sort actions by day to process in order
+  const sortedActions = [...actions].sort((a, b) => a.day - b.day);
+
+  for (const action of sortedActions) {
+    state.day = action.day;
+
+    // === MACHINE ACTIONS ===
+    if (action.type === 'SELL_MACHINE' && 'machineType' in action && 'count' in action) {
+      const { machineType, count } = action;
+      const afterSale = state.machines[machineType] - count;
+
+      // CRITICAL: Never allow zero MCE machines (stops all production)
+      if (machineType === 'MCE' && afterSale < 1) {
+        return {
+          valid: false,
+          reason: `FATAL: Selling ${count} MCE machine(s) on day ${action.day} would result in ${afterSale} machines. MUST maintain ≥1 MCE machine for production.`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+
+      state.machines[machineType] = Math.max(0, afterSale);
+
+      // Cash from sale (50% resale value)
+      state.cash += count * MACHINE_COSTS[machineType].sell;
+    }
+
+    if (action.type === 'BUY_MACHINE' && 'machineType' in action && 'count' in action) {
+      const { machineType, count } = action;
+
+      state.cash -= count * MACHINE_COSTS[machineType].buy;
+      state.machines[machineType] += count;
+
+      // Check if purchase would cause bankruptcy
+      if (state.cash < BANKRUPTCY_THRESHOLD) {
+        return {
+          valid: false,
+          reason: `Buying ${count} ${machineType} machine(s) on day ${action.day} would cause bankruptcy (estimated cash: $${Math.round(state.cash).toLocaleString()}).`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+    }
+
+    // === WORKFORCE ACTIONS ===
+    if (action.type === 'HIRE_ROOKIE' && 'count' in action) {
+      const { count } = action;
+      const hiringCost = count * ROOKIE_HIRE_COST;
+
+      // Check late-game hiring (rookies won't finish training before shutdown)
+      const trainingCompleteDay = action.day + ROOKIE_TRAINING_DAYS + 15; // Training + buffer
+      if (trainingCompleteDay > SHUTDOWN_DAY) {
+        return {
+          valid: false,
+          reason: `Hiring ${count} rookie(s) on day ${action.day} is wasteful. They won't finish training before shutdown (day ${SHUTDOWN_DAY}). Training completes day ${trainingCompleteDay}.`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+
+      state.cash -= hiringCost;
+      state.workforce.rookies += count;
+
+      // Check if hiring causes bankruptcy
+      if (state.cash < BANKRUPTCY_THRESHOLD) {
+        return {
+          valid: false,
+          reason: `Hiring ${count} rookie(s) on day ${action.day} would cause bankruptcy (estimated cash: $${Math.round(state.cash).toLocaleString()}).`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+    }
+
+    if (action.type === 'FIRE_EMPLOYEE' && 'employeeType' in action && 'count' in action) {
+      const { employeeType, count } = action;
+
+      if (employeeType === 'expert') {
+        state.workforce.experts = Math.max(0, state.workforce.experts - count);
+      } else {
+        state.workforce.rookies = Math.max(0, state.workforce.rookies - count);
+      }
+
+      // Must maintain at least 1 total worker
+      const totalWorkers = state.workforce.experts + state.workforce.rookies;
+      if (totalWorkers < 1) {
+        return {
+          valid: false,
+          reason: `Firing ${count} ${employeeType}(s) on day ${action.day} would result in zero workforce (need ≥1 worker).`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+    }
+
+    // === FINANCIAL ACTIONS ===
+    if (action.type === 'TAKE_LOAN' && 'amount' in action) {
+      state.cash += action.amount;
+      // Note: Debt tracking would require full simulation
+    }
+
+    if (action.type === 'PAY_DEBT' && 'amount' in action) {
+      state.cash -= action.amount;
+
+      if (state.cash < BANKRUPTCY_THRESHOLD) {
+        return {
+          valid: false,
+          reason: `Paying $${action.amount.toLocaleString()} debt on day ${action.day} would cause bankruptcy (estimated cash: $${Math.round(state.cash).toLocaleString()}).`,
+          failedAction: action,
+          estimatedState: state
+        };
+      }
+    }
+  }
+
+  // All validations passed
+  return {
+    valid: true,
+    estimatedState: state
+  };
+}
