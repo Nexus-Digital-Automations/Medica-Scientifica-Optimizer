@@ -179,6 +179,7 @@ export class AnalyticalOptimizer {
   ): { hiringSchedule: Array<{ day: number; rookies: number }>; targetWorkforce: number } {
     const hiringSchedule: Array<{ day: number; rookies: number }> = [];
     const SHUTDOWN_DAY = 415;
+    const EXPERT_PRODUCTIVITY = 30; // units/day per expert (from case)
 
     // Work backwards from target to account for training lag
     for (let day = currentDay; day < 365; day += 30) {
@@ -191,13 +192,16 @@ export class AnalyticalOptimizer {
 
       const futureCapacityNeeded = capacityTargets[Math.min(futureDay, capacityTargets.length - 1)] || capacityTargets[capacityTargets.length - 1];
 
+      // Convert capacity (units/day) to workers needed
+      const workersNeeded = (futureCapacityNeeded * aggressiveness) / EXPERT_PRODUCTIVITY;
+
       // Estimate current expert capacity (simplified)
       const currentExperts = 5 + hiringSchedule.reduce((sum, h) => sum + h.rookies, 0);
-      const capacityGap = (futureCapacityNeeded * aggressiveness) - currentExperts;
+      const workerGap = workersNeeded - currentExperts;
 
-      if (capacityGap > 0) {
-        // Hire enough rookies to close gap
-        const rookiesToHire = Math.ceil(capacityGap);
+      if (workerGap > 0) {
+        // Hire enough rookies to close gap (but cap at reasonable maximum)
+        const rookiesToHire = Math.min(Math.ceil(workerGap), 5); // Max 5 per hiring round
         hiringSchedule.push({ day, rookies: rookiesToHire });
       }
     }
