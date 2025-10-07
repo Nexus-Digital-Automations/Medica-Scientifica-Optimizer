@@ -1423,12 +1423,12 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
           })}
         </g>
 
-        {/* External line labels - positioned far left, clear of raw materials */}
+        {/* External line labels - positioned far right to avoid overlap */}
         <g>
-          <text x={5} y={250} fontSize={18} fontWeight={700} fill="#9333ea" textAnchor="start">CUSTOM</text>
+          <text x={3995} y={250} fontSize={18} fontWeight={700} fill="#9333ea" textAnchor="end">CUSTOM</text>
 
           {/* Total Custom WIP capacity badge - shows proximity to 360 limit */}
-          <g transform="translate(5, 270)">
+          <g transform="translate(3855, 270)">
             <rect
               width={140}
               height={36}
@@ -1463,7 +1463,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
           {/* Capacity status label below badge */}
           <text
-            x={75}
+            x={3925}
             y={320}
             textAnchor="middle"
             fontSize={9}
@@ -1473,13 +1473,13 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             {customWIPCapacity.label} ({customWIPCapacity.percentage.toFixed(0)}%)
           </text>
 
-          <text x={5} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="start">STANDARD</text>
+          <text x={3995} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="end">STANDARD</text>
         </g>
 
-        {/* Raw materials consumption labels - positioned to the left of parts box */}
+        {/* Raw materials consumption labels - positioned to the right to avoid overlap */}
         <g>
-          <text x={5} y={350} fontSize={12} fontWeight={600} fill="#9333ea" textAnchor="start">Custom: 1 part</text>
-          <text x={5} y={650} fontSize={12} fontWeight={600} fill="#2563eb" textAnchor="start">Standard: 2 parts</text>
+          <text x={3995} y={350} fontSize={12} fontWeight={600} fill="#9333ea" textAnchor="end">Custom: 1 part</text>
+          <text x={3995} y={650} fontSize={12} fontWeight={600} fill="#2563eb" textAnchor="end">Standard: 2 parts</text>
         </g>
 
         {/* Horizontal separator line - aligned with MCE 50/50 split at y=500 */}
