@@ -109,10 +109,13 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     WMA: 'unlocked',
     PUC: 'unlocked'
   });
-  const [policyLockStates, setPolicyLockStates] = useState<Record<'batchSize' | 'price' | 'mceAllocation', LockState>>({
+  const [policyLockStates, setPolicyLockStates] = useState<Record<'batchSize' | 'price' | 'mceAllocation' | 'reorderPoint' | 'orderQuantity' | 'dailyOvertimeHours', LockState>>({
     batchSize: 'unlocked',
     price: 'unlocked',
     mceAllocation: 'unlocked',
+    reorderPoint: 'unlocked',
+    orderQuantity: 'unlocked',
+    dailyOvertimeHours: 'unlocked',
   });
 
   // Auto-apply lock states from bottleneck recommendations
@@ -155,6 +158,15 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
               }
               if (lockStates.policies.mceAllocationCustom) {
                 newStates.mceAllocation = lockStates.policies.mceAllocationCustom;
+              }
+              if (lockStates.policies.reorderPoint) {
+                newStates.reorderPoint = lockStates.policies.reorderPoint;
+              }
+              if (lockStates.policies.orderQuantity) {
+                newStates.orderQuantity = lockStates.policies.orderQuantity;
+              }
+              if (lockStates.policies.dailyOvertimeHours) {
+                newStates.dailyOvertimeHours = lockStates.policies.dailyOvertimeHours;
               }
 
               return newStates;
@@ -235,13 +247,13 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     }
 
     // Handle policy parameters - map to lock state keys
-    const policyMapping: Record<string, 'batchSize' | 'price' | 'mceAllocation' | null> = {
+    const policyMapping: Record<string, 'batchSize' | 'price' | 'mceAllocation' | 'reorderPoint' | 'orderQuantity' | 'dailyOvertimeHours' | null> = {
       'standardBatchSize': 'batchSize',
       'standardPrice': 'price',
       'mceAllocationCustom': 'mceAllocation',
-      'reorderPoint': null, // Not in lock states
-      'orderQuantity': null, // Not in lock states
-      'dailyOvertimeHours': null, // Not in lock states
+      'reorderPoint': 'reorderPoint',
+      'orderQuantity': 'orderQuantity',
+      'dailyOvertimeHours': 'dailyOvertimeHours',
     };
 
     const policyKey = policyMapping[parameter];
@@ -301,7 +313,7 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     });
   };
 
-  const handleLockPolicy = (policyType: 'batchSize' | 'price' | 'mceAllocation') => {
+  const handleLockPolicy = (policyType: 'batchSize' | 'price' | 'mceAllocation' | 'reorderPoint' | 'orderQuantity' | 'dailyOvertimeHours') => {
     setPolicyLockStates(prev => {
       const newStates = {
         ...prev,
