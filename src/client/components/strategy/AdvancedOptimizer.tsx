@@ -1230,54 +1230,74 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     // Build merged action text list
     const mergedTexts: string[] = [];
 
-    // Add policy actions first (from otherActions) - show direction, not numbers
+    // Add policy actions first (from otherActions) - show specific before/after values
     otherActions.forEach(action => {
       let actionText = '';
       if (action.type === 'SET_REORDER_POINT' && 'newReorderPoint' in action) {
-        const direction = action.newReorderPoint > currentValues.reorderPoint ? '⬆️ Increase' : '⬇️ Decrease';
-        actionText = `Reorder Point: ${direction}`;
+        const from = currentValues.reorderPoint;
+        const to = action.newReorderPoint;
+        const direction = to > from ? '⬆️' : '⬇️';
+        actionText = `Reorder Point: ${direction} ${from} → ${to} units`;
       } else if (action.type === 'SET_ORDER_QUANTITY' && 'newOrderQuantity' in action) {
-        const direction = action.newOrderQuantity > currentValues.orderQuantity ? '⬆️ Increase' : '⬇️ Decrease';
-        actionText = `Order Quantity: ${direction}`;
+        const from = currentValues.orderQuantity;
+        const to = action.newOrderQuantity;
+        const direction = to > from ? '⬆️' : '⬇️';
+        actionText = `Order Quantity: ${direction} ${from} → ${to} units`;
       } else if (action.type === 'ADJUST_BATCH_SIZE' && 'newSize' in action) {
-        const direction = action.newSize > currentValues.standardBatchSize ? '⬆️ Increase' : '⬇️ Decrease';
+        const from = currentValues.standardBatchSize;
+        const to = action.newSize;
+        const direction = to > from ? '⬆️' : '⬇️';
         const lockContext = policyLockStates.batchSize === 'minimum' ? ' (can only increase)' :
                            policyLockStates.batchSize === 'maximum' ? ' (can only decrease)' : '';
-        actionText = `Batch Size: ${direction}${lockContext}`;
+        actionText = `Batch Size: ${direction} ${from} → ${to} units${lockContext}`;
       } else if (action.type === 'ADJUST_PRICE' && 'newPrice' in action) {
-        const direction = action.newPrice > currentValues.standardPrice ? '⬆️ Increase' : '⬇️ Decrease';
+        const from = currentValues.standardPrice;
+        const to = action.newPrice;
+        const direction = to > from ? '⬆️' : '⬇️';
         const lockContext = policyLockStates.price === 'minimum' ? ' (can only increase)' :
                            policyLockStates.price === 'maximum' ? ' (can only decrease)' : '';
-        actionText = `Standard Price: ${direction}${lockContext}`;
+        actionText = `Standard Price: ${direction} $${from} → $${to}${lockContext}`;
       } else if (action.type === 'ADJUST_MCE_ALLOCATION' && 'newAllocation' in action) {
-        const direction = action.newAllocation > currentValues.mceAllocationCustom ? '⬆️ Increase Custom' : '⬇️ Decrease Custom';
+        const from = (currentValues.mceAllocationCustom * 100).toFixed(1);
+        const to = (action.newAllocation * 100).toFixed(1);
+        const direction = action.newAllocation > currentValues.mceAllocationCustom ? '⬆️' : '⬇️';
         const lockContext = policyLockStates.mceAllocation === 'minimum' ? ' (can only increase)' :
                            policyLockStates.mceAllocation === 'maximum' ? ' (can only decrease)' : '';
-        actionText = `MCE Allocation: ${direction}${lockContext}`;
+        actionText = `MCE Allocation (Custom): ${direction} ${from}% → ${to}%${lockContext}`;
       } else {
         actionText = action.type;
       }
       if (actionText) mergedTexts.push(actionText);
     });
 
-    // Add merged workforce actions
+    // Add merged workforce actions with before/after counts
     const netRookies = rookieNet.hire - rookieNet.fire;
     if (netRookies > 0) {
-      mergedTexts.push(`Hire Rookie Workers → ${netRookies} workers`);
+      const from = currentValues.rookies;
+      const to = from + netRookies;
+      mergedTexts.push(`Hire Rookie Workers: ⬆️ ${from} → ${to} workers (+${netRookies})`);
     } else if (netRookies < 0) {
-      mergedTexts.push(`Fire Employee → ${Math.abs(netRookies)}x rookie`);
+      const from = currentValues.rookies;
+      const to = from + netRookies;
+      mergedTexts.push(`Fire Rookies: ⬇️ ${from} → ${to} workers (${netRookies})`);
     }
 
     if (expertNet.fire > 0) {
-      mergedTexts.push(`Fire Employee → ${expertNet.fire}x expert`);
+      const from = currentValues.experts;
+      const to = from - expertNet.fire;
+      mergedTexts.push(`Fire Experts: ⬇️ ${from} → ${to} workers (-${expertNet.fire})`);
     }
 
-    // Add merged machine actions
+    // Add merged machine actions with before/after counts
     Object.entries(machineNet).forEach(([machineType, netCount]) => {
       if (netCount > 0) {
-        mergedTexts.push(`Buy Machine → ${netCount}x ${machineType}`);
+        const from = (currentValues.machines as Record<string, number>)[machineType] || 0;
+        const to = from + netCount;
+        mergedTexts.push(`Buy ${machineType} Machines: ⬆️ ${from} → ${to} machines (+${netCount})`);
       } else if (netCount < 0) {
-        mergedTexts.push(`Sell Machine → ${Math.abs(netCount)}x ${machineType}`);
+        const from = (currentValues.machines as Record<string, number>)[machineType] || 0;
+        const to = from + netCount;
+        mergedTexts.push(`Sell ${machineType} Machines: ⬇️ ${from} → ${to} machines (${netCount})`);
       }
       // If netCount === 0, actions cancel out - don't show anything
     });
