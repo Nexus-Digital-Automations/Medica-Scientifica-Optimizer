@@ -41,16 +41,16 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     '#   ROP (Reorder Point) - includes safety stock for service level',
     '#   EPQ (Economic Production Quantity) - optimal batch size',
     '#',
-    '# POLICY CHANGES:',
-    '#   Triggered by: factory state changes, demand phases, timed actions',
-    '#   See "Policy Change Reason" column for explanations',
-    '#',
-    '# TIMED ACTIONS:',
-    '#   GA-optimized decisions: loans, hiring, material orders, policy adjustments',
+    '# DATA FORMAT:',
+    '#   Each column shows the state value for that day',
+    '#   Action effects are visible as changes in state columns',
+    '#   Example: HIRE_ROOKIE actions increase the "Rookies" column value',
+    '#   Example: BUY_MACHINE actions increase the "MCE Count" / "WMA Count" / "PUC Count" columns',
+    '#   Example: TAKE_LOAN actions increase "Cash" and "Debt" columns',
     '#',
   ].join('\n');
 
-  // Column headers
+  // Column headers - State values show action effects directly
   const columns = [
     'Day',
     'Cash',
@@ -93,8 +93,6 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     'Current ROP',
     'Current EOQ',
     'Current Batch Size',
-    'Policy Change Reason',
-    'Action',
   ];
 
   // Build data rows
@@ -108,14 +106,6 @@ export function exportSimulationToCSV(result: SimulationResult): string {
 
     const getNumericValue = (arr: Array<{day: number; value: number}>) =>
       arr.find(d => d.day === day)?.value || 0;
-
-    const policyChange = history.policyChanges.find(p => p.day === day);
-    const policyChangeReason = policyChange
-      ? `${policyChange.policyType}: ${policyChange.oldValue}→${policyChange.newValue} (${policyChange.reason})`
-      : '';
-
-    const actions = history.actionsPerformed.filter(a => a.day === day);
-    const actionStr = actions.map(a => JSON.stringify(a.action)).join('; ');
 
     // Calculate Daily Profit: Revenue - Expenses + Interest Earned
     // Note: Expenses already includes Interest Paid, so we don't subtract it again
@@ -166,8 +156,6 @@ export function exportSimulationToCSV(result: SimulationResult): string {
       getValue(history.dailyReorderPoint),
       getValue(history.dailyOrderQuantity),
       getValue(history.dailyStandardBatchSize),
-      policyChangeReason,
-      actionStr,
     ].join(','));
   }
 
