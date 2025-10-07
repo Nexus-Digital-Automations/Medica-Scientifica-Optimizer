@@ -1,4 +1,5 @@
 import AdvancedOptimizer from '../strategy/AdvancedOptimizer';
+import BottleneckRecommendations from './BottleneckRecommendations';
 
 export default function OptimizerPage() {
   return (
@@ -22,6 +23,9 @@ export default function OptimizerPage() {
           </div>
         </div>
       </div>
+
+      {/* Bottleneck Recommendations */}
+      <BottleneckRecommendations />
 
       {/* Unified Optimizer - Runs Both Phases Automatically */}
       <AdvancedOptimizer />

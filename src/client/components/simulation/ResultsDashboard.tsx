@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { exportSimulationToCSV } from '../../../utils/csvExporter';
-import { validateSimulationResults, type ValidationIssue } from '../../../utils/simulationValidator';
 import {
   LineChart,
   Line,
@@ -95,10 +94,6 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
     }
   };
 
-  // Validate simulation results (only if we have data)
-  const validationReport = useMemo(() => {
-    return hasData ? validateSimulationResults(displayResult!) : { errors: [], warnings: [], info: [], allPassed: true };
-  }, [displayResult, hasData]);
 
   const handleExportCSV = () => {
     if (!displayResult) return;
@@ -207,132 +202,9 @@ export default function ResultsDashboard({ onEditStrategy }: ResultsDashboardPro
       });
   }, [state, hasData]);
 
-  const renderValidationIssue = (issue: ValidationIssue, index: number) => {
-    const severityConfig = {
-      error: {
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-500',
-        textColor: 'text-red-900',
-        icon: '🚨',
-        badgeColor: 'bg-red-600',
-      },
-      warning: {
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-500',
-        textColor: 'text-yellow-900',
-        icon: '⚠️',
-        badgeColor: 'bg-yellow-600',
-      },
-      info: {
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-400',
-        textColor: 'text-blue-900',
-        icon: 'ℹ️',
-        badgeColor: 'bg-blue-600',
-      },
-    };
-
-    const config = severityConfig[issue.severity];
-
-    return (
-      <div
-        key={index}
-        className={`${config.bgColor} border-l-4 ${config.borderColor} rounded-lg p-5 shadow-sm`}
-      >
-        <div className="flex items-start gap-4">
-          <span className="text-3xl flex-shrink-0">{config.icon}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <h5 className={`font-bold text-lg ${config.textColor}`}>
-                {issue.title}
-              </h5>
-              <span className={`${config.badgeColor} text-white text-xs font-bold px-3 py-1 rounded-full uppercase flex-shrink-0`}>
-                {issue.category}
-              </span>
-            </div>
-            <p className={`${config.textColor} text-sm mb-3 leading-relaxed`}>
-              {issue.description}
-            </p>
-            {issue.recommendation && (
-              <div className="bg-white/50 rounded-lg p-3 border border-gray-200">
-                <p className="text-sm font-medium text-gray-700">
-                  <span className="font-bold">💡 Recommendation:</span> {issue.recommendation}
-                </p>
-              </div>
-            )}
-            {issue.days && issue.days.length > 0 && issue.days.length <= 10 && (
-              <div className="mt-2 text-xs text-gray-600">
-                <span className="font-semibold">Affected days:</span> {issue.days.join(', ')}
-              </div>
-            )}
-            {issue.days && issue.days.length > 10 && (
-              <div className="mt-2 text-xs text-gray-600">
-                <span className="font-semibold">Affected days:</span> {issue.days.length} total (days {issue.days[0]}-{issue.days[issue.days.length - 1]})
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
-      {/* Validation Report */}
-      {hasData && !isHistoricalData && (validationReport.errors.length > 0 || validationReport.warnings.length > 0 || validationReport.info.length > 0) && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <div className="border-b border-gray-200 pb-4 mb-6">
-            <h3 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
-              <span>🔍</span> Validation Report
-              {validationReport.allPassed ? (
-                <span className="text-sm font-normal bg-green-100 text-green-800 px-3 py-1 rounded-full">
-                  ✓ All constraints passed
-                </span>
-              ) : (
-                <span className="text-sm font-normal bg-red-100 text-red-800 px-3 py-1 rounded-full">
-                  ✗ {validationReport.errors.length} constraint violation{validationReport.errors.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </h3>
-            <p className="text-gray-600 text-sm mt-2">
-              Analysis based on objectives and constraints from project documentation
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {/* Errors */}
-            {validationReport.errors.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-bold text-red-900 text-lg flex items-center gap-2">
-                  <span>🚨</span> Critical Errors ({validationReport.errors.length})
-                </h4>
-                {validationReport.errors.map((issue, index) => renderValidationIssue(issue, index))}
-              </div>
-            )}
-
-            {/* Warnings */}
-            {validationReport.warnings.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-bold text-yellow-900 text-lg flex items-center gap-2 mt-6">
-                  <span>⚠️</span> Warnings ({validationReport.warnings.length})
-                </h4>
-                {validationReport.warnings.map((issue, index) => renderValidationIssue(issue, index))}
-              </div>
-            )}
-
-            {/* Info */}
-            {validationReport.info.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-bold text-blue-900 text-lg flex items-center gap-2 mt-6">
-                  <span>ℹ️</span> Optimization Suggestions ({validationReport.info.length})
-                </h4>
-                {validationReport.info.map((issue, index) => renderValidationIssue(issue, index))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Key Metrics Grid */}
       {hasData && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

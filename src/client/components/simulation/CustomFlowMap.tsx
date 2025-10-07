@@ -207,30 +207,71 @@ function makeCurve(fromNode: Node, toNode: Node, extra = 0, fromSide: 'left' | '
   return `M ${sx} ${sy} C ${cx1} ${sy} ${cx2} ${ey} ${ex} ${ey}`;
 }
 
-// Flow color and width functions - dynamic arrow styling based on balance/bottleneck/surplus
-function getFlowColor(flowRate: number, demandRate: number): string {
-  const gap = flowRate - demandRate;
-  if (gap < -0.5) return '#ef4444'; // Red - shortage/bottleneck
-  if (gap > 0.5) return '#22c55e'; // Green - excess/surplus
-  return '#3b82f6'; // Blue - balanced
+// Queue health calculation functions - dynamic queue coloring based on inventory trends
+function getQueueHealthColor(currentCount: number, previousCount: number): string {
+  // Empty queue - grey
+  if (currentCount === 0) return '#6b7280'; // GREY - Empty queue
+
+  if (previousCount === 0) return '#3b82f6'; // Blue - new queue building
+
+  const percentChange = ((currentCount - previousCount) / previousCount) * 100;
+
+  if (percentChange < -5) return '#ef4444';      // RED - Depleting rapidly (upstream bottleneck)
+  if (percentChange < 0) return '#eab308';       // YELLOW - Decreasing (warning)
+  if (percentChange <= 2) return '#22c55e';      // GREEN - Stable/healthy
+  if (percentChange <= 10) return '#3b82f6';     // BLUE - Growing moderately
+  return '#a855f7';                              // PURPLE - Accumulating rapidly (downstream bottleneck)
 }
 
-function getArrowWidth(flowRate: number, demandRate: number): number {
-  const gap = flowRate - demandRate;
-  if (gap < -0.5) return 3;  // Thinner arrow - bottleneck/shortage (RED)
-  if (gap > 0.5) return 5;   // Thicker arrow - excess supply (GREEN)
-  return 4;                  // Medium arrow - balanced (BLUE)
+function getQueueHealthStatus(percentChange: number, currentCount: number): {
+  label: string;
+  icon: string;
+  severity: 'critical' | 'warning' | 'healthy' | 'building' | 'surplus' | 'empty';
+  description: string;
+} {
+  if (currentCount === 0) return {
+    label: 'Empty',
+    icon: '⚫',
+    severity: 'empty',
+    description: 'Queue is empty - no inventory'
+  };
+  if (percentChange < -5) return {
+    label: 'Depleting',
+    icon: '🔴',
+    severity: 'critical',
+    description: 'Queue depleting rapidly - upstream cannot meet demand'
+  };
+  if (percentChange < 0) return {
+    label: 'Decreasing',
+    icon: '🟡',
+    severity: 'warning',
+    description: 'Queue decreasing slowly - monitor for potential issues'
+  };
+  if (percentChange <= 2) return {
+    label: 'Stable',
+    icon: '🟢',
+    severity: 'healthy',
+    description: 'Queue inventory stable - healthy flow balance'
+  };
+  if (percentChange <= 10) return {
+    label: 'Growing',
+    icon: '🔵',
+    severity: 'building',
+    description: 'Queue growing moderately - building inventory buffer'
+  };
+  return {
+    label: 'Accumulating',
+    icon: '🟣',
+    severity: 'surplus',
+    description: 'Queue accumulating rapidly - downstream bottleneck detected'
+  };
 }
 
-function getArrowMarker(flowRate: number, demandRate: number): string {
-  const gap = flowRate - demandRate;
-  if (gap < -0.5) return 'url(#arrow-red)';    // Red arrow marker
-  if (gap > 0.5) return 'url(#arrow-green)';   // Green arrow marker
-  return 'url(#arrow-blue)';                   // Blue arrow marker
-}
-
-function Node({ node, info, efficiency, queueCount }: { node: Node; info?: React.ReactNode; efficiency?: number; queueCount?: number }) {
+function Node({ node, info, efficiency, queueCount, healthColor }: { node: Node; info?: React.ReactNode; efficiency?: number; queueCount?: number; healthColor?: string }) {
   const IconComponent = getIconComponent(node.icon);
+
+  // Use healthColor if provided (for queues), otherwise use node.color (for stations)
+  const fillColor = healthColor || node.color;
 
   return (
     <g transform={`translate(${node.x}, ${node.y})`} className="group">
@@ -238,7 +279,7 @@ function Node({ node, info, efficiency, queueCount }: { node: Node; info?: React
         width={NODE_W}
         height={NODE_H}
         rx={12}
-        fill={node.color}
+        fill={fillColor}
         stroke="white"
         strokeWidth={3}
         className="drop-shadow-lg"
@@ -339,33 +380,23 @@ function RawMaterialsInventory({ x, y, info }: { x: number; y: number; info?: Re
         className="drop-shadow-lg"
       />
 
-      {/* Icon in center */}
-      <foreignObject x={10} y={height / 2 - 30} width={100} height={60}>
+      {/* Icon in upper-center */}
+      <foreignObject x={10} y={height / 2 - 80} width={100} height={60}>
         <div className="w-full h-full flex items-center justify-center">
           <Package className="w-12 h-12 text-white" strokeWidth={2.5} />
         </div>
       </foreignObject>
 
-      {/* Labels showing consumption */}
+      {/* Parts Box Label */}
       <text
         x={width / 2}
-        y={150}
+        y={height / 2 + 10}
         textAnchor="middle"
-        fontSize={12}
-        fontWeight={600}
+        fontSize={14}
+        fontWeight={700}
         fill="white"
       >
-        Custom: 1 part
-      </text>
-      <text
-        x={width / 2}
-        y={height - 150}
-        textAnchor="middle"
-        fontSize={12}
-        fontWeight={600}
-        fill="white"
-      >
-        Standard: 2 parts
+        Raw Materials
       </text>
 
       {/* Info popup */}
@@ -482,7 +513,7 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
   );
 }
 
-function Edge({ edge, index, onPopupToggle, metrics }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
+function Edge({ edge, index, onPopupToggle }: { edge: Edge; index: number; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
@@ -491,43 +522,10 @@ function Edge({ edge, index, onPopupToggle, metrics }: { edge: Edge; index: numb
   const edgeId = `${edge.from}-${edge.to}-${index}`;
   const d = makeCurve(from, to, 0, edge.fromSide || 'right', edge.toSide || 'left'); // Use edge-specific connection points
 
-  // Get flow metrics first
-  const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
-
-  // Dynamic styling based on flow conditions (balance/bottleneck/surplus)
-  const strokeColor = getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
-  const strokeWidth = getArrowWidth(flowMetrics.flowRate, flowMetrics.demandRate);
-  const arrowMarker = getArrowMarker(flowMetrics.flowRate, flowMetrics.demandRate);
-
-  // Calculate midpoint for label positioning
-  const fromSide = edge.fromSide || 'right';
-  const toSide = edge.toSide || 'left';
-
-  // Get connection points
-  const fromHeight = (from.id === 'raw-materials' || from.id === 'mce-station') ? 600 : NODE_H;
-  const toHeight = (to.id === 'raw-materials' || to.id === 'mce-station') ? 600 : NODE_H;
-
-  let sx: number, sy: number, ex: number, ey: number;
-
-  switch (fromSide) {
-    case 'left': sx = from.x; sy = from.y + fromHeight / 2; break;
-    case 'right': sx = from.x + NODE_W; sy = from.y + fromHeight / 2; break;
-    case 'top': sx = from.x + NODE_W / 2; sy = from.y; break;
-    case 'bottom': sx = from.x + NODE_W / 2; sy = from.y + fromHeight; break;
-  }
-
-  switch (toSide) {
-    case 'left': ex = to.x; ey = to.y + toHeight / 2; break;
-    case 'right': ex = to.x + NODE_W; ey = to.y + toHeight / 2; break;
-    case 'top': ex = to.x + NODE_W / 2; ey = to.y; break;
-    case 'bottom': ex = to.x + NODE_W / 2; ey = to.y + toHeight; break;
-  }
-
-  const midX = (sx + ex) / 2;
-  const midY = (sy + ey) / 2;
-
-  // Format flow rate for display
-  const flowRate = flowMetrics.flowRate.toFixed(1);
+  // Simplified uniform styling - all arrows blue, same width
+  const strokeColor = '#3b82f6';
+  const strokeWidth = 4;
+  const arrowMarker = 'url(#arrow-blue)';
 
   return (
     <>
@@ -539,37 +537,11 @@ function Edge({ edge, index, onPopupToggle, metrics }: { edge: Edge; index: numb
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         markerEnd={arrowMarker}
-        className="cursor-pointer"
+        className="cursor-pointer hover:stroke-blue-400 transition-colors"
         onClick={() => onPopupToggle(edgeId)}
       />
 
-      {/* Flow rate label */}
-      <g transform={`translate(${midX}, ${midY})`}>
-        {/* Background rectangle for readability */}
-        <rect
-          x="-25"
-          y="-10"
-          width="50"
-          height="20"
-          fill="white"
-          stroke={strokeColor}
-          strokeWidth="1"
-          rx="4"
-          opacity="0.95"
-        />
-        {/* Flow rate text */}
-        <text
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize="11"
-          fontWeight="600"
-          fill={strokeColor}
-        >
-          {flowRate}/d
-        </text>
-      </g>
-
-      {/* Invisible path for future use (edge metrics moved to popup) */}
+      {/* Invisible path for edge identification */}
       <path id={`path-${edge.from}-${edge.to}`} d={d} fill="none" stroke="none" />
     </>
   );
@@ -810,6 +782,47 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
       'std-queue5': state.history.dailyStdQueue5[dayIndex]?.value || 0,
     };
 
+    // Calculate queue health data (previous day comparison)
+    const previousDayIndex = Math.max(0, dayIndex - 1);
+    const queueHealthData: Record<string, {
+      current: number;
+      previous: number;
+      percentChange: number;
+      color: string;
+      status: ReturnType<typeof getQueueHealthStatus>;
+    }> = {};
+
+    Object.keys(queueCounts).forEach(queueId => {
+      const current = queueCounts[queueId];
+      let previous = 0;
+
+      // Map queue IDs to history keys
+      if (dayIndex > 0) {
+        switch(queueId) {
+          case 'custom-queue1': previous = state.history.dailyCustomQueue1[previousDayIndex]?.value || 0; break;
+          case 'custom-queue2': previous = state.history.dailyCustomQueue2[previousDayIndex]?.value || 0; break;
+          case 'custom-queue3': previous = state.history.dailyCustomQueue3[previousDayIndex]?.value || 0; break;
+          case 'std-queue1': previous = state.history.dailyStdQueue1[previousDayIndex]?.value || 0; break;
+          case 'std-queue2': previous = state.history.dailyStdQueue2[previousDayIndex]?.value || 0; break;
+          case 'std-queue3': previous = state.history.dailyStdQueue3[previousDayIndex]?.value || 0; break;
+          case 'std-queue4': previous = state.history.dailyStdQueue4[previousDayIndex]?.value || 0; break;
+          case 'std-queue5': previous = state.history.dailyStdQueue5[previousDayIndex]?.value || 0; break;
+        }
+      }
+
+      const percentChange = previous > 0 ? ((current - previous) / previous) * 100 : 0;
+      const color = getQueueHealthColor(current, previous);
+      const status = getQueueHealthStatus(percentChange, current);
+
+      queueHealthData[queueId] = {
+        current,
+        previous,
+        percentChange,
+        color,
+        status
+      };
+    });
+
     return {
       avgCustomProduction,
       avgStandardProduction,
@@ -819,6 +832,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
       mceAllocation,
       standardBatchSize,
       queueCounts,
+      queueHealthData,
       experts,
       rookies,
     };
@@ -828,7 +842,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const dayIndex = Math.min(timelineDay, maxDayIndex);
   const metrics = getMetricsForDay(dayIndex);
   const { avgCustomProduction, avgStandardProduction, customWIP: finalCustomWIP, standardWIP: finalStandardWIP,
-    arcpCapacity, mceAllocation, standardBatchSize, queueCounts } = metrics;
+    arcpCapacity, mceAllocation, standardBatchSize, queueCounts, queueHealthData } = metrics;
 
   // Flow metrics for each edge
   const edgeMetrics: Record<string, FlowMetrics> = {
@@ -1032,7 +1046,6 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               key={`e-${i}`}
               edge={edge}
               index={i}
-              metrics={edge.getMetrics?.()}
               activePopupId={activePopupId}
               onPopupToggle={(id) => setActivePopupId(activePopupId === id ? null : id)}
             />
@@ -1214,7 +1227,72 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             }
             // All other nodes (including queues)
             const queueCount = queueCounts[n.id];
-            return <Node node={n} key={n.id} info={info} queueCount={queueCount} />;
+            const queueHealth = queueHealthData[n.id];
+
+            // Add health info popup for queues
+            if (queueHealth && n.label.includes('Queue')) {
+              info = (
+                <InfoPopup
+                  title={`${n.label} - Health Status`}
+                  buttonClassName="bg-gray-600 hover:bg-gray-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  content={
+                    <div className="text-sm text-gray-300 space-y-3">
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <h4 className="font-semibold text-white mb-2">
+                          {queueHealth.status.icon} {queueHealth.status.label}
+                        </h4>
+                        <p className="text-xs text-gray-400 mb-3">{queueHealth.status.description}</p>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Current Inventory:</span>
+                            <span className="text-white font-bold">{queueHealth.current} units</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Previous Day:</span>
+                            <span className="text-white font-bold">{queueHealth.previous} units</span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                            <span className="text-gray-400">Daily Change:</span>
+                            <span className={`font-bold ${
+                              queueHealth.current === 0 ? 'text-gray-400' :
+                              queueHealth.percentChange < -5 ? 'text-red-400' :
+                              queueHealth.percentChange < 0 ? 'text-yellow-400' :
+                              queueHealth.percentChange <= 2 ? 'text-green-400' :
+                              queueHealth.percentChange <= 10 ? 'text-blue-400' :
+                              'text-purple-400'
+                            }`}>
+                              {queueHealth.current === 0 ? '—' :
+                               `${queueHealth.percentChange > 0 ? '+' : ''}${queueHealth.percentChange.toFixed(1)}%`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Diagnostic warnings based on health status */}
+                      {queueHealth.status.severity === 'critical' && (
+                        <div className="bg-red-900/30 border border-red-600 rounded p-2">
+                          <div className="text-xs font-bold text-red-300">⚠️ UPSTREAM BOTTLENECK</div>
+                          <div className="text-xs text-gray-300 mt-1">
+                            Queue depleting - upstream cannot supply demand
+                          </div>
+                        </div>
+                      )}
+
+                      {queueHealth.status.severity === 'surplus' && (
+                        <div className="bg-purple-900/30 border border-purple-600 rounded p-2">
+                          <div className="text-xs font-bold text-purple-300">⚠️ DOWNSTREAM BOTTLENECK</div>
+                          <div className="text-xs text-gray-300 mt-1">
+                            Queue accumulating - downstream cannot process fast enough
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  }
+                />
+              );
+            }
+
+            return <Node node={n} key={n.id} info={info} queueCount={queueCount} healthColor={queueHealth?.color} />;
           })}
         </g>
 
@@ -1222,6 +1300,12 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         <g>
           <text x={5} y={250} fontSize={18} fontWeight={700} fill="#9333ea" textAnchor="start">CUSTOM</text>
           <text x={5} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="start">STANDARD</text>
+        </g>
+
+        {/* Raw materials consumption labels - positioned to the left of parts box */}
+        <g>
+          <text x={5} y={350} fontSize={12} fontWeight={600} fill="#9333ea" textAnchor="start">Custom: 1 part</text>
+          <text x={5} y={650} fontSize={12} fontWeight={600} fill="#2563eb" textAnchor="start">Standard: 2 parts</text>
         </g>
 
         {/* Horizontal separator line - aligned with MCE 50/50 split at y=500 */}
@@ -1441,46 +1525,79 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
           </div>
         </div>
 
-        {/* Flow Arrow Legend */}
+        {/* Queue Health Legend */}
         <div className="bg-white rounded-lg p-4 border-2 border-gray-300">
-          <h4 className="text-md font-bold text-gray-800 mb-3 text-center">🎯 Flow Arrow Guide</h4>
-          <div className="flex justify-center gap-8 text-sm">
+          <h4 className="text-md font-bold text-gray-800 mb-3 text-center">📊 Queue Health Indicator Guide</h4>
+          <div className="grid grid-cols-6 gap-3 text-xs">
             <div className="flex flex-col items-center gap-2">
-              <svg width="60" height="24" viewBox="0 0 60 24">
-                <line x1="0" y1="12" x2="48" y2="12" stroke="#ef4444" strokeWidth="8" strokeLinecap="round" />
-                <polygon points="60,12 48,6 48,18" fill="#ef4444" />
-              </svg>
+              <div className="w-16 h-16 rounded-xl bg-gray-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">⚫</span>
+              </div>
               <div className="text-center">
-                <div className="text-red-600 font-bold text-base">🔴 Supply Shortage</div>
-                <div className="text-gray-600 text-xs">Flow &lt; Demand</div>
-                <div className="text-gray-500 text-xs font-semibold">⚠️ Bottleneck</div>
+                <div className="text-gray-600 font-bold text-sm">Empty</div>
+                <div className="text-gray-600 text-xs mt-1">0 units</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">— No Inventory</div>
               </div>
             </div>
+
             <div className="flex flex-col items-center gap-2">
-              <svg width="60" height="24" viewBox="0 0 60 24">
-                <line x1="0" y1="12" x2="48" y2="12" stroke="#3b82f6" strokeWidth="12" strokeLinecap="round" />
-                <polygon points="60,12 48,6 48,18" fill="#3b82f6" />
-              </svg>
+              <div className="w-16 h-16 rounded-xl bg-red-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">🔴</span>
+              </div>
               <div className="text-center">
-                <div className="text-blue-600 font-bold text-base">🔵 Balanced Flow</div>
-                <div className="text-gray-600 text-xs">Flow ≈ Demand</div>
-                <div className="text-gray-500 text-xs font-semibold">✓ Healthy</div>
+                <div className="text-red-600 font-bold text-sm">Depleting</div>
+                <div className="text-gray-600 text-xs mt-1">{'< -5%/day'}</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">⚠️ Upstream Issue</div>
               </div>
             </div>
+
             <div className="flex flex-col items-center gap-2">
-              <svg width="60" height="24" viewBox="0 0 60 24">
-                <line x1="0" y1="12" x2="48" y2="12" stroke="#22c55e" strokeWidth="16" strokeLinecap="round" />
-                <polygon points="60,12 48,6 48,18" fill="#22c55e" />
-              </svg>
+              <div className="w-16 h-16 rounded-xl bg-yellow-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">🟡</span>
+              </div>
               <div className="text-center">
-                <div className="text-green-600 font-bold text-base">🟢 Excess Supply</div>
-                <div className="text-gray-600 text-xs">Flow &gt; Demand</div>
-                <div className="text-gray-500 text-xs font-semibold">↑ Overcapacity</div>
+                <div className="text-yellow-600 font-bold text-sm">Decreasing</div>
+                <div className="text-gray-600 text-xs mt-1">-5% to 0%/day</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">⚠️ Warning</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-xl bg-green-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">🟢</span>
+              </div>
+              <div className="text-center">
+                <div className="text-green-600 font-bold text-sm">Stable</div>
+                <div className="text-gray-600 text-xs mt-1">±2%/day</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">✓ Healthy</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-xl bg-blue-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">🔵</span>
+              </div>
+              <div className="text-center">
+                <div className="text-blue-600 font-bold text-sm">Growing</div>
+                <div className="text-gray-600 text-xs mt-1">2-10%/day</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">↑ Building</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-xl bg-purple-500 border-3 border-white shadow-lg flex items-center justify-center">
+                <span className="text-2xl">🟣</span>
+              </div>
+              <div className="text-center">
+                <div className="text-purple-600 font-bold text-sm">Accumulating</div>
+                <div className="text-gray-600 text-xs mt-1">{'> 10%/day'}</div>
+                <div className="text-gray-700 text-xs font-semibold mt-1">⚠️ Downstream Issue</div>
               </div>
             </div>
           </div>
+
           <div className="mt-4 text-center text-gray-600 text-sm font-semibold">
-            💡 Click any arrow or node for detailed metrics • Arrow thickness indicates flow capacity
+            💡 Queue colors show inventory health trends • Click any queue or arrow for detailed metrics and flow rates
           </div>
         </div>
       </div>

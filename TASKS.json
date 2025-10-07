@@ -5,7 +5,7 @@
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
-    "updated": "2025-10-07T02:42:39.981Z",
+    "updated": "2025-10-07T02:51:44.240Z",
     "total_features": 0,
     "approval_history": [],
     "initialization_stats": {
@@ -152,7 +152,7 @@
         "general"
       ],
       "created_at": "2025-10-07T02:04:30.133Z",
-      "updated_at": "2025-10-07T02:07:02.989Z",
+      "updated_at": "2025-10-07T02:51:44.240Z",
       "created_by": "manual_creation",
       "verificationGate": {
         "status": "pending",
@@ -174,14 +174,14 @@
       "description": "Enhance simulation engine to track per-queue WIP counts in history for timeline visualization. Currently only total WIP is tracked. Need to add:\n\nCustom Line Queues:\n- dailyCustomQueue1 (WAITING orders)\n- dailyCustomQueue2 (MCE in-process)\n- dailyCustomQueue3 (WMA_PASS2/PUC in-process)\n\nStandard Line Queues:\n- dailyStdQueue1 (preStation1 batches)\n- dailyStdQueue2 (station1 batches)\n- dailyStdQueue3 (station2 batches)\n- dailyStdQueue4 (station3 batches)\n- dailyStdQueue5 (finishedGoods.standard)\n\nFiles to modify:\n1. src/simulation/types.ts - Add new DailyMetric[] arrays to SimulationHistory interface\n2. src/simulation/simulationEngine.ts - Record per-queue counts each day in recordDailyHistory()\n3. src/client/utils/historicalDataLoader.ts - Initialize new history arrays\n4. src/utils/csvExporter.ts - Add new columns to CSV export\n\nAcceptance Criteria:\n- All 8 queue histories tracked daily\n- Timeline visualization uses real data instead of estimates\n- Types updated, builds pass, no regressions",
       "type": "feature",
       "priority": "high",
-      "status": "approved",
+      "status": "completed",
       "dependencies": [],
       "estimated_effort": 5,
       "required_capabilities": [
         "general"
       ],
       "created_at": "2025-10-07T02:42:31.814Z",
-      "updated_at": "2025-10-07T02:42:39.981Z",
+      "updated_at": "2025-10-07T02:51:43.869Z",
       "created_by": "manual_creation",
       "verificationGate": {
         "status": "pending",
@@ -192,7 +192,9 @@
       },
       "metadata": {
         "auto_generated": false
-      }
+      },
+      "progress_percentage": 100,
+      "completed_at": "2025-10-07T02:51:43.869Z"
     }
   ],
   "completed_tasks": []
