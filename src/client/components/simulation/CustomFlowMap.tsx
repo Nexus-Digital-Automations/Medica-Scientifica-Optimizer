@@ -10,8 +10,8 @@ interface CustomFlowMapProps {
   simulationResult: SimulationResult | null;
 }
 
-const NODE_W = 120;
-const NODE_H = 100;
+const NODE_W = 156;
+const NODE_H = 130;
 
 interface Node {
   id: string;
@@ -33,6 +33,8 @@ interface Edge {
   isLoop?: boolean;
   isDotted?: boolean;
   getMetrics?: () => FlowMetrics;
+  fromSide?: 'left' | 'right' | 'top' | 'bottom';
+  toSide?: 'left' | 'right' | 'top' | 'bottom';
 }
 
 // Shared Raw Materials Inventory (unified, shared between both lines) - LEFTMOST
@@ -40,36 +42,34 @@ interface Edge {
 const rawMaterialsNode: Node = { id: 'raw-materials', label: 'Raw Materials', x: 50, y: 200, color: '#f97316', icon: '📦' };
 
 // MCE Station (unified, shared between both lines) - spans vertically between custom and standard
-// Positioned at x=1050, y=200, height=600 spans both lines with horizontal color split
-const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 1050, y: 200, color: '#6b7280', icon: '⚙️' };
+// Positioned at x=850, y=200, height=600 spans both lines with horizontal color split
+const mceNode: Node = { id: 'mce-station', label: 'MCE\nStation', x: 850, y: 200, color: '#6b7280', icon: '⚙️' };
 
 // Custom line nodes with vertical loop pattern
-// Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Deliveries
-// Loop flow: Queue 2 → Queue 3 (below) → Station 2 (below) → Station 3 (below) → back to Queue 2
+// Main flow: Raw Materials → Queue 1 → MCE/Station 1 → Queue 2 → Station 2 → Deliveries
+// Loop flow: Queue 2 → Station 3 (below Queue 2) → Queue 3 (right) → Station 2 (above Queue 3)
 const customNodes: Node[] = [
-  { id: 'custom-queue1', label: 'Queue 1', x: 550, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'custom-orders', label: 'Orders', x: 1550, y: 200, color: '#ef4444', icon: '📋' },
-  { id: 'custom-queue2', label: 'Queue 2', x: 2050, y: 200, color: '#f97316', icon: '📦' },
-  { id: 'custom-deliveries', label: 'Deliveries', x: 4050, y: 200, color: '#22c55e', icon: '📦' },
-  // Loop nodes positioned below main line
-  { id: 'custom-queue3', label: 'Queue 3', x: 2050, y: 360, color: '#f97316', icon: '📦' },
-  { id: 'custom-station2', label: 'Station 2', x: 2550, y: 360, color: '#2563eb', icon: '⚙️' },
-  { id: 'custom-station3', label: 'Station 3', x: 3050, y: 360, color: '#2563eb', icon: '⚙️' },
+  { id: 'custom-queue1', label: 'Queue 1', x: 470, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-queue2', label: 'Queue 2', x: 1220, y: 200, color: '#f97316', icon: '📦' },
+  { id: 'custom-station2', label: 'Station 2', x: 1590, y: 200, color: '#3b82f6', icon: '⚙️' },
+  { id: 'custom-deliveries', label: 'Deliveries', x: 1960, y: 200, color: '#22c55e', icon: '📦' },
+  // Loop nodes: Station 3 below Queue 2, Queue 3 below Station 2 - aligned with main line
+  { id: 'custom-station3', label: 'Station 3', x: 1220, y: 360, color: '#3b82f6', icon: '⚙️' },
+  { id: 'custom-queue3', label: 'Queue 3', x: 1590, y: 360, color: '#f97316', icon: '📦' },
 ];
 
-// Standard line nodes (continuous single row, bottom section, 500px gaps)
-// Flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
+// Standard line nodes (continuous single row, bottom section, 250px gaps)
+// Flow: Raw Materials → Queue 1 → MCE → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
 const standardNodes: Node[] = [
-  { id: 'std-queue1', label: 'Queue 1', x: 550, y: 700, color: '#f97316', icon: '📦' },
-  { id: 'std-orders', label: 'Orders', x: 1550, y: 700, color: '#ef4444', icon: '📋' },
-  { id: 'std-queue2', label: 'Queue 2', x: 2050, y: 700, color: '#f97316', icon: '📦' },
-  { id: 'std-batch1', label: 'Initial\nBatching', x: 2550, y: 700, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue3', label: 'Queue 3', x: 3050, y: 700, color: '#f97316', icon: '📦' },
-  { id: 'std-arcp', label: 'Manual\nProcessing', x: 3550, y: 700, color: '#ec4899', icon: '👥' },
-  { id: 'std-queue4', label: 'Queue 4', x: 4050, y: 700, color: '#f97316', icon: '📦' },
-  { id: 'std-batch2', label: 'Final\nBatching', x: 4550, y: 700, color: '#a855f7', icon: '⏱️' },
-  { id: 'std-queue5', label: 'Queue 5', x: 5050, y: 700, color: '#f97316', icon: '📦' },
-  { id: 'std-deliveries', label: 'Deliveries', x: 5550, y: 700, color: '#22c55e', icon: '📦' },
+  { id: 'std-queue1', label: 'Queue 1', x: 470, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-queue2', label: 'Queue 2', x: 1220, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-batch1', label: 'Initial\nBatching', x: 1590, y: 700, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue3', label: 'Queue 3', x: 1960, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-arcp', label: 'Manual\nProcessing', x: 2330, y: 700, color: '#ec4899', icon: '👥' },
+  { id: 'std-queue4', label: 'Queue 4', x: 2700, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-batch2', label: 'Final\nBatching', x: 3070, y: 700, color: '#a855f7', icon: '⏱️' },
+  { id: 'std-queue5', label: 'Queue 5', x: 3440, y: 700, color: '#f97316', icon: '📦' },
+  { id: 'std-deliveries', label: 'Deliveries', x: 3810, y: 700, color: '#22c55e', icon: '📦' },
 ];
 
 const nodes: Node[] = [rawMaterialsNode, mceNode, ...customNodes, ...standardNodes];
@@ -96,45 +96,138 @@ function getIconComponent(icon: string) {
   }
 }
 
-function makeCurve(fromNode: Node, toNode: Node, extra = 0): string {
+function makeCurve(fromNode: Node, toNode: Node, extra = 0, fromSide: 'left' | 'right' | 'top' | 'bottom' = 'right', toSide: 'left' | 'right' | 'top' | 'bottom' = 'left'): string {
   // Special handling for tall shared resource nodes (raw materials, MCE station)
   const TALL_NODE_HEIGHT = 600;
   const fromHeight = (fromNode.id === 'raw-materials' || fromNode.id === 'mce-station') ? TALL_NODE_HEIGHT : NODE_H;
   const toHeight = (toNode.id === 'raw-materials' || toNode.id === 'mce-station') ? TALL_NODE_HEIGHT : NODE_H;
 
-  const sx = fromNode.x + NODE_W;
-  const sy = fromNode.y + fromHeight / 2;
-  const ex = toNode.x;
-  const ey = toNode.y + toHeight / 2;
-  const dx = ex - sx;
+  // Calculate connection points based on specified sides
+  let sx: number, sy: number, ex: number, ey: number;
 
-  if (Math.abs(ey - sy) > 50) {
-    const cx1 = sx + Math.max(40, Math.abs(dx) * 0.3) + extra;
-    const cy1 = sy + (ey - sy) * 0.3;
-    const cx2 = ex - Math.max(40, Math.abs(dx) * 0.3) - extra;
-    const cy2 = ey - (ey - sy) * 0.3;
+  // From point
+  switch (fromSide) {
+    case 'left':
+      sx = fromNode.x;
+      sy = fromNode.y + fromHeight / 2;
+      break;
+    case 'right':
+      sx = fromNode.x + NODE_W;
+      sy = fromNode.y + fromHeight / 2;
+      break;
+    case 'top':
+      sx = fromNode.x + NODE_W / 2;
+      sy = fromNode.y;
+      break;
+    case 'bottom':
+      sx = fromNode.x + NODE_W / 2;
+      sy = fromNode.y + fromHeight;
+      break;
+  }
+
+  // To point
+  switch (toSide) {
+    case 'left':
+      ex = toNode.x;
+      ey = toNode.y + toHeight / 2;
+      break;
+    case 'right':
+      ex = toNode.x + NODE_W;
+      ey = toNode.y + toHeight / 2;
+      break;
+    case 'top':
+      ex = toNode.x + NODE_W / 2;
+      ey = toNode.y;
+      break;
+    case 'bottom':
+      ex = toNode.x + NODE_W / 2;
+      ey = toNode.y + toHeight;
+      break;
+  }
+
+  const dx = ex - sx;
+  const dy = ey - sy;
+
+  // Handle special connection patterns for the loop
+  let cx1: number, cy1: number, cx2: number, cy2: number;
+
+  // Left-to-right horizontal (backwards arrow like Queue 3 → Station 3)
+  if (fromSide === 'left' && toSide === 'right' && Math.abs(dy) < 50) {
+    const offset = 100;
+    cx1 = sx - offset;
+    cy1 = sy;
+    cx2 = ex + offset;
+    cy2 = ey;
     return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`;
   }
 
-  const cx1 = sx + Math.max(40, dx * 0.3) + extra;
-  const cx2 = ex - Math.max(40, dx * 0.3) - extra;
+  // Left-to-left vertical (wrap around like Station 3 → Queue 2)
+  if (fromSide === 'left' && toSide === 'left' && Math.abs(dx) < 50) {
+    const offset = 120;
+    cx1 = sx - offset;
+    cy1 = sy;
+    cx2 = ex - offset;
+    cy2 = ey;
+    return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`;
+  }
+
+  // Right-to-right vertical (wrap around like Station 2 → Queue 3)
+  if (fromSide === 'right' && toSide === 'right' && Math.abs(dx) < 50) {
+    const offset = 120;
+    cx1 = sx + offset;
+    cy1 = sy;
+    cx2 = ex + offset;
+    cy2 = ey;
+    return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`;
+  }
+
+  // Bottom-to-right (downward then right like Station 2 → Queue 3)
+  if (fromSide === 'bottom' && toSide === 'right') {
+    const xOffset = 50;
+    const yOffset = Math.abs(dy) * 0.5;
+    cx1 = sx;
+    cy1 = sy + yOffset;
+    cx2 = ex + xOffset;
+    cy2 = ey;
+    return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`;
+  }
+
+  // Default logic for other vertical/diagonal cases
+  if (Math.abs(dy) > 50 || fromSide === 'bottom' || fromSide === 'top' || toSide === 'bottom' || toSide === 'top') {
+    cx1 = sx + (fromSide === 'left' ? -Math.abs(dx) * 0.3 : fromSide === 'right' ? Math.abs(dx) * 0.3 : 0);
+    cy1 = sy + (fromSide === 'bottom' ? Math.abs(dy) * 0.3 : fromSide === 'top' ? -Math.abs(dy) * 0.3 : dy * 0.3);
+    cx2 = ex + (toSide === 'left' ? -Math.abs(dx) * 0.3 : toSide === 'right' ? Math.abs(dx) * 0.3 : 0);
+    cy2 = ey + (toSide === 'bottom' ? Math.abs(dy) * 0.3 : toSide === 'top' ? -Math.abs(dy) * 0.3 : -dy * 0.3);
+    return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`;
+  }
+
+  // Default horizontal flow (left to right)
+  cx1 = sx + Math.max(40, dx * 0.3) + extra;
+  cx2 = ex - Math.max(40, dx * 0.3) - extra;
   return `M ${sx} ${sy} C ${cx1} ${sy} ${cx2} ${ey} ${ex} ${ey}`;
 }
 
-// Flow color and width functions - commented out for future use (dynamic arrow styling)
-// function getFlowColor(flowRate: number, demandRate: number): string {
-//   const gap = flowRate - demandRate;
-//   if (gap < -0.5) return '#ef4444'; // Red - shortage
-//   if (gap > 0.5) return '#22c55e'; // Green - excess
-//   return '#3b82f6'; // Blue - balanced
-// }
+// Flow color and width functions - dynamic arrow styling based on balance/bottleneck/surplus
+function getFlowColor(flowRate: number, demandRate: number): string {
+  const gap = flowRate - demandRate;
+  if (gap < -0.5) return '#ef4444'; // Red - shortage/bottleneck
+  if (gap > 0.5) return '#22c55e'; // Green - excess/surplus
+  return '#3b82f6'; // Blue - balanced
+}
 
-// function getArrowWidth(flowRate: number, demandRate: number): number {
-//   const gap = flowRate - demandRate;
-//   if (gap < -0.5) return 8;  // Thinner arrow - bottleneck/shortage (RED)
-//   if (gap > 0.5) return 16;  // Thickest arrow - excess supply (GREEN)
-//   return 12;                 // Medium arrow - balanced (BLUE)
-// }
+function getArrowWidth(flowRate: number, demandRate: number): number {
+  const gap = flowRate - demandRate;
+  if (gap < -0.5) return 3;  // Thinner arrow - bottleneck/shortage (RED)
+  if (gap > 0.5) return 5;   // Thicker arrow - excess supply (GREEN)
+  return 4;                  // Medium arrow - balanced (BLUE)
+}
+
+function getArrowMarker(flowRate: number, demandRate: number): string {
+  const gap = flowRate - demandRate;
+  if (gap < -0.5) return 'url(#arrow-red)';    // Red arrow marker
+  if (gap > 0.5) return 'url(#arrow-green)';   // Green arrow marker
+  return 'url(#arrow-blue)';                   // Blue arrow marker
+}
 
 function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
   const IconComponent = getIconComponent(node.icon);
@@ -170,7 +263,7 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
 }
 
 function RawMaterialsInventory({ x, y, info }: { x: number; y: number; info?: React.ReactNode }) {
-  const width = 120;
+  const width = 156;
   const height = 600; // Spans from y=200 (custom line) to y=800 (standard line)
 
   return (
@@ -234,7 +327,7 @@ function RawMaterialsInventory({ x, y, info }: { x: number; y: number; info?: Re
 }
 
 function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAllocation: number; info?: React.ReactNode }) {
-  const width = 120;
+  const width = 156;
   const height = 600; // Spans from y=200 (custom line) to y=800 (standard line)
 
   return (
@@ -305,6 +398,28 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
         {((1 - mceAllocation) * 100).toFixed(0)}%
       </text>
 
+      {/* Station label in center */}
+      <text
+        x={width / 2}
+        y={height / 2 - 10}
+        textAnchor="middle"
+        fontSize={16}
+        fontWeight={700}
+        fill="white"
+      >
+        MCE
+      </text>
+      <text
+        x={width / 2}
+        y={height / 2 + 10}
+        textAnchor="middle"
+        fontSize={14}
+        fontWeight={600}
+        fill="white"
+      >
+        Station 1
+      </text>
+
       {/* Info popup */}
       {info && (
         <foreignObject x={width - 30} y={5} width={25} height={25} pointerEvents="all">
@@ -315,19 +430,52 @@ function MCEStation({ x, y, mceAllocation, info }: { x: number; y: number; mceAl
   );
 }
 
-function Edge({ edge, index, onPopupToggle }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
+function Edge({ edge, index, onPopupToggle, metrics }: { edge: Edge; index: number; metrics?: FlowMetrics; activePopupId: string | null; onPopupToggle: (id: string) => void }) {
   const from = findNode(edge.from);
   const to = findNode(edge.to);
 
   if (!from || !to) return null;
 
   const edgeId = `${edge.from}-${edge.to}-${index}`;
-  const d = makeCurve(from, to, 0); // No extra curve offset
+  const d = makeCurve(from, to, 0, edge.fromSide || 'right', edge.toSide || 'left'); // Use edge-specific connection points
 
-  // Consistent styling for all arrows
-  const strokeColor = '#3b82f6'; // Standard blue color
-  const strokeWidth = 4; // Consistent width for all arrows
-  const arrowMarker = 'url(#arrow-blue)'; // Standard blue arrow marker
+  // Get flow metrics first
+  const flowMetrics = metrics || edge.getMetrics?.() || { flowRate: 0, demandRate: 0 };
+
+  // Dynamic styling based on flow conditions (balance/bottleneck/surplus)
+  const strokeColor = getFlowColor(flowMetrics.flowRate, flowMetrics.demandRate);
+  const strokeWidth = getArrowWidth(flowMetrics.flowRate, flowMetrics.demandRate);
+  const arrowMarker = getArrowMarker(flowMetrics.flowRate, flowMetrics.demandRate);
+
+  // Calculate midpoint for label positioning
+  const fromSide = edge.fromSide || 'right';
+  const toSide = edge.toSide || 'left';
+
+  // Get connection points
+  const fromHeight = (from.id === 'raw-materials' || from.id === 'mce-station') ? 600 : NODE_H;
+  const toHeight = (to.id === 'raw-materials' || to.id === 'mce-station') ? 600 : NODE_H;
+
+  let sx: number, sy: number, ex: number, ey: number;
+
+  switch (fromSide) {
+    case 'left': sx = from.x; sy = from.y + fromHeight / 2; break;
+    case 'right': sx = from.x + NODE_W; sy = from.y + fromHeight / 2; break;
+    case 'top': sx = from.x + NODE_W / 2; sy = from.y; break;
+    case 'bottom': sx = from.x + NODE_W / 2; sy = from.y + fromHeight; break;
+  }
+
+  switch (toSide) {
+    case 'left': ex = to.x; ey = to.y + toHeight / 2; break;
+    case 'right': ex = to.x + NODE_W; ey = to.y + toHeight / 2; break;
+    case 'top': ex = to.x + NODE_W / 2; ey = to.y; break;
+    case 'bottom': ex = to.x + NODE_W / 2; ey = to.y + toHeight; break;
+  }
+
+  const midX = (sx + ex) / 2;
+  const midY = (sy + ey) / 2;
+
+  // Format flow rate for display
+  const flowRate = flowMetrics.flowRate.toFixed(1);
 
   return (
     <>
@@ -339,10 +487,35 @@ function Edge({ edge, index, onPopupToggle }: { edge: Edge; index: number; metri
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         markerEnd={arrowMarker}
-        filter="url(#arrow-shadow)"
         className="cursor-pointer"
         onClick={() => onPopupToggle(edgeId)}
       />
+
+      {/* Flow rate label */}
+      <g transform={`translate(${midX}, ${midY})`}>
+        {/* Background rectangle for readability */}
+        <rect
+          x="-25"
+          y="-10"
+          width="50"
+          height="20"
+          fill="white"
+          stroke={strokeColor}
+          strokeWidth="1"
+          rx="4"
+          opacity="0.95"
+        />
+        {/* Flow rate text */}
+        <text
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="11"
+          fontWeight="600"
+          fill={strokeColor}
+        >
+          {flowRate}/d
+        </text>
+      </g>
 
       {/* Invisible path for future use (edge metrics moved to popup) */}
       <path id={`path-${edge.from}-${edge.to}`} d={d} fill="none" stroke="none" />
@@ -519,7 +692,19 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const recentDays = 50;
   const startIdx = Math.max(0, finalDayIndex - recentDays);
 
-  const avgCustomProduction = state.history.dailyCustomProduction.slice(startIdx, finalDayIndex + 1).reduce((sum, d) => sum + d.value, 0) / (finalDayIndex - startIdx + 1);
+  const customProductionData = state.history.dailyCustomProduction.slice(startIdx, finalDayIndex + 1);
+  const avgCustomProduction = customProductionData.reduce((sum, d) => sum + d.value, 0) / (finalDayIndex - startIdx + 1);
+
+  // Debug: Log custom production
+  console.log('Custom Production Debug:', {
+    startIdx,
+    finalDayIndex,
+    dataPoints: customProductionData.length,
+    totalProduction: customProductionData.reduce((sum, d) => sum + d.value, 0),
+    avgCustomProduction,
+    sampleData: customProductionData.slice(0, 5)
+  });
+
   const finalCustomWIP = state.customLineWIP.orders.length;
   const finalExperts = state.history.dailyExperts[finalDayIndex]?.value || 0;
   const finalRookies = state.history.dailyRookies[finalDayIndex]?.value || 0;
@@ -538,10 +723,10 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     'custom-queue1-station1': { flowRate: avgCustomProduction, demandRate: 6 },
     'custom-station1-queue2': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 2 },
     'custom-queue2-station2': { flowRate: avgCustomProduction, demandRate: 6 },
+    'custom-station2-queue3': { flowRate: avgCustomProduction * 0.3, demandRate: avgCustomProduction * 0.3 },
+    'custom-queue3-station3': { flowRate: avgCustomProduction * 0.3, demandRate: 6 },
+    'custom-station3-queue2': { flowRate: avgCustomProduction * 0.3, demandRate: arcpCapacity * mceAllocation },
     'custom-station2-deliveries': { flowRate: avgCustomProduction, demandRate: avgCustomProduction + 1 },
-    'custom-station1-station3': { flowRate: avgCustomProduction * 0.3, demandRate: 6 },
-    'custom-station3-queue3': { flowRate: avgCustomProduction * 0.3, demandRate: avgCustomProduction * 0.3 },
-    'custom-queue3-station2': { flowRate: avgCustomProduction * 0.3, demandRate: arcpCapacity * mceAllocation },
 
     // Standard line metrics
     'std-orders-queue1': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 2 },
@@ -556,29 +741,31 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     'std-queue5-deliveries': { flowRate: avgStandardProduction, demandRate: avgStandardProduction + 1 },
   };
 
-  // Custom line edges with vertical loop pattern - all using consistent smooth arrow styling
-  // Main flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Deliveries
-  // Loop: Queue 2 → Queue 3 (down) → Station 2 → Station 3 → back to Queue 2 (up)
+  // Custom line edges with clockwise loop pattern
+  // Main flow: Raw Materials → Queue 1 → MCE/Station 1 → Queue 2
+  // Loop: Queue 2 → Station 2 (right) → Queue 3 (down from Station 2, enter right) → Station 3 (left to right) → Queue 2 (left to left, up)
+  // Exit: Station 2 → Deliveries
   const customEdges: Edge[] = [
-    // Main flow
+    // Main flow to loop entry
     { from: 'raw-materials', to: 'custom-queue1', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
     { from: 'custom-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['custom-queue1-station1'] },
-    { from: 'mce-station', to: 'custom-orders', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
-    { from: 'custom-orders', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-orders-queue1'] },
-    { from: 'custom-queue2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
-    // Loop flow (vertical pattern) - no isLoop flag for consistent styling
-    { from: 'custom-queue2', to: 'custom-queue3', getMetrics: () => edgeMetrics['custom-station1-station3'] },
-    { from: 'custom-queue3', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue3-station2'] },
-    { from: 'custom-station2', to: 'custom-station3', getMetrics: () => edgeMetrics['custom-station3-queue3'] },
-    { from: 'custom-station3', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
+    { from: 'mce-station', to: 'custom-queue2', getMetrics: () => edgeMetrics['custom-station1-queue2'] },
+
+    // Clockwise loop: Queue 2 → Station 2 → Queue 3 → Station 3 → Queue 2
+    { from: 'custom-queue2', to: 'custom-station2', getMetrics: () => edgeMetrics['custom-queue2-station2'] },
+    { from: 'custom-station2', to: 'custom-queue3', fromSide: 'right', toSide: 'right', getMetrics: () => edgeMetrics['custom-station2-queue3'] },
+    { from: 'custom-queue3', to: 'custom-station3', fromSide: 'left', toSide: 'right', getMetrics: () => edgeMetrics['custom-queue3-station3'] },
+    { from: 'custom-station3', to: 'custom-queue2', fromSide: 'left', toSide: 'left', getMetrics: () => edgeMetrics['custom-station3-queue2'] },
+
+    // Exit from loop
+    { from: 'custom-station2', to: 'custom-deliveries', getMetrics: () => edgeMetrics['custom-station2-deliveries'] },
   ];
 
-  // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Orders → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
+  // Standard line edges - continuous flow: Raw Materials → Queue 1 → MCE → Queue 2 → Initial Batching → Queue 3 → Manual Processing → Queue 4 → Final Batching → Queue 5 → Deliveries
   const standardEdges: Edge[] = [
     { from: 'raw-materials', to: 'std-queue1', getMetrics: () => edgeMetrics['std-orders-queue1'] },
     { from: 'std-queue1', to: 'mce-station', getMetrics: () => edgeMetrics['std-queue1-station1'] },
-    { from: 'mce-station', to: 'std-orders', getMetrics: () => edgeMetrics['std-station1-queue2'] },
-    { from: 'std-orders', to: 'std-queue2', getMetrics: () => edgeMetrics['std-orders-queue1'] },
+    { from: 'mce-station', to: 'std-queue2', getMetrics: () => edgeMetrics['std-station1-queue2'] },
     { from: 'std-queue2', to: 'std-batch1', getMetrics: () => edgeMetrics['std-queue2-batch1'] },
     { from: 'std-batch1', to: 'std-queue3', getMetrics: () => edgeMetrics['std-batch1-queue3'] },
     { from: 'std-queue3', to: 'std-arcp', getMetrics: () => edgeMetrics['std-queue3-arcp'] },
@@ -694,7 +881,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
 
       <svg
         ref={svgRef}
-        viewBox="0 0 5800 1000"
+        viewBox="0 0 4000 1000"
         className="w-full h-full cursor-grab active:cursor-grabbing"
         style={{ minHeight: '700px', userSelect: 'none' }}
         onWheel={handleWheel}
@@ -704,17 +891,17 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         onMouseLeave={handleMouseLeave}
       >
         <defs>
-          {/* Colored arrow markers - ENLARGED for better visibility */}
-          <marker id="arrow-red" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
+          {/* Small, subtle arrow markers for clean flowing appearance */}
+          <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
           </marker>
-          <marker id="arrow-blue" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
           </marker>
-          <marker id="arrow-green" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
           </marker>
-          <marker id="arrow-gray" viewBox="0 0 10 10" refX="18" refY="5" markerWidth="24" markerHeight="24" orient="auto-start-reverse">
+          <marker id="arrow-gray" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af" />
           </marker>
           <filter id="arrow-shadow">
@@ -884,15 +1071,15 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
           })}
         </g>
 
-        {/* External line labels - positioned to left of entire map */}
+        {/* External line labels - positioned far left, clear of raw materials */}
         <g>
-          <text x={10} y={180} fontSize={22} fontWeight={700} fill="#9333ea">CUSTOM</text>
-          <text x={10} y={680} fontSize={22} fontWeight={700} fill="#2563eb">STANDARD</text>
+          <text x={5} y={250} fontSize={18} fontWeight={700} fill="#9333ea" textAnchor="start">CUSTOM</text>
+          <text x={5} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="start">STANDARD</text>
         </g>
 
-        {/* Horizontal separator line */}
+        {/* Horizontal separator line - aligned with MCE 50/50 split at y=500 */}
         <g>
-          <line x1={0} y1={450} x2={5800} y2={450} stroke="#d1d5db" strokeWidth={4} strokeDasharray="12 6" opacity={0.5} />
+          <line x1={0} y1={500} x2={4000} y2={500} stroke="#d1d5db" strokeWidth={4} strokeDasharray="12 6" opacity={0.5} />
         </g>
 
         {/* Popup layer - renders on top of everything */}
