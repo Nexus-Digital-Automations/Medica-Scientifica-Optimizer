@@ -148,6 +148,13 @@ export interface SimulationHistory {
   dailyOrderQuantity: DailyMetric[];
   dailyStandardBatchSize: DailyMetric[];
 
+  // Strategy parameter tracking (shows current values each day)
+  dailyMCEAllocation: DailyMetric[];
+  dailyOvertimeHours: DailyMetric[];
+  dailyCustomBasePrice: DailyMetric[];
+  dailyCustomPenaltyPerDay: DailyMetric[];
+  dailyCustomTargetDeliveryDays: DailyMetric[];
+
   // Actions taken
   actionsPerformed: ActionRecord[];
   policyChanges: PolicyChangeRecord[]; // Track when/why policies changed

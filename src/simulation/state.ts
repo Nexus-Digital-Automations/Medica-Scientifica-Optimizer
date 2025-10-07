@@ -234,6 +234,13 @@ export function recordDailyHistory(
     state.history.dailyReorderPoint.push({ day, value: strategy.reorderPoint });
     state.history.dailyOrderQuantity.push({ day, value: strategy.orderQuantity });
     state.history.dailyStandardBatchSize.push({ day, value: strategy.standardBatchSize });
+
+    // Strategy parameter tracking (shows current strategy values for this day)
+    state.history.dailyMCEAllocation.push({ day, value: strategy.mceAllocationCustom });
+    state.history.dailyOvertimeHours.push({ day, value: strategy.dailyOvertimeHours });
+    state.history.dailyCustomBasePrice.push({ day, value: strategy.customBasePrice });
+    state.history.dailyCustomPenaltyPerDay.push({ day, value: strategy.customPenaltyPerDay });
+    state.history.dailyCustomTargetDeliveryDays.push({ day, value: strategy.customTargetDeliveryDays });
   }
 
   // Record any actions performed

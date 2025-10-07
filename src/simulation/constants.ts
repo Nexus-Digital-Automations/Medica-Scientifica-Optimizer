@@ -159,6 +159,13 @@ export const INITIAL_STATE_BUSINESS_CASE: SimulationState = {
     dailyOrderQuantity: [],
     dailyStandardBatchSize: [],
 
+    // Strategy parameter tracking
+    dailyMCEAllocation: [],
+    dailyOvertimeHours: [],
+    dailyCustomBasePrice: [],
+    dailyCustomPenaltyPerDay: [],
+    dailyCustomTargetDeliveryDays: [],
+
     // Actions taken
     actionsPerformed: [],
     policyChanges: [],
@@ -256,6 +263,11 @@ export const INITIAL_STATE_HISTORICAL: SimulationState = {
     dailyReorderPoint: [],
     dailyOrderQuantity: [],
     dailyStandardBatchSize: [],
+    dailyMCEAllocation: [],
+    dailyOvertimeHours: [],
+    dailyCustomBasePrice: [],
+    dailyCustomPenaltyPerDay: [],
+    dailyCustomTargetDeliveryDays: [],
     actionsPerformed: [],
     policyChanges: [],
   },

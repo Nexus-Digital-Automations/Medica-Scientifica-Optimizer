@@ -93,6 +93,12 @@ export function exportSimulationToCSV(result: SimulationResult): string {
     'Current ROP',
     'Current EOQ',
     'Current Batch Size',
+    // Strategy parameters
+    'MCE Custom Allocation',
+    'Daily Overtime Hours',
+    'Custom Base Price',
+    'Custom Penalty Per Day',
+    'Custom Target Delivery Days',
   ];
 
   // Build data rows
@@ -156,6 +162,12 @@ export function exportSimulationToCSV(result: SimulationResult): string {
       getValue(history.dailyReorderPoint),
       getValue(history.dailyOrderQuantity),
       getValue(history.dailyStandardBatchSize),
+      // Strategy parameters
+      getValue(history.dailyMCEAllocation),
+      getValue(history.dailyOvertimeHours),
+      getValue(history.dailyCustomBasePrice),
+      getValue(history.dailyCustomPenaltyPerDay),
+      getValue(history.dailyCustomTargetDeliveryDays),
     ].join(','));
   }
 

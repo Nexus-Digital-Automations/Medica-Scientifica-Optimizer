@@ -81,6 +81,11 @@ export function loadHistoricalData(): SimulationResult | null {
       dailyReorderPoint: [],
       dailyOrderQuantity: [],
       dailyStandardBatchSize: [],
+      dailyMCEAllocation: [],
+      dailyOvertimeHours: [],
+      dailyCustomBasePrice: [],
+      dailyCustomPenaltyPerDay: [],
+      dailyCustomTargetDeliveryDays: [],
       actionsPerformed: [],
       policyChanges: [],
     };
@@ -182,6 +187,11 @@ export function loadHistoricalData(): SimulationResult | null {
       history.dailyReorderPoint.push({ day, value: 50 });
       history.dailyOrderQuantity.push({ day, value: 200 });
       history.dailyStandardBatchSize.push({ day, value: 60 });
+      history.dailyMCEAllocation.push({ day, value: 0.50 });
+      history.dailyOvertimeHours.push({ day, value: 0 });
+      history.dailyCustomBasePrice.push({ day, value: 106.56 });
+      history.dailyCustomPenaltyPerDay.push({ day, value: 0.27 });
+      history.dailyCustomTargetDeliveryDays.push({ day, value: 5 });
     }
 
     // Final day values
