@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStrategyStore, type SavedStrategy } from '../../stores/strategyStore';
 import StrategyLibraryModal from '../common/StrategyLibraryModal';
-import type { Strategy } from '../../types/ui.types';
+import type { Strategy, StrategyAction } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams, ensureSufficientCash } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -58,6 +58,33 @@ interface OptimizationConstraints {
     WMA?: { min?: number; max?: number };
     PUC?: { min?: number; max?: number };
   };
+}
+
+/**
+ * Check if two actions conflict (should replace each other).
+ * Actions conflict if they have the same type and matching subtypes.
+ */
+function actionsConflict(action1: StrategyAction, action2: StrategyAction): boolean {
+  if (action1.type !== action2.type) {
+    return false;
+  }
+
+  // Check subtype-specific conflicts
+  switch (action1.type) {
+    case 'BUY_MACHINE':
+    case 'SELL_MACHINE':
+      return (action1 as { machineType: string }).machineType === (action2 as { machineType: string }).machineType;
+
+    case 'ADJUST_PRICE':
+      return (action1 as { productType: string }).productType === (action2 as { productType: string }).productType;
+
+    case 'FIRE_EMPLOYEE':
+      return (action1 as { employeeType: string }).employeeType === (action2 as { employeeType: string }).employeeType;
+
+    // For all other action types, same type means conflict
+    default:
+      return true;
+  }
 }
 
 export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecommendation }: AdvancedOptimizerProps = {}) {
@@ -2364,16 +2391,21 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        // Merge candidate actions with existing strategy actions
-                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
-                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+                        // Smart merge: only replace conflicting actions, keep non-conflicting ones
+                        const actionsOnTestDay = strategy.timedActions.filter(a => a.day === constraints.testDay);
+                        const actionsNotOnTestDay = strategy.timedActions.filter(a => a.day !== constraints.testDay);
+
+                        // Filter out actions that conflict with new result actions
+                        const nonConflictingActions = actionsOnTestDay.filter(existingAction =>
+                          !result.actions.some(newAction => actionsConflict(existingAction, newAction))
+                        );
 
                         loadStrategy({
                           ...strategy,
                           timedActions: [
-                            ...actionsBeforeTestDay,
-                            ...result.actions, // Actions on test day
-                            ...actionsAfterTestDay,
+                            ...actionsNotOnTestDay,
+                            ...nonConflictingActions,
+                            ...result.actions,
                           ].sort((a, b) => a.day - b.day),
                         });
                       }}
@@ -2501,15 +2533,21 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        const actionsBeforeTestDay = strategy.timedActions.filter(a => a.day < constraints.testDay);
-                        const actionsAfterTestDay = strategy.timedActions.filter(a => a.day > constraints.testDay);
+                        // Smart merge: only replace conflicting actions, keep non-conflicting ones
+                        const actionsOnTestDay = strategy.timedActions.filter(a => a.day === constraints.testDay);
+                        const actionsNotOnTestDay = strategy.timedActions.filter(a => a.day !== constraints.testDay);
+
+                        // Filter out actions that conflict with new result actions
+                        const nonConflictingActions = actionsOnTestDay.filter(existingAction =>
+                          !result.actions.some(newAction => actionsConflict(existingAction, newAction))
+                        );
 
                         loadStrategy({
                           ...strategy,
                           timedActions: [
-                            ...actionsBeforeTestDay,
+                            ...actionsNotOnTestDay,
+                            ...nonConflictingActions,
                             ...result.actions,
-                            ...actionsAfterTestDay,
                           ].sort((a, b) => a.day - b.day),
                         });
                       }}
