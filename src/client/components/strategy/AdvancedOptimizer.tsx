@@ -657,10 +657,24 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
           batchSize: policyLockStates.batchSize,
           price: policyLockStates.price,
           mceAllocation: policyLockStates.mceAllocation,
+          reorderPoint: policyLockStates.reorderPoint,
+          orderQuantity: policyLockStates.orderQuantity,
+          dailyOvertimeHours: policyLockStates.dailyOvertimeHours,
         },
       };
 
+      // Log detailed constraint information
       console.log(`🎯 Optimizing ${variablePolicies} variable policies on Day ${constraints.testDay}`);
+      console.log('🔒 Lock States:');
+      console.log(`  Policy Parameters:`);
+      console.log(`    - Batch Size: ${policyLockStates.batchSize}`);
+      console.log(`    - Price: ${policyLockStates.price}`);
+      console.log(`    - MCE Allocation: ${policyLockStates.mceAllocation}`);
+      console.log(`    - Reorder Point: ${policyLockStates.reorderPoint}`);
+      console.log(`    - Order Quantity: ${policyLockStates.orderQuantity}`);
+      console.log(`    - Daily Overtime Hours: ${policyLockStates.dailyOvertimeHours}`);
+      console.log(`  Workforce: ${workforceLockState}`);
+      console.log(`  Machines: MCE=${machineLockStates.MCE}, WMA=${machineLockStates.WMA}, PUC=${machineLockStates.PUC}`);
 
       // Generate initial population with constrained strategy parameters
       let population: OptimizationCandidate[] = [];
@@ -2215,8 +2229,35 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
           )}
         </button>
         <p className="text-xs text-gray-500 text-center mt-2">
-          Will test {Object.values(constraints.fixedPolicies).filter(v => !v).length} variable policy actions on Day {constraints.testDay},
-          respecting {Object.values(constraints.fixedPolicies).filter(v => v).length} fixed policies and {strategy.timedActions.filter(a => a.isLocked).length} locked actions
+          {(() => {
+            // Count constrained parameters (fixed or lock-state controlled)
+            let constrainedCount = 0;
+            let variableCount = 0;
+
+            // Policy parameters with lock states
+            const policyParams = ['batchSize', 'price', 'mceAllocation', 'reorderPoint', 'orderQuantity', 'dailyOvertimeHours'] as const;
+            policyParams.forEach(param => {
+              const lockState = policyLockStates[param as keyof typeof policyLockStates];
+              if (lockState && lockState !== 'unlocked') {
+                constrainedCount++;
+              } else {
+                variableCount++;
+              }
+            });
+
+            // Workforce lock state
+            if (workforceLockState !== 'unlocked') constrainedCount++;
+
+            // Machine lock states
+            if (machineLockStates.MCE !== 'unlocked') constrainedCount++;
+            if (machineLockStates.WMA !== 'unlocked') constrainedCount++;
+            if (machineLockStates.PUC !== 'unlocked') constrainedCount++;
+
+            // Locked timed actions
+            const lockedActionsCount = strategy.timedActions.filter(a => a.isLocked).length;
+
+            return `Will optimize ${variableCount} variable parameters on Day ${constraints.testDay}, respecting ${constrainedCount} constrained parameters and ${lockedActionsCount} locked actions`;
+          })()}
         </p>
       </div>
 

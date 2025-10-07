@@ -923,6 +923,10 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const { avgCustomProduction, avgStandardProduction, customWIP: finalCustomWIP, standardWIP: finalStandardWIP,
     arcpCapacity, mceAllocation, standardBatchSize, queueCounts, queueHealthData, totalCustomWIP, customWIPCapacity } = metrics;
 
+  // Defensive checks - ensure totalCustomWIP and customWIPCapacity exist
+  const safeTotalCustomWIP = totalCustomWIP ?? 0;
+  const safeCustomWIPCapacity = customWIPCapacity ?? getCustomWIPCapacityStatus(0);
+
   // Flow metrics for each edge
   const edgeMetrics: Record<string, FlowMetrics> = {
     // Custom line metrics
@@ -1306,10 +1310,10 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             if (queueHealth && n.label.includes('Queue')) {
               // Check if this is a custom queue for additional 360 limit tracking
               const isCustomQueue = n.id.startsWith('custom-queue');
-              const queueContribution = isCustomQueue && totalCustomWIP > 0
-                ? (queueHealth.current / totalCustomWIP) * 100
+              const queueContribution = isCustomQueue && safeTotalCustomWIP > 0
+                ? (queueHealth.current / safeTotalCustomWIP) * 100
                 : 0;
-              const queueCapacityShare = isCustomQueue && totalCustomWIP > 0
+              const queueCapacityShare = isCustomQueue && safeTotalCustomWIP > 0
                 ? (queueHealth.current / 360) * 100
                 : 0;
               const isDominatingCapacity = isCustomQueue && queueHealth.current > 120;
@@ -1364,7 +1368,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between">
                               <span className="text-gray-400">Total Custom WIP:</span>
-                              <span className="text-white font-bold">{totalCustomWIP} / 360</span>
+                              <span className="text-white font-bold">{safeTotalCustomWIP} / 360</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-400">This Queue's Share:</span>
@@ -1433,8 +1437,8 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               width={140}
               height={36}
               rx={8}
-              fill={customWIPCapacity.bgColor}
-              stroke={customWIPCapacity.color}
+              fill={safeCustomWIPCapacity.bgColor}
+              stroke={safeCustomWIPCapacity.color}
               strokeWidth={2}
               opacity={0.95}
             />
@@ -1457,7 +1461,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               fontWeight={700}
               fill="white"
             >
-              {totalCustomWIP} / 360
+              {safeTotalCustomWIP} / 360
             </text>
           </g>
 
@@ -1468,9 +1472,9 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             textAnchor="middle"
             fontSize={9}
             fontWeight={700}
-            fill={customWIPCapacity.color}
+            fill={safeCustomWIPCapacity.color}
           >
-            {customWIPCapacity.label} ({customWIPCapacity.percentage.toFixed(0)}%)
+            {safeCustomWIPCapacity.label} ({safeCustomWIPCapacity.percentage.toFixed(0)}%)
           </text>
 
           <text x={3995} y={750} fontSize={18} fontWeight={700} fill="#2563eb" textAnchor="end">STANDARD</text>

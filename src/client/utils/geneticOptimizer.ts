@@ -96,6 +96,9 @@ export interface OptimizationConstraints {
     batchSize?: LockState;
     price?: LockState;
     mceAllocation?: LockState;
+    reorderPoint?: LockState;
+    orderQuantity?: LockState;
+    dailyOvertimeHours?: LockState;
   };
 }
 
@@ -481,15 +484,39 @@ export function generateConstrainedStrategyParams(
 
   // Only generate random values for variable (non-fixed) policies
   // Respect min/max constraints from policyRanges AND lock states
+
+  // Reorder Point - respect lock state
   if (!constraints.fixedPolicies.reorderPoint) {
-    const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
-    const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
-    params.reorderPoint = Math.floor(min + Math.random() * (max - min));
+    let min = constraints.policyRanges?.reorderPoint?.min ?? 200;
+    let max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
+    const currentReorderPoint = baseStrategy.reorderPoint;
+    const lockState = constraints.policyLockStates?.reorderPoint;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentReorderPoint); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentReorderPoint); // Can only decrease
+    }
+
+    params.reorderPoint = Math.floor(min + Math.random() * (max - min + 1));
   }
+
+  // Order Quantity - respect lock state
   if (!constraints.fixedPolicies.orderQuantity) {
-    const min = constraints.policyRanges?.orderQuantity?.min ?? 200;
-    const max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
-    params.orderQuantity = Math.floor(min + Math.random() * (max - min));
+    let min = constraints.policyRanges?.orderQuantity?.min ?? 200;
+    let max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
+    const currentOrderQuantity = baseStrategy.orderQuantity;
+    const lockState = constraints.policyLockStates?.orderQuantity;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentOrderQuantity); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentOrderQuantity); // Can only decrease
+    }
+
+    params.orderQuantity = Math.floor(min + Math.random() * (max - min + 1));
   }
 
   // Standard Price - respect lock state
@@ -543,9 +570,20 @@ export function generateConstrainedStrategyParams(
     params.mceAllocationCustom = min + Math.random() * (max - min);
   }
 
+  // Daily Overtime Hours - respect lock state
   if (!constraints.fixedPolicies.dailyOvertimeHours) {
-    const min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
-    const max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    let min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
+    let max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    const currentOvertimeHours = baseStrategy.dailyOvertimeHours;
+    const lockState = constraints.policyLockStates?.dailyOvertimeHours;
+
+    // Adjust range based on lock state
+    if (lockState === 'minimum') {
+      min = Math.max(min, currentOvertimeHours); // Can only increase
+    } else if (lockState === 'maximum') {
+      max = Math.min(max, currentOvertimeHours); // Can only decrease
+    }
+
     params.dailyOvertimeHours = Math.random() < 0.3 ? Math.floor(min + Math.random() * (max - min + 1)) : 0;
   }
 
@@ -567,16 +605,37 @@ export function mutateConstrainedStrategyParams(
 
   // Only mutate variable (non-fixed) policies
   // Respect min/max constraints from policyRanges AND lock states
+
+  // Reorder Point - respect lock state
   if (!constraints.fixedPolicies.reorderPoint && Math.random() < mutationRate && mutated.reorderPoint) {
-    const min = constraints.policyRanges?.reorderPoint?.min ?? 200;
-    const max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
+    let min = constraints.policyRanges?.reorderPoint?.min ?? 200;
+    let max = constraints.policyRanges?.reorderPoint?.max ?? 1000;
+    const lockState = constraints.policyLockStates?.reorderPoint;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.reorderPoint); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.reorderPoint); // Can only decrease
+    }
+
     const change = Math.floor((Math.random() - 0.5) * 200);
     mutated.reorderPoint = Math.max(min, Math.min(max, mutated.reorderPoint + change));
   }
 
+  // Order Quantity - respect lock state
   if (!constraints.fixedPolicies.orderQuantity && Math.random() < mutationRate && mutated.orderQuantity) {
-    const min = constraints.policyRanges?.orderQuantity?.min ?? 200;
-    const max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
+    let min = constraints.policyRanges?.orderQuantity?.min ?? 200;
+    let max = constraints.policyRanges?.orderQuantity?.max ?? 2000;
+    const lockState = constraints.policyLockStates?.orderQuantity;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.orderQuantity); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.orderQuantity); // Can only decrease
+    }
+
     const change = Math.floor((Math.random() - 0.5) * 400);
     mutated.orderQuantity = Math.max(min, Math.min(max, mutated.orderQuantity + change));
   }
@@ -632,9 +691,19 @@ export function mutateConstrainedStrategyParams(
     mutated.mceAllocationCustom = Math.max(min, Math.min(max, mutated.mceAllocationCustom + change));
   }
 
+  // Daily Overtime Hours - respect lock state
   if (!constraints.fixedPolicies.dailyOvertimeHours && Math.random() < mutationRate && mutated.dailyOvertimeHours !== undefined) {
-    const min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
-    const max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    let min = constraints.policyRanges?.dailyOvertimeHours?.min ?? 0;
+    let max = constraints.policyRanges?.dailyOvertimeHours?.max ?? 3;
+    const lockState = constraints.policyLockStates?.dailyOvertimeHours;
+
+    // Adjust range based on lock state (relative to baseStrategy current value)
+    if (baseStrategy && lockState === 'minimum') {
+      min = Math.max(min, baseStrategy.dailyOvertimeHours); // Can only increase
+    } else if (baseStrategy && lockState === 'maximum') {
+      max = Math.min(max, baseStrategy.dailyOvertimeHours); // Can only decrease
+    }
+
     mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(min + Math.random() * (max - min + 1));
   }
 
