@@ -16,7 +16,7 @@ export default function Tabs({ activeTab, onTabChange }: TabsProps) {
   ];
 
   // Get the current scenario info
-  const currentScenario = savedStrategies.find(s => s.scenarioId === currentScenarioId);
+  const currentScenario = savedStrategies.find(s => s?.scenarioId === currentScenarioId);
   const scenarioName = currentScenario?.name || 'Business Case (Day 51)';
   const scenarioDescription = currentScenario?.description || 'Default starting conditions';
 

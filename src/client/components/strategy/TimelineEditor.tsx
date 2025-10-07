@@ -134,7 +134,7 @@ export default function TimelineEditor() {
             </div>
           ) : (
             <div className="space-y-3">
-              {strategy.timedActions.map((action, index) => (
+              {strategy.timedActions.filter(action => action && action.type).map((action, index) => (
                 <div
                   key={index}
                   className={`rounded-lg p-4 flex items-center justify-between border-2 transition-all ${
@@ -199,19 +199,19 @@ export default function TimelineEditor() {
               <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
                 <p className="text-xs text-gray-600 mb-1 font-medium uppercase">Loans</p>
                 <p className="text-gray-900 font-semibold text-2xl">
-                  {strategy.timedActions.filter((a) => a.type === 'TAKE_LOAN').length}
+                  {strategy.timedActions.filter((a) => a && a.type === 'TAKE_LOAN').length}
                 </p>
               </div>
               <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
                 <p className="text-xs text-gray-600 mb-1 font-medium uppercase">Hiring Events</p>
                 <p className="text-gray-900 font-semibold text-2xl">
-                  {strategy.timedActions.filter((a) => a.type === 'HIRE_ROOKIE').length}
+                  {strategy.timedActions.filter((a) => a && a.type === 'HIRE_ROOKIE').length}
                 </p>
               </div>
               <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
                 <p className="text-xs text-gray-600 mb-1 font-medium uppercase">Material Orders</p>
                 <p className="text-gray-900 font-semibold text-2xl">
-                  {strategy.timedActions.filter((a) => a.type === 'ORDER_MATERIALS').length}
+                  {strategy.timedActions.filter((a) => a && a.type === 'ORDER_MATERIALS').length}
                 </p>
               </div>
             </div>

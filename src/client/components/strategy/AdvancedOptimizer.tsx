@@ -874,8 +874,8 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
       // Debug: Critical check - are the actions actually different?
       console.log('🔍 ACTIONS COMPARISON:');
       topResults.forEach((candidate, idx) => {
-        const priceAction = candidate.actions.find(a => a.type === 'ADJUST_PRICE');
-        const ropAction = candidate.actions.find(a => a.type === 'SET_REORDER_POINT');
+        const priceAction = candidate.actions.find(a => a?.type === 'ADJUST_PRICE');
+        const ropAction = candidate.actions.find(a => a?.type === 'SET_REORDER_POINT');
         console.log(`Candidate ${idx} (${candidate.id}):`, {
           price: priceAction && 'newPrice' in priceAction ? priceAction.newPrice : 'N/A',
           reorderPoint: ropAction && 'newReorderPoint' in ropAction ? ropAction.newReorderPoint : 'N/A',

@@ -34,7 +34,7 @@ export default function StrategyLibraryModal({
 
   const handleSelect = () => {
     if (!selectedId) return;
-    const strategy = savedStrategies.find(s => s.id === selectedId);
+    const strategy = savedStrategies.find(s => s?.id === selectedId);
     if (strategy) {
       onSelect(strategy);
       onClose();
@@ -112,7 +112,7 @@ export default function StrategyLibraryModal({
             </div>
           ) : (
             <div className="space-y-3">
-              {savedStrategies.map((strategy) => (
+              {savedStrategies.filter(s => s && s.id).map((strategy) => (
                 <div
                   key={strategy.id}
                   className={`bg-gray-800 border rounded-lg p-5 transition-all cursor-pointer ${
@@ -170,7 +170,7 @@ export default function StrategyLibraryModal({
                               </div>
                             )}
                             <div>
-                              <span className="text-gray-500">Actions:</span> {strategy.strategy.timedActions.length} scheduled
+                              <span className="text-gray-500">Actions:</span> {strategy.strategy?.timedActions?.length || 0} scheduled
                             </div>
                           </div>
                         </div>

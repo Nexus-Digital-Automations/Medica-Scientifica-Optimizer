@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Settings, FileText, Package, Clock, Users } from 'lucide-react';
 import type { SimulationResult } from '../../types/ui.types';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
@@ -229,7 +229,7 @@ function getArrowMarker(flowRate: number, demandRate: number): string {
   return 'url(#arrow-blue)';                   // Blue arrow marker
 }
 
-function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
+function Node({ node, info, efficiency, queueCount }: { node: Node; info?: React.ReactNode; efficiency?: number; queueCount?: number }) {
   const IconComponent = getIconComponent(node.icon);
 
   return (
@@ -250,11 +250,63 @@ function Node({ node, info }: { node: Node; info?: React.ReactNode }) {
           <IconComponent className="w-7 h-7 text-white" strokeWidth={2.5} />
         </div>
       </foreignObject>
-      <text x={NODE_W / 2} y={NODE_H - 15} textAnchor="middle" fontSize={13} fontWeight={700} fill="white">
+      {/* Node label moved higher */}
+      <text x={NODE_W / 2} y={78} textAnchor="middle" fontSize={13} fontWeight={700} fill="white">
         {node.label}
       </text>
+      {/* Queue count badge - displayed below label */}
+      {queueCount !== undefined && (
+        <g>
+          <rect
+            x={NODE_W / 2 - 35}
+            y={90}
+            width={70}
+            height={24}
+            rx={8}
+            fill="rgba(251, 146, 60, 0.9)"
+            stroke="#f97316"
+            strokeWidth={1.5}
+          />
+          <text
+            x={NODE_W / 2}
+            y={106}
+            textAnchor="middle"
+            fontSize={14}
+            fontWeight={700}
+            fill="white"
+          >
+            {queueCount}
+          </text>
+        </g>
+      )}
+      {/* Efficiency badge - larger size */}
+      {efficiency !== undefined && (
+        <g>
+          <rect
+            x={NODE_W / 2 - 45}
+            y={NODE_H - 32}
+            width={90}
+            height={28}
+            rx={10}
+            fill="rgba(255,255,255,0.3)"
+            stroke="white"
+            strokeWidth={1.5}
+          />
+          <text
+            x={NODE_W / 2}
+            y={NODE_H - 14}
+            textAnchor="middle"
+            fontSize={18}
+            fontWeight={700}
+            fill="white"
+          >
+            {efficiency.toFixed(0)}%
+          </text>
+        </g>
+      )}
+      {/* Info button moved to top-right */}
       {info && (
-        <foreignObject x={70} y={10} width={25} height={25} style={{ zIndex: 10 }} pointerEvents="all">
+        <foreignObject x={NODE_W - 35} y={10} width={25} height={25} style={{ zIndex: 10 }} pointerEvents="all">
           {info}
         </foreignObject>
       )}
@@ -583,6 +635,12 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   const [showConstraintSuggestions, setShowConstraintSuggestions] = useState(false);
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
 
+  // Timeline state
+  const finalDayIndex = simulationResult?.state.history.dailyCash.length ? simulationResult.state.history.dailyCash.length - 1 : 0;
+  const [timelineDay, setTimelineDay] = useState(finalDayIndex);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
   // Zoom and pan state
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -669,6 +727,32 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     setTransform({ x: 0, y: 0, scale: 1 });
   };
 
+  // Timeline playback effect
+  useEffect(() => {
+    if (!isPlaying || !simulationResult) return;
+
+    const interval = setInterval(() => {
+      setTimelineDay(prevDay => {
+        const maxDay = simulationResult.state.history.dailyCash.length - 1;
+        if (prevDay >= maxDay) {
+          setIsPlaying(false);
+          return maxDay;
+        }
+        return prevDay + 1;
+      });
+    }, 1000 / playbackSpeed); // Adjust speed based on playbackSpeed
+
+    return () => clearInterval(interval);
+  }, [isPlaying, playbackSpeed, simulationResult]);
+
+  // Update timeline day when simulation result changes
+  useEffect(() => {
+    if (simulationResult) {
+      const maxDay = simulationResult.state.history.dailyCash.length - 1;
+      setTimelineDay(maxDay);
+    }
+  }, [simulationResult]);
+
   const bottleneckAnalysis = useMemo(
     () => simulationResult ? analyzeBottlenecks(simulationResult) : { metrics: [], problems: [], overallHealth: 'optimal' as const, summaryStats: { totalBottlenecks: 0, criticalBottlenecks: 0, averageUtilization: 0, mostCriticalStation: null } },
     [simulationResult]
@@ -688,33 +772,64 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
   }
 
   const { state } = simulationResult;
-  const finalDayIndex = state.history.dailyCash.length - 1;
+  const maxDayIndex = state.history.dailyCash.length - 1;
   const recentDays = 50;
-  const startIdx = Math.max(0, finalDayIndex - recentDays);
 
-  const customProductionData = state.history.dailyCustomProduction.slice(startIdx, finalDayIndex + 1);
-  const avgCustomProduction = customProductionData.reduce((sum, d) => sum + d.value, 0) / (finalDayIndex - startIdx + 1);
+  // Function to get metrics for a specific day
+  const getMetricsForDay = (dayIndex: number) => {
+    const startIdx = Math.max(0, dayIndex - recentDays);
 
-  // Debug: Log custom production
-  console.log('Custom Production Debug:', {
-    startIdx,
-    finalDayIndex,
-    dataPoints: customProductionData.length,
-    totalProduction: customProductionData.reduce((sum, d) => sum + d.value, 0),
-    avgCustomProduction,
-    sampleData: customProductionData.slice(0, 5)
-  });
+    // Calculate production metrics
+    const customProductionData = state.history.dailyCustomProduction.slice(startIdx, dayIndex + 1);
+    const avgCustomProduction = customProductionData.reduce((sum, d) => sum + d.value, 0) / (dayIndex - startIdx + 1);
 
-  const finalCustomWIP = state.customLineWIP.orders.length;
-  const finalExperts = state.history.dailyExperts[finalDayIndex]?.value || 0;
-  const finalRookies = state.history.dailyRookies[finalDayIndex]?.value || 0;
-  const arcpCapacity = (finalExperts * 3) + (finalRookies * 3 * 0.4);
-  const mceAllocation = simulationResult?.strategy?.mceAllocationCustom ?? 0.5;
+    const customWIP = state.history.dailyCustomWIP[dayIndex]?.value || 0;
+    const experts = state.history.dailyExperts[dayIndex]?.value || 0;
+    const rookies = state.history.dailyRookies[dayIndex]?.value || 0;
+    const arcpCapacity = (experts * 3) + (rookies * 3 * 0.4);
+    const mceAllocation = simulationResult?.strategy?.mceAllocationCustom ?? 0.5;
 
-  // Calculate standard line metrics
-  const avgStandardProduction = state.history.dailyStandardProduction.slice(startIdx, finalDayIndex + 1).reduce((sum, d) => sum + d.value, 0) / (finalDayIndex - startIdx + 1);
-  const finalStandardWIP = state.history.dailyStandardWIP[finalDayIndex]?.value || 0;
-  const standardBatchSize = simulationResult?.strategy?.standardBatchSize ?? 60;
+    // Calculate standard line metrics
+    const standardProductionData = state.history.dailyStandardProduction.slice(startIdx, dayIndex + 1);
+    const avgStandardProduction = standardProductionData.reduce((sum, d) => sum + d.value, 0) / (dayIndex - startIdx + 1);
+    const standardWIP = state.history.dailyStandardWIP[dayIndex]?.value || 0;
+    const standardBatchSize = simulationResult?.strategy?.standardBatchSize ?? 60;
+    const finishedStandard = state.history.dailyFinishedStandard[dayIndex]?.value || 0;
+
+    // Calculate queue counts for display (estimate based on WIP and history)
+    const queueCounts: Record<string, number> = {
+      // Custom line queues - distribute WIP across queues
+      'custom-queue1': Math.round(customWIP * 0.3),
+      'custom-queue2': Math.round(customWIP * 0.4),
+      'custom-queue3': Math.round(customWIP * 0.3),
+
+      // Standard line queues - distribute WIP across queues
+      'std-queue1': Math.round(standardWIP * 0.2),
+      'std-queue2': Math.round(standardWIP * 0.2),
+      'std-queue3': Math.round(standardWIP * 0.3),
+      'std-queue4': Math.round(standardWIP * 0.2),
+      'std-queue5': finishedStandard,
+    };
+
+    return {
+      avgCustomProduction,
+      avgStandardProduction,
+      customWIP,
+      standardWIP,
+      arcpCapacity,
+      mceAllocation,
+      standardBatchSize,
+      queueCounts,
+      experts,
+      rookies,
+    };
+  };
+
+  // Use timeline day for current metrics
+  const dayIndex = Math.min(timelineDay, maxDayIndex);
+  const metrics = getMetricsForDay(dayIndex);
+  const { avgCustomProduction, avgStandardProduction, customWIP: finalCustomWIP, standardWIP: finalStandardWIP,
+    arcpCapacity, mceAllocation, standardBatchSize, queueCounts } = metrics;
 
   // Flow metrics for each edge
   const edgeMetrics: Record<string, FlowMetrics> = {
@@ -989,29 +1104,47 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                         </p>
                       </div>
                       <div className="bg-gray-800 rounded-lg p-3">
-                        <h4 className="text-md font-semibold text-purple-300 mb-2">Allocation Details</h4>
+                        <h4 className="text-md font-semibold text-purple-300 mb-2">MCE Allocation</h4>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Custom Line Allocation:</span>
+                            <span className="text-gray-400">MCE Capacity:</span>
+                            <span className="text-white font-bold">6 units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Custom Line:</span>
                             <span className="text-purple-300 font-bold">{(mceAllocation * 100).toFixed(0)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Standard Line Allocation:</span>
+                            <span className="text-gray-400">Standard Line:</span>
                             <span className="text-blue-300 font-bold">{((1 - mceAllocation) * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
-                            <span className="text-gray-400">Priority:</span>
-                            <span className="text-white font-bold">Custom → Standard</span>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-blue-900 border border-blue-600 rounded-lg p-3">
-                        <h4 className="text-md font-semibold text-blue-300 mb-2">💡 Strategic Importance</h4>
-                        <p className="text-xs">
-                          The MCE allocation percentage determines how machine capacity is divided between custom and standard production.
-                          Custom line has first priority on allocated capacity, while standard line uses remaining capacity.
-                        </p>
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <h4 className="text-md font-semibold text-pink-300 mb-2">ARCP Capacity (Bottleneck)</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Total ARCP:</span>
+                            <span className="text-white font-bold">{arcpCapacity.toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Custom ARCP:</span>
+                            <span className="text-purple-300 font-bold">{(arcpCapacity * mceAllocation).toFixed(1)} units/day</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Standard ARCP:</span>
+                            <span className="text-blue-300 font-bold">{(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day</span>
+                          </div>
+                        </div>
                       </div>
+                      {arcpCapacity < 6 && (
+                        <div className="bg-red-900/30 border border-red-600 rounded-lg p-3">
+                          <h4 className="text-md font-semibold text-red-300 mb-2">⚠️ Labor Shortage</h4>
+                          <p className="text-xs">
+                            ARCP capacity ({arcpCapacity.toFixed(1)} units/day) is below MCE capacity (6 units/day). Consider hiring more workers to eliminate bottleneck.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   }
                 />
@@ -1019,28 +1152,40 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
               return <MCEStation key={n.id} x={n.x} y={n.y} mceAllocation={mceAllocation} info={mceInfo} />;
             }
 
-            // Custom line stations
+            // Custom line stations (Station 2 and 3 - manual processing)
             if (n.id === 'custom-station2' || n.id === 'custom-station3') {
+              // These stations have 6 units/day capacity but are bottlenecked upstream at ARCP
+              const stationCapacity = 6;
+              const customEfficiency = (avgCustomProduction / stationCapacity) * 100;
               info = (
                 <InfoPopup
                   title={`${n.label} Details`}
                   buttonClassName="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                   content={
                     <div className="text-sm text-gray-300">
-                      <p>Custom line processing station with shared capacity</p>
+                      <p>Custom line manual processing station</p>
                       <div className="mt-2">
-                        <div>Capacity: 6 units/day</div>
-                        <div>Utilization: {((avgCustomProduction / 6) * 100).toFixed(1)}%</div>
+                        <div>Capacity: {stationCapacity} units/day</div>
+                        <div>Current Throughput: {avgCustomProduction.toFixed(1)} units/day</div>
+                        <div>Utilization: {customEfficiency.toFixed(1)}%</div>
                       </div>
+                      {avgCustomProduction === 0 && finalCustomWIP > 0 && (
+                        <div className="mt-3 bg-red-900/30 border border-red-600 rounded p-2 text-xs">
+                          <div className="font-bold text-red-300">⚠️ Bottlenecked upstream</div>
+                          <div className="text-gray-300">{finalCustomWIP} orders stuck in system</div>
+                        </div>
+                      )}
                     </div>
                   }
                 />
               );
+              return <Node node={n} key={n.id} info={info} efficiency={customEfficiency} />;
             }
             // Standard line stations and batching
             else if (n.id === 'std-arcp' || n.id === 'std-batch1' || n.id === 'std-batch2') {
               const isStation = n.id === 'std-arcp';
               const isBatching = n.id === 'std-batch1' || n.id === 'std-batch2';
+              const standardEfficiency = isStation ? (avgStandardProduction / (arcpCapacity * (1 - mceAllocation))) * 100 : undefined;
               info = (
                 <InfoPopup
                   title={`${n.label} Details`}
@@ -1052,7 +1197,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                         {isStation && (
                           <>
                             <div>Capacity: {`${(arcpCapacity * (1 - mceAllocation)).toFixed(1)} units/day`}</div>
-                            <div>Utilization: {((avgStandardProduction / (arcpCapacity * (1 - mceAllocation))) * 100).toFixed(1)}%</div>
+                            <div>Utilization: {standardEfficiency?.toFixed(1)}%</div>
                           </>
                         )}
                         {isBatching && (
@@ -1066,8 +1211,11 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
                   }
                 />
               );
+              return <Node node={n} key={n.id} info={info} efficiency={standardEfficiency} />;
             }
-            return <Node node={n} key={n.id} info={info} />;
+            // All other nodes (including queues)
+            const queueCount = queueCounts[n.id];
+            return <Node node={n} key={n.id} info={info} queueCount={queueCount} />;
           })}
         </g>
 
@@ -1131,6 +1279,110 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </button>
         <div className="text-center text-xs font-bold text-gray-300 mt-1 px-1">
           {Math.round(transform.scale * 100)}%
+        </div>
+      </div>
+
+      {/* Timeline Controls */}
+      <div className="mt-6 bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-blue-500 rounded-xl p-6 shadow-2xl">
+        <h3 className="text-xl font-bold text-white mb-4 text-center">🎬 Timeline Playback</h3>
+
+        {/* Day Counter */}
+        <div className="text-center mb-4">
+          <span className="text-3xl font-bold text-blue-400">Day {dayIndex}</span>
+          <span className="text-xl text-gray-400"> / {maxDayIndex}</span>
+        </div>
+
+        {/* Timeline Slider */}
+        <div className="mb-4">
+          <input
+            type="range"
+            min="0"
+            max={maxDayIndex}
+            value={dayIndex}
+            onChange={(e) => setTimelineDay(Number(e.target.value))}
+            className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            style={{
+              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(dayIndex / maxDayIndex) * 100}%, #4b5563 ${(dayIndex / maxDayIndex) * 100}%, #4b5563 100%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Day 0</span>
+            <span>Day {maxDayIndex}</span>
+          </div>
+        </div>
+
+        {/* Playback Controls */}
+        <div className="flex items-center justify-center gap-4">
+          {/* Skip to Start */}
+          <button
+            onClick={() => setTimelineDay(0)}
+            className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center justify-center text-white transition-all duration-200"
+            title="Skip to Start"
+          >
+            ⏮
+          </button>
+
+          {/* Step Backward */}
+          <button
+            onClick={() => setTimelineDay(Math.max(0, dayIndex - 1))}
+            disabled={dayIndex === 0}
+            className="w-10 h-10 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg flex items-center justify-center text-white transition-all duration-200"
+            title="Step Backward"
+          >
+            ◀
+          </button>
+
+          {/* Play/Pause */}
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold transition-all duration-200 shadow-lg"
+            title={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+
+          {/* Step Forward */}
+          <button
+            onClick={() => setTimelineDay(Math.min(maxDayIndex, dayIndex + 1))}
+            disabled={dayIndex === maxDayIndex}
+            className="w-10 h-10 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg flex items-center justify-center text-white transition-all duration-200"
+            title="Step Forward"
+          >
+            ▶
+          </button>
+
+          {/* Skip to End */}
+          <button
+            onClick={() => setTimelineDay(maxDayIndex)}
+            className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center justify-center text-white transition-all duration-200"
+            title="Skip to End"
+          >
+            ⏭
+          </button>
+
+          {/* Speed Selector */}
+          <div className="ml-4 flex items-center gap-2">
+            <span className="text-sm text-gray-400">Speed:</span>
+            <select
+              value={playbackSpeed}
+              onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+              className="bg-gray-700 text-white rounded-lg px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-gray-600 transition-all duration-200"
+            >
+              <option value={0.5}>0.5x</option>
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={4}>4x</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Progress Information */}
+        <div className="mt-4 text-center text-sm text-gray-400">
+          {isPlaying ? (
+            <span className="text-green-400 font-semibold">▶ Playing at {playbackSpeed}x speed...</span>
+          ) : (
+            <span>Paused - Use controls to navigate timeline</span>
+          )}
         </div>
       </div>
 

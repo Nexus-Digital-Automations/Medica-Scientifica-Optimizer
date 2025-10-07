@@ -77,7 +77,7 @@ export default function StrategyLibrary({ onLoadStrategy }: StrategyLibraryProps
       </div>
 
       <div className="grid gap-4">
-        {savedStrategies.map((strategy) => (
+        {savedStrategies.filter(s => s && s.id).map((strategy) => (
           <div
             key={strategy.id}
             className="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-gray-600 transition-colors"
@@ -116,7 +116,7 @@ export default function StrategyLibrary({ onLoadStrategy }: StrategyLibraryProps
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-500">Actions:</span> {strategy.strategy.timedActions.length} scheduled
+                    <span className="text-gray-500">Actions:</span> {strategy.strategy?.timedActions?.length || 0} scheduled
                   </div>
                 </div>
               </div>
