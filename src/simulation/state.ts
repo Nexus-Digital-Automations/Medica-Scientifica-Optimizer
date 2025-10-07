@@ -173,6 +173,9 @@ export function recordDailyHistory(
   state.history.dailyExpenses.push({ day, value: dailyMetrics.expenses || 0 });
   state.history.dailyInterestPaid.push({ day, value: dailyMetrics.interestPaid || 0 });
   state.history.dailyInterestEarned.push({ day, value: dailyMetrics.interestEarned || 0 });
+  state.history.dailyDebtPaydown.push({ day, value: dailyMetrics.debtPaidDown || 0 });
+  state.history.dailyPreemptiveLoan.push({ day, value: dailyMetrics.preemptiveLoan || 0 });
+  state.history.dailyDebtSavings.push({ day, value: dailyMetrics.debtSavings || 0 });
 
   // Production tracking
   state.history.dailyStandardProduction.push({ day, value: dailyMetrics.standardProduced || 0 });

@@ -175,6 +175,146 @@ export default function PolicyForm() {
         </div>
       </div>
 
+      {/* Debt Management Policy */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div className="border-b border-gray-200 px-8 py-6">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <span>💰</span> Automated Debt Management
+          </h3>
+          <p className="text-gray-600 text-sm mt-1">
+            <strong className="text-green-600">20% Annual ROI:</strong> Paying down debt saves 0.05%/day + avoids 5% wage advances
+          </p>
+        </div>
+        <div className="p-8">
+          {/* Enable/Disable Toggle */}
+          <div className="mb-8 flex items-center gap-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+            <label htmlFor="auto-debt-paydown" className="flex items-center gap-3 cursor-pointer flex-1">
+              <input
+                id="auto-debt-paydown"
+                type="checkbox"
+                checked={strategy.autoDebtPaydown}
+                onChange={(e) => handleInputChange('autoDebtPaydown', e.target.checked ? 1 : 0)}
+                className="w-6 h-6 text-blue-600 bg-white border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-base font-semibold text-gray-900">
+                Enable Automatic Debt Paydown
+              </span>
+            </label>
+            <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded border border-gray-300">
+              {strategy.autoDebtPaydown ? '✅ Active' : '⏸️ Disabled'}
+            </span>
+          </div>
+
+          {/* Debt Management Parameters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Min Cash Reserve Days */}
+            <div>
+              <label htmlFor="min-cash-reserve-days" className="block text-sm font-medium text-gray-700 mb-2">
+                🏦 Minimum Cash Reserve (days of expenses)
+              </label>
+              <input
+                id="min-cash-reserve-days"
+                type="number"
+                value={strategy.minCashReserveDays}
+                onChange={(e) => handleInputChange('minCashReserveDays', Number(e.target.value))}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                min="5"
+                max="15"
+                step="1"
+                disabled={!strategy.autoDebtPaydown}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Typical: 7-10 days (operating safety buffer)
+              </p>
+            </div>
+
+            {/* Debt Paydown Aggressiveness */}
+            <div>
+              <label htmlFor="debt-paydown-aggressiveness" className="block text-sm font-medium text-gray-700 mb-2">
+                🎯 Debt Paydown Aggressiveness (0-1)
+              </label>
+              <input
+                id="debt-paydown-aggressiveness"
+                type="number"
+                value={strategy.debtPaydownAggressiveness}
+                onChange={(e) => handleInputChange('debtPaydownAggressiveness', Number(e.target.value))}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                min="0"
+                max="1"
+                step="0.05"
+                disabled={!strategy.autoDebtPaydown}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                🎯 {(strategy.debtPaydownAggressiveness * 100).toFixed(0)}% of excess cash → debt paydown
+              </p>
+            </div>
+
+            {/* Preemptive Wage Loan Days */}
+            <div>
+              <label htmlFor="preemptive-wage-loan-days" className="block text-sm font-medium text-gray-700 mb-2">
+                ⏰ Preemptive Loan Before Payroll (days)
+              </label>
+              <input
+                id="preemptive-wage-loan-days"
+                type="number"
+                value={strategy.preemptiveWageLoanDays}
+                onChange={(e) => handleInputChange('preemptiveWageLoanDays', Number(e.target.value))}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                min="3"
+                max="7"
+                step="1"
+                disabled={!strategy.autoDebtPaydown}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Take 2% loan early to avoid 5% wage advance
+              </p>
+            </div>
+
+            {/* Max Debt Threshold */}
+            <div>
+              <label htmlFor="max-debt-threshold" className="block text-sm font-medium text-gray-700 mb-2">
+                🚨 Maximum Debt Threshold ($)
+              </label>
+              <input
+                id="max-debt-threshold"
+                type="number"
+                value={strategy.maxDebtThreshold}
+                onChange={(e) => handleInputChange('maxDebtThreshold', Number(e.target.value))}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                min="100000"
+                max="300000"
+                step="10000"
+                disabled={!strategy.autoDebtPaydown}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                🚨 Emergency measures trigger at this debt level
+              </p>
+            </div>
+
+            {/* Emergency Loan Buffer */}
+            <div>
+              <label htmlFor="emergency-loan-buffer" className="block text-sm font-medium text-gray-700 mb-2">
+                🛡️ Emergency Loan Buffer ($)
+              </label>
+              <input
+                id="emergency-loan-buffer"
+                type="number"
+                value={strategy.emergencyLoanBuffer}
+                onChange={(e) => handleInputChange('emergencyLoanBuffer', Number(e.target.value))}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                min="5000"
+                max="30000"
+                step="1000"
+                disabled={!strategy.autoDebtPaydown}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                🛡️ Minimum cash before triggering emergency loan
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Advanced: Demand Model (Collapsible) */}
       <details className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <summary className="border-b border-gray-200 px-8 py-6 cursor-pointer hover:bg-gray-50 transition-all">

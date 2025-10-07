@@ -103,6 +103,14 @@ const DEFAULT_STRATEGY: Strategy = {
   overtimeTriggerDays: 5,
   dailyQuitProbability: 0.10,
 
+  // Automated Debt Management (optimal defaults for 20% ROI)
+  autoDebtPaydown: true, // Enabled by default
+  minCashReserveDays: 8, // 8 days of operating expenses as safety buffer
+  debtPaydownAggressiveness: 0.80, // Use 80% of excess cash for debt paydown
+  preemptiveWageLoanDays: 4, // Take 2% loan 4 days before payroll to avoid 5% wage advance
+  maxDebtThreshold: 200000, // Emergency measures at $200K debt
+  emergencyLoanBuffer: 15000, // Maintain $15K minimum cash before emergency loan
+
   // Timed Actions
   timedActions: [],
 };

@@ -115,6 +115,9 @@ export const INITIAL_STATE_BUSINESS_CASE: SimulationState = {
     dailyExpenses: [],
     dailyInterestPaid: [],
     dailyInterestEarned: [],
+    dailyDebtPaydown: [],
+    dailyPreemptiveLoan: [],
+    dailyDebtSavings: [],
 
     // Production tracking
     dailyStandardProduction: [],
@@ -232,6 +235,9 @@ export const INITIAL_STATE_HISTORICAL: SimulationState = {
     dailyExpenses: [],
     dailyInterestPaid: [],
     dailyInterestEarned: [],
+    dailyDebtPaydown: [],
+    dailyPreemptiveLoan: [],
+    dailyDebtSavings: [],
     dailyStandardProduction: [],
     dailyCustomProduction: [],
     dailyStandardWIP: [],

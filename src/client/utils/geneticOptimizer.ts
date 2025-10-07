@@ -44,6 +44,12 @@ export interface OptimizationCandidate {
     standardBatchSize?: number;
     mceAllocationCustom?: number;
     dailyOvertimeHours?: number;
+    autoDebtPaydown?: boolean;
+    minCashReserveDays?: number;
+    debtPaydownAggressiveness?: number;
+    preemptiveWageLoanDays?: number;
+    maxDebtThreshold?: number;
+    emergencyLoanBuffer?: number;
   };
 }
 
@@ -427,6 +433,12 @@ export function generateRandomStrategyParams(): OptimizationCandidate['strategyP
     standardBatchSize: Math.floor(50 + Math.random() * 450), // 50-500
     mceAllocationCustom: Math.random() * 0.6 + 0.2, // 0.2-0.8 (20%-80% to custom)
     dailyOvertimeHours: Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0, // 0-2 hours, 30% chance
+    autoDebtPaydown: Math.random() > 0.2, // 80% chance enabled (optimal default)
+    minCashReserveDays: Math.floor(5 + Math.random() * 11), // 5-15 days
+    debtPaydownAggressiveness: Math.random() * 0.5 + 0.5, // 0.5-1.0 (50%-100%)
+    preemptiveWageLoanDays: Math.floor(3 + Math.random() * 5), // 3-7 days
+    maxDebtThreshold: Math.floor(100000 + Math.random() * 200000), // $100K-$300K
+    emergencyLoanBuffer: Math.floor(5000 + Math.random() * 25000), // $5K-$30K
   };
 }
 
@@ -468,6 +480,36 @@ export function mutateStrategyParams(
 
   if (Math.random() < mutationRate && mutated.dailyOvertimeHours !== undefined) {
     mutated.dailyOvertimeHours = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3);
+  }
+
+  // Debt management mutations
+  if (Math.random() < mutationRate && mutated.autoDebtPaydown !== undefined) {
+    mutated.autoDebtPaydown = Math.random() > 0.3; // 70% chance enabled after mutation
+  }
+
+  if (Math.random() < mutationRate && mutated.minCashReserveDays) {
+    const change = Math.floor((Math.random() - 0.5) * 4); // ±2 days
+    mutated.minCashReserveDays = Math.max(5, Math.min(15, mutated.minCashReserveDays + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.debtPaydownAggressiveness !== undefined) {
+    const change = (Math.random() - 0.5) * 0.2; // ±0.1
+    mutated.debtPaydownAggressiveness = Math.max(0.5, Math.min(1.0, mutated.debtPaydownAggressiveness + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.preemptiveWageLoanDays) {
+    const change = Math.floor((Math.random() - 0.5) * 2); // ±1 day
+    mutated.preemptiveWageLoanDays = Math.max(3, Math.min(7, mutated.preemptiveWageLoanDays + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.maxDebtThreshold) {
+    const change = Math.floor((Math.random() - 0.5) * 40000); // ±$20K
+    mutated.maxDebtThreshold = Math.max(100000, Math.min(300000, mutated.maxDebtThreshold + change));
+  }
+
+  if (Math.random() < mutationRate && mutated.emergencyLoanBuffer) {
+    const change = Math.floor((Math.random() - 0.5) * 6000); // ±$3K
+    mutated.emergencyLoanBuffer = Math.max(5000, Math.min(30000, mutated.emergencyLoanBuffer + change));
   }
 
   return mutated;

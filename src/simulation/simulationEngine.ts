@@ -33,6 +33,7 @@ import {
 } from './productionModule.js';
 import { processSales, getCurrentPricing } from './pricingModule.js';
 import { getDemandForDay, type DemandForecast } from './demandModule.js';
+import { automatedDebtManagement } from './debtManager.js';
 
 /**
  * Calculates the value of all remaining inventory at end of simulation
@@ -238,6 +239,9 @@ function simulateDay(
     expenses: 0,
     interestPaid: 0,
     interestEarned: 0,
+    debtPaidDown: 0,
+    preemptiveLoan: 0,
+    debtSavings: 0,
     standardProduced: 0,
     customProduced: 0,
     rawMaterialOrdered: 0, // Materials ARRIVED today (ordered 4 days ago)
@@ -332,6 +336,15 @@ function simulateDay(
 
   // Step 14: Calculate total expenses
   dailyMetrics.expenses = dailyMetrics.salaryCost + dailyMetrics.interestPaid + dailyMetrics.rawMaterialCost;
+
+  // Step 14.5: Execute automated debt management (after all transactions finalized)
+  // This ensures debt paydown decisions use accurate end-of-day cash position
+  const debtManagementResult = automatedDebtManagement(state, strategy);
+  dailyMetrics.debtPaidDown = debtManagementResult.debtPaidDown;
+  dailyMetrics.preemptiveLoan = debtManagementResult.preemptiveLoanTaken;
+  // Calculate savings: 0.05%/day for remaining days
+  const remainingDays = CONSTANTS.SIMULATION_END_DAY - state.currentDay;
+  dailyMetrics.debtSavings = debtManagementResult.debtPaidDown * CONSTANTS.DEBT_INTEREST_RATE_DAILY * remainingDays;
 
   // Step 15: Record daily history for complete transparency
   recordDailyHistory(state, dailyMetrics, strategy);

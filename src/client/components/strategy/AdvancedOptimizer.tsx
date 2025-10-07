@@ -892,7 +892,7 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
               const k = key as keyof typeof parent1.strategyParams;
               if (parent1.strategyParams![k] !== undefined && parent2.strategyParams![k] !== undefined) {
                 if (!childParams) childParams = {};
-                childParams[k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
+                (childParams as Record<string, number | boolean>)[k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
               }
             });
           }
@@ -1156,7 +1156,7 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
             Object.keys(parent1.strategyParams).forEach(key => {
               const k = key as keyof typeof parent1.strategyParams;
               if (parent1.strategyParams![k] !== undefined && parent2.strategyParams![k] !== undefined) {
-                childParams![k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
+                (childParams as Record<string, number | boolean>)![k] = Math.random() < 0.5 ? parent1.strategyParams![k] : parent2.strategyParams![k];
               }
             });
 

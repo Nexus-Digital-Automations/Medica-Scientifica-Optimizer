@@ -100,6 +100,9 @@ export interface SimulationHistory {
   dailyExpenses: DailyMetric[];
   dailyInterestPaid: DailyMetric[];
   dailyInterestEarned: DailyMetric[];
+  dailyDebtPaydown: DailyMetric[]; // Automated debt paydown amount
+  dailyPreemptiveLoan: DailyMetric[]; // Preemptive loans to avoid wage advances
+  dailyDebtSavings: DailyMetric[]; // Interest savings from debt paydown
 
   // Production tracking
   dailyStandardProduction: DailyMetric[];
@@ -207,6 +210,14 @@ export interface Strategy {
   // Quit Risk Model (employee reaction to overtime)
   overtimeTriggerDays: number;      // Consecutive overtime days before quit risk begins
   dailyQuitProbability: number;     // Daily probability of quitting once overworked (0-1)
+
+  // Automated Debt Management Policy
+  autoDebtPaydown: boolean;         // Enable automatic debt paydown with excess cash
+  minCashReserveDays: number;       // Days of operating expenses to maintain as cash reserve (5-15 typical)
+  debtPaydownAggressiveness: number; // Portion of excess cash to use for debt paydown (0.0-1.0, 0.80 typical)
+  preemptiveWageLoanDays: number;   // Days before payroll to take 2% loan vs 5% wage advance (3-5 typical)
+  maxDebtThreshold: number;         // Maximum debt level before emergency measures ($150K-$250K typical)
+  emergencyLoanBuffer: number;      // Minimum cash buffer before taking emergency loans ($10K-$20K typical)
 
   // Timed Genes - Specific actions on specific days
   timedActions: StrategyAction[];
@@ -345,6 +356,9 @@ export interface DailyMetrics {
   expenses: number;
   interestPaid: number;
   interestEarned: number;
+  debtPaidDown: number; // Automated debt paydown amount
+  preemptiveLoan: number; // Preemptive loan taken to avoid wage advance
+  debtSavings: number; // Interest savings from debt paydown
   standardProduced: number;
   customProduced: number;
   rawMaterialOrdered: number; // Materials that ARRIVED today (ordered 4 days ago)

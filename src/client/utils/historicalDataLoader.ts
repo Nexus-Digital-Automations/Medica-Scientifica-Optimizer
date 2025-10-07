@@ -24,6 +24,12 @@ const PLACEHOLDER_STRATEGY: Strategy = {
   standardDemandSlope: -5.0,
   overtimeTriggerDays: 5,
   dailyQuitProbability: 0.10,
+  autoDebtPaydown: true,
+  minCashReserveDays: 8,
+  debtPaydownAggressiveness: 0.80,
+  preemptiveWageLoanDays: 4,
+  maxDebtThreshold: 200000,
+  emergencyLoanBuffer: 15000,
   timedActions: [],
 };
 
@@ -50,6 +56,9 @@ export function loadHistoricalData(): SimulationResult | null {
       dailyExpenses: [],
       dailyInterestPaid: [],
       dailyInterestEarned: [],
+      dailyDebtPaydown: [],
+      dailyPreemptiveLoan: [],
+      dailyDebtSavings: [],
       dailyStandardProduction: [],
       dailyCustomProduction: [],
       dailyStandardWIP: [],
@@ -164,6 +173,9 @@ export function loadHistoricalData(): SimulationResult | null {
       history.dailyExpenses.push({ day, value: Math.round(dailySalary) });
       history.dailyInterestPaid.push({ day, value: 0 });
       history.dailyInterestEarned.push({ day, value: Math.round(interestEarned) });
+      history.dailyDebtPaydown.push({ day, value: 0 }); // Debt management not in historical data
+      history.dailyPreemptiveLoan.push({ day, value: 0 });
+      history.dailyDebtSavings.push({ day, value: 0 });
       history.dailyStandardProduction.push({ day, value: Math.round(standardProduction) });
       history.dailyCustomProduction.push({ day, value: Math.round(customProduction) });
       history.dailyStandardWIP.push({ day, value: Math.round(standardWIP) });
