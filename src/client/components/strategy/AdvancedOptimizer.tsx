@@ -975,9 +975,12 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
       // Evolution loop for Phase 2
       for (let gen = 0; gen < generations; gen++) {
         console.log(`🧬 Phase 2 Generation ${gen + 1}/${generations}`);
-        console.log('🔵 About to setOptimizationProgress...');
-        setOptimizationProgress({ current: gen, total: generations });
-        console.log('🔵 setOptimizationProgress completed');
+
+        // Batch state update using setTimeout to prevent render loop
+        // Only update progress, don't wait for the update to complete
+        setTimeout(() => {
+          setOptimizationProgress({ current: gen, total: generations });
+        }, 0);
 
         // Evaluate fitness for all candidates
         const testPromises = population.map(async (candidate) => {
@@ -1478,16 +1481,19 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     window.URL.revokeObjectURL(url);
   };
 
-  // Massive logging for debugging blank screen
-  console.log('🟠🟠🟠 COMPONENT RENDER - AdvancedOptimizer rendering');
-  console.log('🟠 currentPhase:', currentPhase);
-  console.log('🟠 isOptimizing:', isOptimizing);
-  console.log('🟠 phase1Results length:', phase1Results.length);
-  console.log('🟠 phase2Results length:', phase2Results.length);
-  console.log('🟠 optimizationProgress:', optimizationProgress);
+  // Massive logging for debugging blank screen (outside try-catch to avoid loop issues)
+  if (phase2Results.length > 0) {
+    console.log('🟠🟠🟠 COMPONENT RENDER - AdvancedOptimizer with Phase 2 results');
+    console.log('🟠 phase2Results:', phase2Results.map((r, i) => ({
+      index: i,
+      id: r.id,
+      hasHistory: !!r.history,
+      historyLength: r.history?.length,
+      growthRate: r.growthRate
+    })));
+  }
 
   try {
-    console.log('🟠 About to render JSX...');
     return (
       <div className="space-y-6">
         {/* Introduction */}
@@ -2445,31 +2451,15 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
       )}
 
       {/* Phase 2 Results */}
-      {phase2Results.length > 0 && (() => {
-        console.log('🟠 About to render Phase 2 Results section');
-        console.log('🟠 phase2Results:', phase2Results);
-        console.log('🟠 phase2Results structure:', phase2Results.map((r, i) => ({
-          index: i,
-          id: r.id,
-          hasHistory: !!r.history,
-          historyLength: r.history?.length,
-          hasFullState: !!r.fullState,
-          growthRate: r.growthRate,
-          netWorth: r.netWorth
-        })));
-        return (
-          <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
-            <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
-            <p className="text-sm text-gray-400 mb-4">
-              Top 5 refined strategies - these are the final optimized recommendations
-            </p>
+      {phase2Results.length > 0 && (
+        <div className="bg-gray-800 rounded-lg border border-green-600 p-6">
+          <h4 className="text-lg font-semibold text-green-300 mb-4">🟢 Phase 2: Refinement Results (FINAL)</h4>
+          <p className="text-sm text-gray-400 mb-4">
+            Top 5 refined strategies - these are the final optimized recommendations
+          </p>
 
-            <div className="space-y-4">
-              {(() => {
-                console.log('🟠 About to map over phase2Results...');
-                return phase2Results.map((result, idx) => {
-                  console.log(`🟠 Rendering Phase 2 result ${idx}:`, result.id);
-                  return (
+          <div className="space-y-4">
+            {phase2Results.map((result, idx) => (
                   <div
                     key={result.id}
                     className="p-4 bg-gradient-to-r from-green-900/20 to-green-800/20 border border-green-600 rounded-lg"
@@ -2481,10 +2471,10 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                           <h6 className="text-white font-semibold">Final Strategy #{idx + 1}</h6>
                         </div>
                         <p className="text-lg text-green-400 font-bold mt-1">
-                          Growth Rate: ${result.growthRate?.toFixed(0)}/day
+                          Growth Rate: ${(result.growthRate ?? 0).toFixed(0)}/day
                         </p>
                         <p className="text-sm text-gray-400">
-                          Total gain: ${((result.growthRate || 0) * constraints.evaluationWindow).toLocaleString()}
+                          Total gain: ${((result.growthRate ?? 0) * (constraints.evaluationWindow ?? 0)).toLocaleString()}
                         </p>
                       </div>
                   <div className="flex gap-2">
@@ -2533,67 +2523,98 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
                   </div>
                 </div>
 
-                {result.actions && result.actions.length > 0 && (
+                {result.actions && Array.isArray(result.actions) && result.actions.length > 0 && (
                   <div className="mt-3 p-3 bg-gray-900/50 rounded">
                     <div className="text-xs text-gray-400 mb-2 font-semibold">
                       📋 Policy Actions on Day {constraints.testDay}:
                     </div>
                     <div className="space-y-1">
-                      {getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
-                        <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
-                          <span className="text-green-400">•</span>
-                          {actionText}
-                        </div>
-                      ))}
+                      {(() => {
+                        try {
+                          return getMergedActionTexts(result.actions).map((actionText, actionIdx) => (
+                            <div key={actionIdx} className="text-xs text-gray-300 flex items-center gap-2">
+                              <span className="text-green-400">•</span>
+                              {actionText}
+                            </div>
+                          ));
+                        } catch (err) {
+                          console.error('🔴 Error rendering actions:', err);
+                          return <div className="text-xs text-red-400">Error displaying actions</div>;
+                        }
+                      })()}
                     </div>
                   </div>
                 )}
 
                 {/* Net Worth Over Time Graph */}
-                {result.history && result.history.length > 0 && (
-                  <div className="mt-4 p-3 bg-gray-900/50 rounded">
-                    <div className="text-xs text-gray-400 mb-3 font-semibold">
-                      📈 Net Worth Over Time
-                    </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={result.history}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis
-                          dataKey="day"
-                          stroke="#9CA3AF"
-                          style={{ fontSize: '10px' }}
-                          label={{ value: 'Day', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
-                        />
-                        <YAxis
-                          stroke="#9CA3AF"
-                          style={{ fontSize: '10px' }}
-                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                          label={{ value: 'Net Worth ($k)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: '#1F2937',
-                            border: '1px solid #374151',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                          }}
-                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Net Worth']}
-                          labelFormatter={(label) => `Day ${label}`}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#10B981"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
+                {(() => {
+                  try {
+                    // Defensive checks for chart data
+                    if (!result.history || !Array.isArray(result.history) || result.history.length === 0) {
+                      return null;
+                    }
+
+                    // Validate chart data structure
+                    const validData = result.history.every((d: unknown) =>
+                      d && typeof d === 'object' &&
+                      typeof (d as { day?: unknown }).day === 'number' &&
+                      typeof (d as { value?: unknown }).value === 'number'
+                    );
+
+                    if (!validData) {
+                      console.error('🔴 Invalid chart data structure:', result.history);
+                      return null;
+                    }
+
+                    return (
+                      <div className="mt-4 p-3 bg-gray-900/50 rounded">
+                        <div className="text-xs text-gray-400 mb-3 font-semibold">
+                          📈 Net Worth Over Time
+                        </div>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={result.history}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis
+                              dataKey="day"
+                              stroke="#9CA3AF"
+                              style={{ fontSize: '10px' }}
+                              label={{ value: 'Day', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
+                            />
+                            <YAxis
+                              stroke="#9CA3AF"
+                              style={{ fontSize: '10px' }}
+                              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                              label={{ value: 'Net Worth ($k)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: '#1F2937',
+                                border: '1px solid #374151',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                              }}
+                              formatter={(value: number) => [`$${value.toLocaleString()}`, 'Net Worth']}
+                              labelFormatter={(label) => `Day ${label}`}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="#10B981"
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  } catch (chartError) {
+                    console.error('🔴 Error rendering chart:', chartError);
+                    return <div className="mt-4 p-3 bg-red-900/20 rounded text-xs text-red-400">Chart rendering failed</div>;
+                  }
+                })()}
               </div>
             ))}
-              </div>
+          </div>
         </div>
       )}
 

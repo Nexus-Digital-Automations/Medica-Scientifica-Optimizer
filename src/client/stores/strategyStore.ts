@@ -131,19 +131,18 @@ const loadSavedStrategiesFromStorage = (): SavedStrategy[] => {
     const stored = localStorage.getItem(STORAGE_KEY);
     const userStrategies = stored ? JSON.parse(stored) : [];
 
+    // Filter out null/undefined entries and ensure all have required properties
+    const validUserStrategies = userStrategies.filter(
+      (s: SavedStrategy | null | undefined) => s && s.id && s.name && s.strategy
+    );
+
     // Check if default strategies already exist
-    const hasBusinessCase = userStrategies.some((s: SavedStrategy) => s.id === 'business-case-day51');
-    const hasHistorical = userStrategies.some((s: SavedStrategy) => s.id === 'historical-data-day51');
+    const hasHistorical = validUserStrategies.some((s: SavedStrategy) => s.id === 'historical-data-day51');
 
     // Add missing default strategies
-    const strategies = [...userStrategies];
-    if (!hasBusinessCase) {
-      strategies.unshift(DEFAULT_STRATEGIES[0]);
-    }
+    const strategies = [...validUserStrategies];
     if (!hasHistorical) {
-      // Add historical after business case
-      const businessCaseIndex = strategies.findIndex(s => s.id === 'business-case-day51');
-      strategies.splice(businessCaseIndex + 1, 0, DEFAULT_STRATEGIES[1]);
+      strategies.unshift(DEFAULT_STRATEGIES[0]);
     }
 
     return strategies;
@@ -155,7 +154,9 @@ const loadSavedStrategiesFromStorage = (): SavedStrategy[] => {
 
 const saveSavedStrategiesToStorage = (strategies: SavedStrategy[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(strategies));
+    // Filter out null entries before saving
+    const validStrategies = strategies.filter((s) => s && s.id && s.name && s.strategy);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(validStrategies));
   } catch (error) {
     console.error('Failed to save strategies to localStorage:', error);
   }
@@ -243,7 +244,7 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
 
   loadSavedStrategy: (id) => {
     const { savedStrategies } = get();
-    const saved = savedStrategies.find((s) => s.id === id);
+    const saved = savedStrategies.find((s) => s && s.id === id);
     if (saved) {
       set({
         strategy: { ...saved.strategy },
@@ -256,16 +257,18 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
 
   deleteSavedStrategy: (id) => {
     const { savedStrategies } = get();
-    const updated = savedStrategies.filter((s) => s.id !== id);
+    const updated = savedStrategies.filter((s) => s && s.id && s.id !== id);
     saveSavedStrategiesToStorage(updated);
     set({ savedStrategies: updated });
   },
 
   updateSavedStrategy: (id, name) => {
     const { savedStrategies } = get();
-    const updated = savedStrategies.map((s) =>
-      s.id === id ? { ...s, name, updatedAt: new Date().toISOString() } : s
-    );
+    const updated = savedStrategies
+      .filter((s) => s && s.id) // Filter out null entries first
+      .map((s) =>
+        s.id === id ? { ...s, name, updatedAt: new Date().toISOString() } : s
+      );
     saveSavedStrategiesToStorage(updated);
     set({ savedStrategies: updated });
   },
