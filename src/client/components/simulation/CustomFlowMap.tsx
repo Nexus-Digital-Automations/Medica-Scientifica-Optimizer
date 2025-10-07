@@ -1,10 +1,7 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Settings, FileText, Package, Clock, Users } from 'lucide-react';
 import type { SimulationResult } from '../../types/ui.types';
-import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
-import { generateConstraintSuggestions } from '../../utils/constraintSuggestions';
 import InfoPopup from './InfoPopup';
-import ConstraintSuggestionsModal from './ConstraintSuggestionsModal';
 
 interface CustomFlowMapProps {
   simulationResult: SimulationResult | null;
@@ -604,7 +601,6 @@ function EdgePopup({ edge, metrics, onClose }: { edge: Edge; index: number; metr
 }
 
 export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) {
-  const [showConstraintSuggestions, setShowConstraintSuggestions] = useState(false);
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
 
   // Timeline state
@@ -725,15 +721,7 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
     }
   }, [simulationResult]);
 
-  const bottleneckAnalysis = useMemo(
-    () => simulationResult ? analyzeBottlenecks(simulationResult) : { metrics: [], problems: [], overallHealth: 'optimal' as const, summaryStats: { totalBottlenecks: 0, criticalBottlenecks: 0, averageUtilization: 0, mostCriticalStation: null } },
-    [simulationResult]
-  );
 
-  const constraintSuggestions = useMemo(
-    () => simulationResult && bottleneckAnalysis ? generateConstraintSuggestions(bottleneckAnalysis, simulationResult) : { suggestions: [], generatedFrom: 'bottleneck-analysis' as const, timestamp: Date.now() },
-    [bottleneckAnalysis, simulationResult]
-  );
 
   if (!simulationResult) {
     return (
@@ -998,12 +986,6 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
             </InfoPopup>
           </div>
 
-          <button
-            onClick={() => setShowConstraintSuggestions(true)}
-            className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center text-white text-xl cursor-pointer hover:scale-110 transition-transform shadow-md"
-          >
-            💡
-          </button>
         </div>
       </div>
 
@@ -1602,12 +1584,6 @@ export default function CustomFlowMap({ simulationResult }: CustomFlowMapProps) 
         </div>
       </div>
 
-      {showConstraintSuggestions && (
-        <ConstraintSuggestionsModal
-          suggestions={constraintSuggestions}
-          onClose={() => setShowConstraintSuggestions(false)}
-        />
-      )}
     </div>
   );
 }

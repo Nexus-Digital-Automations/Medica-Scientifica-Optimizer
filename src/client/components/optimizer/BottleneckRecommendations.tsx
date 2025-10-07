@@ -1,24 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { analyzeBottlenecks } from '../../utils/bottleneckAnalysis';
-import { generateConstraintSuggestions, type ConstraintSuggestion } from '../../utils/constraintSuggestions';
+import { generateConstraintSuggestions, type ConstraintSuggestion, type LockStateToggle } from '../../utils/constraintSuggestions';
 
 interface GroupedRecommendations {
   Inventory: ConstraintSuggestion[];
   Production: ConstraintSuggestion[];
   Workforce: ConstraintSuggestion[];
+  Machines: ConstraintSuggestion[];
+}
+
+// Lock state storage interface
+interface LockStateStorage {
+  policies: Record<string, LockStateToggle>;
+  workforce?: LockStateToggle;
+  machines: Record<string, LockStateToggle>;
 }
 
 export default function BottleneckRecommendations() {
   const { simulationResult } = useStrategyStore();
   const [recommendations, setRecommendations] = useState<ConstraintSuggestion[]>([]);
-  const [appliedSuggestions, setAppliedSuggestions] = useState<Set<string>>(new Set());
+  const [appliedToggles, setAppliedToggles] = useState<Set<string>>(new Set());
 
   // Load recommendations from most recent simulation
   useEffect(() => {
     if (simulationResult) {
       const bottleneckAnalysis = analyzeBottlenecks(simulationResult);
-      const suggestionSet = generateConstraintSuggestions(bottleneckAnalysis, simulationResult);
+      const suggestionSet = generateConstraintSuggestions(bottleneckAnalysis);
       setRecommendations(suggestionSet.suggestions);
     }
   }, [simulationResult]);
@@ -28,39 +36,58 @@ export default function BottleneckRecommendations() {
     Inventory: recommendations.filter(r => r.category === 'Inventory'),
     Production: recommendations.filter(r => r.category === 'Production'),
     Workforce: recommendations.filter(r => r.category === 'Workforce'),
+    Machines: recommendations.filter(r => r.category === 'Machines'),
   };
 
-  const handleApplySuggestion = (suggestion: ConstraintSuggestion) => {
-    // Store in localStorage for AdvancedOptimizer to pick up
-    const stored = localStorage.getItem('appliedConstraintSuggestions');
-    const existing: ConstraintSuggestion[] = stored ? JSON.parse(stored) : [];
+  const handleApplyToggle = (suggestion: ConstraintSuggestion) => {
+    // Get existing lock states from localStorage
+    const stored = localStorage.getItem('optimizerLockStates');
+    const lockStates: LockStateStorage = stored ? JSON.parse(stored) : { policies: {}, machines: {} };
 
-    // Check if already applied
-    const alreadyApplied = existing.some(s => s.id === suggestion.id);
-    if (alreadyApplied) return;
+    // Apply the toggle based on parameter type
+    if (suggestion.parameter === 'workforce') {
+      lockStates.workforce = suggestion.toggle;
+    } else if (suggestion.parameter === 'MCE' || suggestion.parameter === 'WMA' || suggestion.parameter === 'PUC') {
+      lockStates.machines[suggestion.parameter] = suggestion.toggle;
+    } else {
+      // Policy parameter
+      lockStates.policies[suggestion.parameter] = suggestion.toggle;
+    }
 
-    // Add to stored suggestions
-    const updated = [...existing, suggestion];
-    localStorage.setItem('appliedConstraintSuggestions', JSON.stringify(updated));
+    // Save to localStorage
+    localStorage.setItem('optimizerLockStates', JSON.stringify(lockStates));
 
     // Update local state
-    setAppliedSuggestions(prev => new Set([...prev, suggestion.id]));
+    setAppliedToggles(prev => new Set([...prev, suggestion.id]));
 
-    // Trigger page reload to apply suggestions
+    // Trigger page reload to apply lock states
     window.location.reload();
   };
 
   const handleApplyAll = () => {
-    // Store all suggestions in localStorage
-    localStorage.setItem('appliedConstraintSuggestions', JSON.stringify(recommendations));
+    const lockStates: LockStateStorage = { policies: {}, machines: {} };
 
-    // Trigger page reload to apply suggestions
+    // Apply all recommendations
+    recommendations.forEach(suggestion => {
+      if (suggestion.parameter === 'workforce') {
+        lockStates.workforce = suggestion.toggle;
+      } else if (suggestion.parameter === 'MCE' || suggestion.parameter === 'WMA' || suggestion.parameter === 'PUC') {
+        lockStates.machines[suggestion.parameter] = suggestion.toggle;
+      } else {
+        lockStates.policies[suggestion.parameter] = suggestion.toggle;
+      }
+    });
+
+    // Save to localStorage
+    localStorage.setItem('optimizerLockStates', JSON.stringify(lockStates));
+
+    // Trigger page reload to apply lock states
     window.location.reload();
   };
 
   const handleClearAll = () => {
-    localStorage.removeItem('appliedConstraintSuggestions');
-    setAppliedSuggestions(new Set());
+    localStorage.removeItem('optimizerLockStates');
+    setAppliedToggles(new Set());
     window.location.reload();
   };
 
@@ -89,9 +116,25 @@ export default function BottleneckRecommendations() {
     );
   }
 
+  const getParameterDisplayName = (param: string): string => {
+    const names: Record<string, string> = {
+      reorderPoint: 'Reorder Point',
+      orderQuantity: 'Order Quantity',
+      standardBatchSize: 'Batch Size',
+      mceAllocationCustom: 'MCE Allocation (Custom)',
+      dailyOvertimeHours: 'Overtime Hours',
+      standardPrice: 'Standard Price',
+      workforce: 'Workforce Size',
+      MCE: 'MCE Machines',
+      WMA: 'WMA Machines',
+      PUC: 'PUC Machines',
+    };
+    return names[param] || param;
+  };
+
   const renderRecommendation = (suggestion: ConstraintSuggestion) => {
-    const isApplied = appliedSuggestions.has(suggestion.id);
-    const isMin = suggestion.constraintType.startsWith('min');
+    const isApplied = appliedToggles.has(suggestion.id);
+    const isMin = suggestion.toggle === 'minimum';
 
     // Priority colors
     const priorityConfig = {
@@ -119,8 +162,8 @@ export default function BottleneckRecommendations() {
     };
 
     const config = priorityConfig[suggestion.priority];
-    const actionEmoji = isMin ? '⬆️' : '⬇️';
-    const actionText = isMin ? 'Increase (Set Minimum)' : 'Decrease (Set Maximum)';
+    const toggleEmoji = isMin ? '⬆️' : '⬇️';
+    const toggleText = isMin ? 'MINIMUM' : 'MAXIMUM';
 
     return (
       <div
@@ -141,27 +184,30 @@ export default function BottleneckRecommendations() {
               </span>
             </div>
 
-            <p className={`${config.textColor} text-sm font-medium mb-2`}>
-              {actionEmoji} {actionText}: {suggestion.reason}
-            </p>
+            <div className="mb-3">
+              <p className={`${config.textColor} text-sm mb-1`}>
+                {suggestion.reason}
+              </p>
+            </div>
 
-            <div className="bg-white/60 rounded p-3 border border-gray-300">
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs font-semibold text-gray-700">Constraint:</span>
-                <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                  {suggestion.constraintType} = {suggestion.currentValue}
-                </code>
-              </div>
-              {suggestion.flowRate !== 0 && (
-                <div className="text-xs text-gray-600 mt-1">
-                  Flow rate: {suggestion.flowRate > 0 ? '+' : ''}{suggestion.flowRate.toFixed(2)} units/day
+            <div className="bg-white/80 rounded-lg p-3 border border-gray-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{toggleEmoji}</span>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase">Toggle to {toggleText}</div>
+                    <div className="text-sm font-bold text-gray-900">{getParameterDisplayName(suggestion.parameter)}</div>
+                  </div>
                 </div>
-              )}
+                <div className={`text-xs font-bold px-3 py-1 rounded ${isMin ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                  {toggleText}
+                </div>
+              </div>
             </div>
           </div>
 
           <button
-            onClick={() => handleApplySuggestion(suggestion)}
+            onClick={() => handleApplyToggle(suggestion)}
             disabled={isApplied}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex-shrink-0 ${
               isApplied
@@ -196,10 +242,10 @@ export default function BottleneckRecommendations() {
       <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div>
           <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <span>💡</span> Bottleneck Recommendations
+            <span>💡</span> Optimizer Recommendations
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            Based on analysis of your latest simulation • {recommendations.length} recommendation{recommendations.length !== 1 ? 's' : ''}
+            Toggle lock states based on bottleneck analysis • {recommendations.length} recommendation{recommendations.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex gap-2">
@@ -223,6 +269,7 @@ export default function BottleneckRecommendations() {
         {renderCategory('Inventory', '📦')}
         {renderCategory('Production', '🏭')}
         {renderCategory('Workforce', '👥')}
+        {renderCategory('Machines', '⚙️')}
       </div>
 
       {/* Info Footer */}
@@ -231,9 +278,9 @@ export default function BottleneckRecommendations() {
           ℹ️ How Recommendations Work
         </p>
         <ul className="text-blue-800 space-y-1 text-xs">
-          <li><strong>Minimums (⬆️):</strong> Bottlenecks detected - increase resources to improve flow</li>
-          <li><strong>Maximums (⬇️):</strong> Surpluses detected - reduce waste to improve efficiency</li>
-          <li><strong>Apply:</strong> Sets constraints for the optimizer to respect during optimization</li>
+          <li><strong>⬆️ Toggle to MINIMUM:</strong> Bottleneck detected - optimizer will keep this parameter high</li>
+          <li><strong>⬇️ Toggle to MAXIMUM:</strong> Surplus detected - optimizer will keep this parameter low</li>
+          <li><strong>Apply:</strong> Sets lock states in optimizer - the optimizer handles all calculations</li>
         </ul>
       </div>
     </div>

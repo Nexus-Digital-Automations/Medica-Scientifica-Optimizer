@@ -3,7 +3,6 @@ import { useStrategyStore, type SavedStrategy } from '../../stores/strategyStore
 import StrategyLibraryModal from '../common/StrategyLibraryModal';
 import type { Strategy } from '../../types/ui.types';
 import type { OptimizationCandidate } from '../../utils/geneticOptimizer';
-import type { ConstraintSuggestion } from '../../utils/constraintSuggestions';
 import { generateConstrainedStrategyParams, mutateConstrainedStrategyParams, ensureSufficientCash } from '../../utils/geneticOptimizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { debugLogger } from '../../utils/debugLogger';
@@ -115,133 +114,87 @@ export default function AdvancedOptimizer({ onResultsReady }: AdvancedOptimizerP
     mceAllocation: 'unlocked',
   });
 
-  // Auto-apply constraint suggestions from ProcessMap bottleneck analysis
+  // Auto-apply lock states from bottleneck recommendations
   useEffect(() => {
-    const applyStoredSuggestions = () => {
-      const storedSuggestions = localStorage.getItem('appliedConstraintSuggestions');
-      console.log('Checking for constraint suggestions in localStorage:', storedSuggestions ? 'Found' : 'None');
+    const applyStoredLockStates = () => {
+      const storedLockStates = localStorage.getItem('optimizerLockStates');
+      console.log('Checking for lock states in localStorage:', storedLockStates ? 'Found' : 'None');
 
-      if (storedSuggestions) {
+      if (storedLockStates) {
         try {
-          const suggestions: ConstraintSuggestion[] = JSON.parse(storedSuggestions);
-          console.log(`Applying ${suggestions.length} constraint suggestions:`, suggestions);
+          const lockStates = JSON.parse(storedLockStates);
+          console.log('Applying lock states:', lockStates);
 
-          // Apply suggestions to constraints
-          setConstraints(prevConstraints => {
-            const newConstraints = { ...prevConstraints };
+          // Apply workforce lock state
+          if (lockStates.workforce) {
+            setWorkforceLockState(lockStates.workforce);
+            console.log(`Applied workforce lock state: ${lockStates.workforce}`);
+          }
 
-            // Initialize ranges if not exists
-            if (!newConstraints.policyRanges) {
-              newConstraints.policyRanges = {};
-            }
-            if (!newConstraints.machineRanges) {
-              newConstraints.machineRanges = {};
-            }
-            if (!newConstraints.workforceRange) {
-              newConstraints.workforceRange = {};
-            }
+          // Apply machine lock states
+          if (lockStates.machines) {
+            setMachineLockStates(prev => ({
+              ...prev,
+              ...lockStates.machines
+            }));
+            console.log('Applied machine lock states:', lockStates.machines);
+          }
 
-            suggestions.forEach(suggestion => {
-              const boundType = suggestion.constraintType.startsWith('min') ? 'minimum' : 'maximum';
-              console.log(`Applying constraint: ${suggestion.constraintType} = ${suggestion.currentValue} (current level as ${boundType})`);
+          // Apply policy lock states
+          if (lockStates.policies) {
+            setPolicyLockStates(prev => {
+              const newStates = { ...prev };
 
-              switch (suggestion.constraintType) {
-                case 'minReorderPoint':
-                  newConstraints.policyRanges!.reorderPoint = {
-                    ...newConstraints.policyRanges!.reorderPoint,
-                    min: suggestion.currentValue
-                  };
-                  break;
-                case 'minOrderQuantity':
-                  newConstraints.policyRanges!.orderQuantity = {
-                    ...newConstraints.policyRanges!.orderQuantity,
-                    min: suggestion.currentValue
-                  };
-                  break;
-                case 'minStandardBatchSize':
-                  newConstraints.policyRanges!.standardBatchSize = {
-                    ...newConstraints.policyRanges!.standardBatchSize,
-                    min: suggestion.currentValue
-                  };
-                  break;
-                case 'minMCEAllocationCustom':
-                  newConstraints.policyRanges!.mceAllocationCustom = {
-                    ...newConstraints.policyRanges!.mceAllocationCustom,
-                    min: suggestion.currentValue
-                  };
-                  break;
-                case 'minDailyOvertimeHours':
-                  newConstraints.policyRanges!.dailyOvertimeHours = {
-                    ...newConstraints.policyRanges!.dailyOvertimeHours,
-                    min: suggestion.currentValue
-                  };
-                  break;
-                case 'maxReorderPoint':
-                  newConstraints.policyRanges!.reorderPoint = {
-                    ...newConstraints.policyRanges!.reorderPoint,
-                    max: suggestion.currentValue
-                  };
-                  break;
-                case 'maxOrderQuantity':
-                  newConstraints.policyRanges!.orderQuantity = {
-                    ...newConstraints.policyRanges!.orderQuantity,
-                    max: suggestion.currentValue
-                  };
-                  break;
-                case 'maxStandardBatchSize':
-                  newConstraints.policyRanges!.standardBatchSize = {
-                    ...newConstraints.policyRanges!.standardBatchSize,
-                    max: suggestion.currentValue
-                  };
-                  break;
-                case 'maxMCEAllocationCustom':
-                  newConstraints.policyRanges!.mceAllocationCustom = {
-                    ...newConstraints.policyRanges!.mceAllocationCustom,
-                    max: suggestion.currentValue
-                  };
-                  break;
-                case 'maxDailyOvertimeHours':
-                  newConstraints.policyRanges!.dailyOvertimeHours = {
-                    ...newConstraints.policyRanges!.dailyOvertimeHours,
-                    max: suggestion.currentValue
-                  };
-                  break;
+              // Map policy parameters to lock state keys
+              if (lockStates.policies.standardBatchSize) {
+                newStates.batchSize = lockStates.policies.standardBatchSize;
               }
-            });
+              if (lockStates.policies.standardPrice) {
+                newStates.price = lockStates.policies.standardPrice;
+              }
+              if (lockStates.policies.mceAllocationCustom) {
+                newStates.mceAllocation = lockStates.policies.mceAllocationCustom;
+              }
 
-            console.log('New constraints after applying suggestions:', newConstraints);
-            return newConstraints;
-          });
+              return newStates;
+            });
+            console.log('Applied policy lock states:', lockStates.policies);
+          }
 
           // Show notification
-          alert(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis!`);
-          console.log(`✅ Applied ${suggestions.length} constraint suggestion(s) from bottleneck analysis`);
+          const totalToggles =
+            (lockStates.workforce ? 1 : 0) +
+            (lockStates.machines ? Object.keys(lockStates.machines).length : 0) +
+            (lockStates.policies ? Object.keys(lockStates.policies).length : 0);
 
-          // Clear localStorage
-          localStorage.removeItem('appliedConstraintSuggestions');
+          alert(`✅ Applied ${totalToggles} lock state toggle(s) from bottleneck recommendations!`);
+          console.log(`✅ Applied ${totalToggles} lock state toggles`);
+
+          // Clear localStorage after applying
+          localStorage.removeItem('optimizerLockStates');
         } catch (error) {
-          console.error('Failed to apply constraint suggestions:', error);
-          localStorage.removeItem('appliedConstraintSuggestions');
+          console.error('Failed to apply lock states:', error);
+          localStorage.removeItem('optimizerLockStates');
         }
       }
     };
 
     // Apply on mount
-    applyStoredSuggestions();
+    applyStoredLockStates();
 
-    // Also listen for storage events (in case user is already on optimizer page)
+    // Listen for storage events (in case user is already on optimizer page)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'appliedConstraintSuggestions' && e.newValue) {
-        setTimeout(applyStoredSuggestions, 100); // Small delay to ensure hash navigation completes
+      if (e.key === 'optimizerLockStates' && e.newValue) {
+        setTimeout(applyStoredLockStates, 100);
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Also check on hash change (when navigating to optimizer)
+    // Check on hash change (when navigating to optimizer)
     const handleHashChange = () => {
       if (window.location.hash === '#/optimizer') {
-        setTimeout(applyStoredSuggestions, 100);
+        setTimeout(applyStoredLockStates, 100);
       }
     };
 
