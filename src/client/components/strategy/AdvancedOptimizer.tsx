@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStrategyStore, type SavedStrategy } from '../../stores/strategyStore';
 import StrategyLibraryModal from '../common/StrategyLibraryModal';
 import type { Strategy } from '../../types/ui.types';
@@ -220,7 +220,8 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
   }, []); // Run once on mount
 
   // Function to apply recommendation directly (called from BottleneckRecommendations)
-  const applyRecommendation = (parameter: string, toggle: 'minimum' | 'maximum') => {
+  // Memoized to prevent infinite render loops
+  const applyRecommendation = useCallback((parameter: string, toggle: 'minimum' | 'maximum') => {
     console.log(`Applying recommendation: ${parameter} → ${toggle}`);
 
     // Handle workforce
@@ -266,14 +267,14 @@ export default function AdvancedOptimizer({ onResultsReady, onExposeApplyRecomme
     } else {
       console.warn(`Parameter ${parameter} not supported in lock states (skipped)`);
     }
-  };
+  }, [setWorkforceLockState, setConstraints, setMachineLockStates, setPolicyLockStates]);
 
   // Expose applyRecommendation function to parent via callback
   useEffect(() => {
     if (onExposeApplyRecommendation) {
       onExposeApplyRecommendation(applyRecommendation);
     }
-  }, [onExposeApplyRecommendation]);
+  }, [onExposeApplyRecommendation, applyRecommendation]);
 
   // Handler functions for current state locks - cycle through states
   const handleLockWorkforce = () => {

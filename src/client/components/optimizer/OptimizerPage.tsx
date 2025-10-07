@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import AdvancedOptimizer from '../strategy/AdvancedOptimizer';
 import BottleneckRecommendations from './BottleneckRecommendations';
 
 export default function OptimizerPage() {
   // Hold the applyRecommendation function from AdvancedOptimizer
   const [applyRecommendationFn, setApplyRecommendationFn] = useState<((parameter: string, toggle: 'minimum' | 'maximum') => void) | null>(null);
+
+  // Memoize callback to prevent infinite render loop
+  const handleExposeApplyRecommendation = useCallback((fn: (parameter: string, toggle: 'minimum' | 'maximum') => void) => {
+    setApplyRecommendationFn(() => fn);
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -33,7 +38,7 @@ export default function OptimizerPage() {
 
       {/* Unified Optimizer - Runs Both Phases Automatically */}
       <AdvancedOptimizer
-        onExposeApplyRecommendation={(fn) => setApplyRecommendationFn(() => fn)}
+        onExposeApplyRecommendation={handleExposeApplyRecommendation}
       />
     </div>
   );
