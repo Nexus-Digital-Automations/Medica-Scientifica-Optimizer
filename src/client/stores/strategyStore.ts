@@ -233,12 +233,21 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
       simulationError: null,
     }),
 
-  loadStrategy: (strategy) =>
+  loadStrategy: (strategy) => {
+    // Migrate old strategies by filling in missing fields with defaults
+    const migratedStrategy: Strategy = {
+      ...strategy,
+      // Add default values for new ratio fields if missing
+      maxDebtToAssetRatio: strategy.maxDebtToAssetRatio ?? 0.70,
+      minInterestCoverageRatio: strategy.minInterestCoverageRatio ?? 3.0,
+      maxDebtToRevenueRatio: strategy.maxDebtToRevenueRatio ?? 2.0,
+    };
     set({
-      strategy,
+      strategy: migratedStrategy,
       simulationResult: null,
       simulationError: null,
-    }),
+    });
+  },
 
   saveStrategy: (name) => {
     const { strategy, savedStrategies } = get();
@@ -259,8 +268,16 @@ export const useStrategyStore = create<StrategyStore>((set, get) => ({
     const { savedStrategies } = get();
     const saved = savedStrategies.find((s) => s && s.id === id);
     if (saved) {
+      // Migrate old strategies by filling in missing fields with defaults
+      const migratedStrategy: Strategy = {
+        ...saved.strategy,
+        // Add default values for new ratio fields if missing
+        maxDebtToAssetRatio: saved.strategy.maxDebtToAssetRatio ?? 0.70,
+        minInterestCoverageRatio: saved.strategy.minInterestCoverageRatio ?? 3.0,
+        maxDebtToRevenueRatio: saved.strategy.maxDebtToRevenueRatio ?? 2.0,
+      };
       set({
-        strategy: { ...saved.strategy },
+        strategy: migratedStrategy,
         currentScenarioId: saved.scenarioId, // Set the scenario ID from saved strategy
         simulationResult: null,
         simulationError: null,

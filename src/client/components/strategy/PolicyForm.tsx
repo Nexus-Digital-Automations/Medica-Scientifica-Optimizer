@@ -336,7 +336,7 @@ export default function PolicyForm() {
                 <input
                   id="max-debt-to-asset-ratio"
                   type="number"
-                  value={strategy.maxDebtToAssetRatio}
+                  value={strategy.maxDebtToAssetRatio ?? 0.70}
                   onChange={(e) => handleInputChange('maxDebtToAssetRatio', Number(e.target.value))}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   min="0.5"
@@ -345,7 +345,7 @@ export default function PolicyForm() {
                   disabled={!strategy.autoDebtPaydown}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  📊 Current: <strong>{(strategy.maxDebtToAssetRatio * 100).toFixed(0)}%</strong> max leverage<br />
+                  📊 Current: <strong>{((strategy.maxDebtToAssetRatio ?? 0.70) * 100).toFixed(0)}%</strong> max leverage<br />
                   💡 Debt cannot exceed this % of total assets
                 </p>
               </div>
@@ -358,7 +358,7 @@ export default function PolicyForm() {
                 <input
                   id="min-interest-coverage-ratio"
                   type="number"
-                  value={strategy.minInterestCoverageRatio}
+                  value={strategy.minInterestCoverageRatio ?? 3.0}
                   onChange={(e) => handleInputChange('minInterestCoverageRatio', Number(e.target.value))}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   min="2.0"
@@ -367,7 +367,7 @@ export default function PolicyForm() {
                   disabled={!strategy.autoDebtPaydown}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  📊 Current: <strong>{strategy.minInterestCoverageRatio.toFixed(1)}x</strong> coverage<br />
+                  📊 Current: <strong>{(strategy.minInterestCoverageRatio ?? 3.0).toFixed(1)}x</strong> coverage<br />
                   💡 Revenue must be this multiple of interest paid
                 </p>
               </div>
@@ -380,7 +380,7 @@ export default function PolicyForm() {
                 <input
                   id="max-debt-to-revenue-ratio"
                   type="number"
-                  value={strategy.maxDebtToRevenueRatio}
+                  value={strategy.maxDebtToRevenueRatio ?? 2.0}
                   onChange={(e) => handleInputChange('maxDebtToRevenueRatio', Number(e.target.value))}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   min="1.0"
@@ -389,7 +389,7 @@ export default function PolicyForm() {
                   disabled={!strategy.autoDebtPaydown}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  📊 Current: <strong>{strategy.maxDebtToRevenueRatio.toFixed(1)}x</strong> revenue<br />
+                  📊 Current: <strong>{(strategy.maxDebtToRevenueRatio ?? 2.0).toFixed(1)}x</strong> revenue<br />
                   💡 Debt cannot exceed this multiple of annual revenue
                 </p>
               </div>
