@@ -200,6 +200,7 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.substring(6));
+              console.log('📊 Received SSE data:', data);
 
               if (data.error) {
                 // Error from server
@@ -208,11 +209,13 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
 
               if (data.done) {
                 // Final result received
+                console.log('✅ Optimization complete, setting result');
                 setResult(data.result);
                 onOptimizationComplete?.(data.result);
                 setIsRunning(false);
               } else {
                 // Progress update
+                console.log('📈 Updating progress:', data.iteration, '/', data.total);
                 setProgress({
                   current: data.iteration,
                   total: data.total,

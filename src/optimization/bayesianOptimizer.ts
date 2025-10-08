@@ -245,7 +245,7 @@ export class BayesianOptimizer {
     }
 
     // Call progress callback if provided
-    if (this.config.onProgress) {
+    if (this.config.onProgress && this.progress.currentBest) {
       const phaseLabel = phase === 'random' ? 'Random Exploration' : 'Guided Search';
       this.config.onProgress(
         iteration,

@@ -53,7 +53,9 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
         // Progress callback for SSE
         const onProgress = (iteration: number, total: number, phase: string, bestFitness: number) => {
           if (!res.writableEnded) {
-            res.write(`data: ${JSON.stringify({ iteration, total, phase, bestFitness })}\n\n`);
+            const progressData = { iteration, total, phase, bestFitness };
+            console.log('📊 SSE Progress:', progressData);
+            res.write(`data: ${JSON.stringify(progressData)}\n\n`);
           }
         };
 

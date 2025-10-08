@@ -1,0 +1,44 @@
+{
+  "simVersion": "1.0.0",
+  "evaluations": [
+    {
+      "id": "run-1759945255454-ud72tapda",
+      "policy": {
+        "reorderPoint": 447,
+        "orderQuantity": 605,
+        "safetyStock": 158,
+        "mceCustomAllocation": 0.4,
+        "standardBatchSize": 77,
+        "batchInterval": 7,
+        "targetExperts": 24,
+        "hireThreshold": 0.7021566207990624,
+        "maxOvertimeHours": 0,
+        "overtimeThreshold": 0.8295017304369189,
+        "cashReserveTarget": 15000,
+        "loanAmount": 46400,
+        "repayThreshold": 75870,
+        "standardPriceMultiplier": 1.052726659970636,
+        "customBasePrice": 108.18229511846349
+      },
+      "fitness": -404296,
+      "netWorth": 37810.87876894821,
+      "demandContext": {
+        "customDemandMean1": 25,
+        "customDemandStdDev1": 5,
+        "customDemandMean2": 32.5,
+        "customDemandStdDev2": 6.5,
+        "standardDemandIntercept": 1500,
+        "standardDemandSlope": -5
+      },
+      "timestamp": "2025-10-08T17:40:55.454Z",
+      "totalIterations": 1500,
+      "simVersion": "1.0.0"
+    }
+  ],
+  "stats": {
+    "totalRuns": 1,
+    "avgFitness": -404296,
+    "topFitness": 0,
+    "lastUpdated": "2025-10-08T17:40:55.454Z"
+  }
+}
