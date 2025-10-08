@@ -1,0 +1,489 @@
+{
+  "timestamp": "2025-10-08T01:38:43.277Z",
+  "basePolicy": {
+    "reorderPoint": 540,
+    "orderQuantity": 304,
+    "safetyStock": 300,
+    "mceCustomAllocation": 0.4,
+    "standardBatchSize": 107,
+    "batchInterval": 9,
+    "targetExperts": 8,
+    "hireThreshold": 0.8585440390755102,
+    "maxOvertimeHours": 1.7305215601398931,
+    "overtimeThreshold": 0.8203627141455002,
+    "cashReserveTarget": 27333,
+    "loanAmount": 27503,
+    "repayThreshold": 107584,
+    "standardPriceMultiplier": 0.9861531898414175,
+    "customBasePrice": 115
+  },
+  "baseFitness": -620053,
+  "results": [
+    {
+      "parameter": "reorderPoint",
+      "baseValue": 540,
+      "avgImpact": 0.8975404656971779,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 432,
+          "fitness": -7295843.177848401,
+          "impact": -1.477335183446875
+        },
+        {
+          "variation": "-10%",
+          "value": 486,
+          "fitness": -7360186.376004176,
+          "impact": -0.6084481760652223
+        },
+        {
+          "variation": "+10%",
+          "value": 594,
+          "fitness": -7349541.999427993,
+          "impact": -0.7521892516383072
+        },
+        {
+          "variation": "+20%",
+          "value": 600,
+          "fitness": -7349541.999427993,
+          "impact": -0.7521892516383072
+        }
+      ]
+    },
+    {
+      "parameter": "orderQuantity",
+      "baseValue": 304,
+      "avgImpact": 1.5230836981715816,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 300,
+          "fitness": -7299880.31477614,
+          "impact": -1.4228179085199861
+        },
+        {
+          "variation": "-10%",
+          "value": 300,
+          "fitness": -7299880.31477614,
+          "impact": -1.4228179085199861
+        },
+        {
+          "variation": "+10%",
+          "value": 334,
+          "fitness": -7270337.455125633,
+          "impact": -1.82176305963106
+        },
+        {
+          "variation": "+20%",
+          "value": 365,
+          "fitness": -7299723.471164936,
+          "impact": -1.4249359160152943
+        }
+      ]
+    },
+    {
+      "parameter": "safetyStock",
+      "baseValue": 300,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 240,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 270,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 300,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 300,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "mceCustomAllocation",
+      "baseValue": 0.4,
+      "avgImpact": 17.50927930308805,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 0.4,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 0.4,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 0.44000000000000006,
+          "fitness": -10438765.313315086,
+          "impact": 40.96451239316558
+        },
+        {
+          "variation": "+20%",
+          "value": 0.48,
+          "fitness": -9558140.60724602,
+          "impact": 29.072604819186616
+        }
+      ]
+    },
+    {
+      "parameter": "standardBatchSize",
+      "baseValue": 107,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 86,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 96,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 118,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 120,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "batchInterval",
+      "baseValue": 9,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 7,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 8,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 10,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 11,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "targetExperts",
+      "baseValue": 8,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 8,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 8,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 9,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 10,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "hireThreshold",
+      "baseValue": 0.8585440390755102,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 0.7,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 0.7726896351679592,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 0.9,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 0.9,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "maxOvertimeHours",
+      "baseValue": 1.7305215601398931,
+      "avgImpact": 0.7879628741606235,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 1.3844172481119146,
+          "fitness": -7333473.328945306,
+          "impact": -0.9691796936505573
+        },
+        {
+          "variation": "-10%",
+          "value": 1.5574694041259038,
+          "fitness": -7374824.554796408,
+          "impact": -0.4107750151274161
+        },
+        {
+          "variation": "+10%",
+          "value": 1.9035737161538826,
+          "fitness": -7453134.802532682,
+          "impact": 0.6467222612459911
+        },
+        {
+          "variation": "+20%",
+          "value": 2.0766258721678716,
+          "fitness": -7488565.357550088,
+          "impact": 1.1251745266185296
+        }
+      ]
+    },
+    {
+      "parameter": "overtimeThreshold",
+      "baseValue": 0.8203627141455002,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 0.75,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 0.75,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 0.9023989855600503,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 0.95,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "cashReserveTarget",
+      "baseValue": 27333,
+      "avgImpact": 0.8756615414659006,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 21866,
+          "fitness": -7454843.495231152,
+          "impact": 0.6697963534245235
+        },
+        {
+          "variation": "-10%",
+          "value": 24600,
+          "fitness": -7333825.085812945,
+          "impact": -0.964429588265546
+        },
+        {
+          "variation": "+10%",
+          "value": 30066,
+          "fitness": -7511502.690483602,
+          "impact": 1.4349190084154475
+        },
+        {
+          "variation": "+20%",
+          "value": 32800,
+          "fitness": -7373141.624313981,
+          "impact": -0.4335012157580853
+        }
+      ]
+    },
+    {
+      "parameter": "loanAmount",
+      "baseValue": 27503,
+      "avgImpact": 0.10024134650303433,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 22002,
+          "fitness": -7405049.846753122,
+          "impact": -0.0026143357044757652
+        },
+        {
+          "variation": "-10%",
+          "value": 24753,
+          "fitness": -7416952.839491351,
+          "impact": 0.1581230232649332
+        },
+        {
+          "variation": "+10%",
+          "value": 30253,
+          "fitness": -7403249.744585341,
+          "impact": -0.026922816326750303
+        },
+        {
+          "variation": "+20%",
+          "value": 33004,
+          "fitness": -7421039.214810198,
+          "impact": 0.21330521071597805
+        }
+      ]
+    },
+    {
+      "parameter": "repayThreshold",
+      "baseValue": 107584,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 86067,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 96826,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 118342,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 120000,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    },
+    {
+      "parameter": "standardPriceMultiplier",
+      "baseValue": 0.9861531898414175,
+      "avgImpact": 7.378965617561349,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 0.9,
+          "fitness": -7885803.598225199,
+          "impact": 6.489457870479129
+        },
+        {
+          "variation": "-10%",
+          "value": 0.9,
+          "fitness": -7885803.598225199,
+          "impact": 6.489457870479129
+        },
+        {
+          "variation": "+10%",
+          "value": 1.0847685088255594,
+          "fitness": -6876577.783893896,
+          "impact": -7.139071993138215
+        },
+        {
+          "variation": "+20%",
+          "value": 1.1,
+          "fitness": -6709307.941838923,
+          "impact": -9.397874736148921
+        }
+      ]
+    },
+    {
+      "parameter": "customBasePrice",
+      "baseValue": 115,
+      "avgImpact": 0,
+      "tests": [
+        {
+          "variation": "-20%",
+          "value": 105,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "-10%",
+          "value": 105,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+10%",
+          "value": 115,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        },
+        {
+          "variation": "+20%",
+          "value": 115,
+          "fitness": -7405243.4446765,
+          "impact": 0
+        }
+      ]
+    }
+  ],
+  "duration": 2587
+}
