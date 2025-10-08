@@ -3,7 +3,11 @@ import AdvancedOptimizer from '../strategy/AdvancedOptimizer';
 import BottleneckRecommendations from './BottleneckRecommendations';
 import BayesianOptimizerPanel from './BayesianOptimizerPanel';
 
-export default function OptimizerPage() {
+interface OptimizerPageProps {
+  onLoadIntoBuilder: () => void;
+}
+
+export default function OptimizerPage({ onLoadIntoBuilder }: OptimizerPageProps) {
   // Hold the applyRecommendation function from AdvancedOptimizer
   const [applyRecommendationFn, setApplyRecommendationFn] = useState<((parameter: string, toggle: 'minimum' | 'maximum') => void) | null>(null);
 
@@ -38,7 +42,7 @@ export default function OptimizerPage() {
       <BottleneckRecommendations onApplyRecommendation={applyRecommendationFn} />
 
       {/* Bayesian Policy Optimizer */}
-      <BayesianOptimizerPanel />
+      <BayesianOptimizerPanel onLoadIntoBuilder={onLoadIntoBuilder} />
 
       {/* Unified Optimizer - Runs Both Phases Automatically */}
       <AdvancedOptimizer

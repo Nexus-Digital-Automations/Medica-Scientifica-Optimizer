@@ -6,6 +6,8 @@
 
 import { Router, type Request, type Response } from 'express';
 import { BayesianOptimizer } from '../../optimization/bayesianOptimizer.js';
+import { PolicyEngine } from '../../optimization/policyEngine.js';
+import { INITIAL_STATE_HISTORICAL } from '../../simulation/constants.js';
 
 const router = Router();
 
@@ -47,13 +49,28 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
     // Get convergence history
     const progress = optimizer.getProgress();
 
-    // Return results
+    // Generate complete strategy from best policy
+    const policyEngine = new PolicyEngine(bestPolicy.params);
+    const fullStrategy = policyEngine.toStrategy(INITIAL_STATE_HISTORICAL);
+
+    // Create action summary
+    const actionSummary = {
+      totalActions: fullStrategy.timedActions.length,
+      byType: fullStrategy.timedActions.reduce((acc, action) => {
+        acc[action.type] = (acc[action.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    };
+
+    // Return results with complete strategy
     return res.json({
       bestPolicy: bestPolicy.params,
+      bestStrategy: fullStrategy,
       bestNetWorth: bestPolicy.netWorth,
       bestFitness: bestPolicy.fitnessScore,
       bestIteration: bestPolicy.iteration,
       convergenceHistory: progress.convergenceHistory,
+      actionSummary,
       duration,
       totalIterations,
       randomExploration,

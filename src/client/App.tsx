@@ -64,7 +64,7 @@ function App() {
                 Two-phase optimization: broad exploration followed by focused refinement
               </p>
             </div>
-            <OptimizerPage />
+            <OptimizerPage onLoadIntoBuilder={() => setActiveTab('builder')} />
           </div>
         )}
         {activeTab === 'results' && (
