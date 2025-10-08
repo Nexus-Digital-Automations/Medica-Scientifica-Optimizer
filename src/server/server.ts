@@ -8,6 +8,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { handleSimulate } from './api/simulationRoutes.js';
+import bayesianOptimizationRouter from './routes/bayesianOptimization.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,6 +22,7 @@ app.use(express.json({ limit: '10mb' })); // For large simulation results
 
 // API Routes
 app.post('/api/simulate', handleSimulate);
+app.use('/api', bayesianOptimizationRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {

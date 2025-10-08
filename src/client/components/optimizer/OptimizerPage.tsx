@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import AdvancedOptimizer from '../strategy/AdvancedOptimizer';
 import BottleneckRecommendations from './BottleneckRecommendations';
+import BayesianOptimizerPanel from './BayesianOptimizerPanel';
 
 export default function OptimizerPage() {
   // Hold the applyRecommendation function from AdvancedOptimizer
@@ -35,6 +36,9 @@ export default function OptimizerPage() {
 
       {/* Bottleneck Recommendations */}
       <BottleneckRecommendations onApplyRecommendation={applyRecommendationFn} />
+
+      {/* Bayesian Policy Optimizer */}
+      <BayesianOptimizerPanel />
 
       {/* Unified Optimizer - Runs Both Phases Automatically */}
       <AdvancedOptimizer
