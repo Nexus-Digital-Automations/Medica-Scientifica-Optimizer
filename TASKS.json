@@ -5,7 +5,7 @@
   "metadata": {
     "version": "1.0.0",
     "created": "2025-10-01T21:47:47.934Z",
-    "updated": "2025-10-07T17:11:07.820Z",
+    "updated": "2025-10-08T02:04:18.268Z",
     "total_features": 0,
     "approval_history": [],
     "initialization_stats": {
@@ -224,6 +224,33 @@
       },
       "progress_percentage": 100,
       "completed_at": "2025-10-07T17:11:07.820Z"
+    },
+    {
+      "id": "task_1759889058268_b0b7acea41ed",
+      "feature_id": null,
+      "title": "Fix 12 ESLint errors in optimization modules",
+      "description": "Fix linting violations:\n- bayesianOptimizer.ts: Replace 10 instances of any type with proper types\n- policyEngine.ts: Fix lexical declaration in case block\n- sensitivityAnalysis.ts: Replace any type with proper type\n\nAll errors must be resolved to pass pre-commit hooks.",
+      "type": "error",
+      "priority": "high",
+      "status": "queued",
+      "dependencies": [],
+      "estimated_effort": 5,
+      "required_capabilities": [
+        "general"
+      ],
+      "created_at": "2025-10-08T02:04:18.268Z",
+      "updated_at": "2025-10-08T02:04:18.268Z",
+      "created_by": "manual_creation",
+      "verificationGate": {
+        "status": "pending",
+        "requirements": [],
+        "evidence": null,
+        "verifiedAt": null,
+        "verifiedBy": null
+      },
+      "metadata": {
+        "auto_generated": false
+      }
     }
   ],
   "completed_tasks": []
