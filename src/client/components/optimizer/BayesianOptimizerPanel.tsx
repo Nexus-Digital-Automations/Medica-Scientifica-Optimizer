@@ -233,49 +233,55 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
         Optimizes 15 high-level parameters instead of 3,650 daily decisions.
       </p>
 
-      {/* Historical Memory Toggle */}
-      {memoryStats && memoryStats.totalRuns > 0 && (
-        <div className="mb-6 bg-blue-900/20 border border-blue-600/30 rounded p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="useMemory"
-                checked={useMemory}
-                onChange={(e) => setUseMemory(e.target.checked)}
-                disabled={isRunning}
-                className="w-5 h-5 rounded"
-              />
-              <label htmlFor="useMemory" className="text-sm font-semibold text-white cursor-pointer">
-                🧠 Use Historical Memory
-              </label>
-            </div>
-            <div className="text-xs text-gray-400">
-              {memoryStats.totalRuns} runs saved
-            </div>
+      {/* Historical Memory Toggle - Always Visible */}
+      <div className="mb-6 bg-blue-900/20 border border-blue-600/30 rounded p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="useMemory"
+              checked={useMemory}
+              onChange={(e) => setUseMemory(e.target.checked)}
+              disabled={isRunning || !memoryStats || memoryStats.totalRuns === 0}
+              className="w-5 h-5 rounded"
+            />
+            <label htmlFor="useMemory" className="text-sm font-semibold text-white cursor-pointer">
+              🧠 Use Historical Memory
+            </label>
           </div>
-
-          {useMemory && memoryMatching && (
-            <div className="mt-3 text-xs text-gray-300 space-y-1">
-              <div className="font-semibold text-blue-300">
-                {memoryMatching.count > 0 ?
-                  `✅ Found ${memoryMatching.count} matching evaluations` :
-                  '⚠️ No matching evaluations (different demand parameters)'
-                }
-              </div>
-              {memoryMatching.count > 0 && (
-                <>
-                  <div>Avg Historical Fitness: {memoryMatching.avgFitness.toLocaleString()}</div>
-                  <div>Top Historical Fitness: {memoryMatching.topFitness.toLocaleString()}</div>
-                  <div className="text-green-300 mt-2">
-                    Memory will reduce random exploration and start from best historical policies
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          <div className="text-xs text-gray-400">
+            {memoryStats ? `${memoryStats.totalRuns} runs saved` : 'Loading...'}
+          </div>
         </div>
-      )}
+
+        {/* No memory message */}
+        {memoryStats && memoryStats.totalRuns === 0 && (
+          <div className="mt-3 text-xs text-gray-400">
+            💡 No historical data yet. Run optimization and use "Save to Memory" button to build up knowledge base.
+          </div>
+        )}
+
+        {/* Memory available and enabled */}
+        {useMemory && memoryMatching && memoryStats && memoryStats.totalRuns > 0 && (
+          <div className="mt-3 text-xs text-gray-300 space-y-1">
+            <div className="font-semibold text-blue-300">
+              {memoryMatching.count > 0 ?
+                `✅ Found ${memoryMatching.count} matching evaluations` :
+                '⚠️ No matching evaluations (different demand parameters)'
+              }
+            </div>
+            {memoryMatching.count > 0 && (
+              <>
+                <div>Avg Historical Fitness: {memoryMatching.avgFitness.toLocaleString()}</div>
+                <div>Top Historical Fitness: {memoryMatching.topFitness.toLocaleString()}</div>
+                <div className="text-green-300 mt-2">
+                  Memory will reduce random exploration and start from best historical policies
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Configuration */}
       <div className="space-y-4 mb-6">
