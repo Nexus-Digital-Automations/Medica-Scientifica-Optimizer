@@ -198,20 +198,30 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.substring(6));
+            try {
+              const data = JSON.parse(line.substring(6));
 
-            if (data.done) {
-              // Final result received
-              setResult(data.result);
-              onOptimizationComplete?.(data.result);
-              setIsRunning(false);
-            } else {
-              // Progress update
-              setProgress({
-                current: data.iteration,
-                total: data.total,
-                phase: data.phase,
-              });
+              if (data.error) {
+                // Error from server
+                throw new Error(data.message || 'Optimization failed on server');
+              }
+
+              if (data.done) {
+                // Final result received
+                setResult(data.result);
+                onOptimizationComplete?.(data.result);
+                setIsRunning(false);
+              } else {
+                // Progress update
+                setProgress({
+                  current: data.iteration,
+                  total: data.total,
+                  phase: data.phase,
+                });
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE message:', line, parseError);
+              throw parseError;
             }
           }
         }
