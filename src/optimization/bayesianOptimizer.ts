@@ -466,8 +466,11 @@ export class BayesianOptimizer {
     policy: PolicyParameters | WeeklyPolicyParameters,
     intensity: number
   ): PolicyParameters | WeeklyPolicyParameters {
-    if (this.config.useWeeklyPolicies && 'weeks' in policy) {
-      // Convert to flat format for mutation
+    // Check actual policy structure, not just config
+    const isWeeklyPolicy = 'weeks' in policy;
+
+    if (isWeeklyPolicy) {
+      // Weekly policy mutation
       const flatPolicy = weeklyPolicyToFlatParams(policy);
       const mutatedFlat: Record<string, number> = {};
 
@@ -475,6 +478,13 @@ export class BayesianOptimizer {
       for (const [key, value] of Object.entries(flatPolicy)) {
         if (Math.random() < 0.4) {
           const bounds = this.parameterSpace[key];
+
+          // Safety check: if bounds not found, skip mutation
+          if (!bounds) {
+            mutatedFlat[key] = value;
+            continue;
+          }
+
           const range = bounds.max - bounds.min;
 
           // Gaussian mutation
@@ -498,7 +508,7 @@ export class BayesianOptimizer {
       // Convert back to WeeklyPolicyParameters
       return flatParamsToWeeklyPolicy(mutatedFlat);
     } else {
-      // Single policy mutation
+      // Single policy mutation - use PARAMETER_SPACE directly
       const singlePolicy = policy as PolicyParameters;
       const mutated: PolicyParameters = { ...singlePolicy };
       const keys = Object.keys(singlePolicy) as Array<keyof PolicyParameters>;
@@ -506,7 +516,14 @@ export class BayesianOptimizer {
       // Mutate each parameter with 40% probability
       for (const key of keys) {
         if (Math.random() < 0.4) {
-          const bounds = this.parameterSpace[key];
+          // Use PARAMETER_SPACE for single policies, not this.parameterSpace
+          const bounds = PARAMETER_SPACE[key];
+
+          // Safety check
+          if (!bounds) {
+            continue;
+          }
+
           const currentValue = singlePolicy[key] as number;
           const range = bounds.max - bounds.min;
 
