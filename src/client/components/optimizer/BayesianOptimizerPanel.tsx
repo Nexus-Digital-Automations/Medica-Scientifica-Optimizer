@@ -82,9 +82,17 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
             </span>
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={totalIterations}
-            onChange={(e) => setTotalIterations(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Allow empty string or numbers only
+              if (value === '' || /^\d+$/.test(value)) {
+                setTotalIterations(value);
+              }
+            }}
             onBlur={(e) => {
               const val = parseInt(e.target.value);
               if (isNaN(val) || val < 10) {
@@ -96,9 +104,8 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
               }
             }}
             className="w-full bg-gray-800 border border-gray-600 rounded px-4 py-2 text-white"
-            min="10"
-            max="500"
             disabled={isRunning}
+            placeholder="150"
           />
           <div className="text-xs text-gray-400 mt-1">
             Estimated time: ~{(((typeof totalIterations === 'number' ? totalIterations : parseInt(totalIterations) || 150) * 45) / 1000).toFixed(1)}s
@@ -113,9 +120,17 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
             </span>
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={randomExploration}
-            onChange={(e) => setRandomExploration(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Allow empty string or numbers only
+              if (value === '' || /^\d+$/.test(value)) {
+                setRandomExploration(value);
+              }
+            }}
             onBlur={(e) => {
               const val = parseInt(e.target.value);
               const maxIter = typeof totalIterations === 'number' ? totalIterations : parseInt(totalIterations) || 150;
@@ -128,9 +143,8 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
               }
             }}
             className="w-full bg-gray-800 border border-gray-600 rounded px-4 py-2 text-white"
-            min="5"
-            max={typeof totalIterations === 'number' ? totalIterations : parseInt(totalIterations) || 150}
             disabled={isRunning}
+            placeholder="30"
           />
           <div className="text-xs text-gray-400 mt-1">
             Guided search: {(typeof totalIterations === 'number' ? totalIterations : parseInt(totalIterations) || 150) - (typeof randomExploration === 'number' ? randomExploration : parseInt(randomExploration) || 30)} iterations
