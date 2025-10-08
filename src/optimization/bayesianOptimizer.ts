@@ -45,6 +45,11 @@ interface OptimizationProgress {
 }
 
 /**
+ * Progress callback function type
+ */
+export type ProgressCallback = (iteration: number, total: number, phase: string, bestFitness: number) => void;
+
+/**
  * Configuration for Bayesian Optimization
  */
 export interface BayesianOptimizerConfig {
@@ -53,6 +58,7 @@ export interface BayesianOptimizerConfig {
   verbose: boolean;                // Log progress
   saveCheckpoints: boolean;        // Save progress periodically
   checkpointInterval: number;      // Save every N iterations
+  onProgress?: ProgressCallback;   // Callback for progress updates
 }
 
 /**
@@ -198,6 +204,17 @@ export class BayesianOptimizer {
     } else {
       this.iterationsSinceImprovement++; // Increment stagnation counter
       this.log(`[${iteration}/${this.config.totalIterations}] ${phase}: $${netWorth.toLocaleString()} (fitness: ${fitnessScore.toLocaleString()})`);
+    }
+
+    // Call progress callback if provided
+    if (this.config.onProgress) {
+      const phaseLabel = phase === 'random' ? 'Random Exploration' : 'Guided Search';
+      this.config.onProgress(
+        iteration,
+        this.config.totalIterations,
+        phaseLabel,
+        this.progress.currentBest.fitnessScore
+      );
     }
 
     return evaluation;

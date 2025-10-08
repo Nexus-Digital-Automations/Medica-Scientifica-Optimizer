@@ -80,12 +80,14 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
     setResult(null);
 
     try {
+      // Use fetch with streaming for progress updates
       const response = await fetch('/api/bayesian-optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           totalIterations: totalIter,
           randomExploration: randomExp,
+          stream: true,
         }),
       });
 
@@ -93,13 +95,51 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
         throw new Error(`Optimization failed: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setResult(data);
-      onOptimizationComplete?.(data);
+      // Read the stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE messages
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep incomplete message in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.substring(6));
+
+            if (data.done) {
+              // Final result received
+              setResult(data.result);
+              onOptimizationComplete?.(data.result);
+              setIsRunning(false);
+            } else {
+              // Progress update
+              setProgress({
+                current: data.iteration,
+                total: data.total,
+                phase: data.phase,
+              });
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Bayesian optimization error:', error);
       alert(`Optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
       setIsRunning(false);
     }
   };

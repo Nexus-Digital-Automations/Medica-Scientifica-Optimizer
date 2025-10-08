@@ -15,10 +15,11 @@ const router = Router();
  * POST /api/bayesian-optimize
  *
  * Run Bayesian Optimization with specified configuration
+ * Supports Server-Sent Events for real-time progress updates
  */
 router.post('/bayesian-optimize', async (req: Request, res: Response) => {
   try {
-    const { totalIterations = 150, randomExploration = 30 } = req.body;
+    const { totalIterations = 150, randomExploration = 30, stream = false } = req.body;
 
     // Validate inputs
     if (totalIterations < 10) {
@@ -33,6 +34,70 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
       });
     }
 
+    // If streaming is requested, set up SSE
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+
+      // Progress callback for SSE
+      const onProgress = (iteration: number, total: number, phase: string, bestFitness: number) => {
+        res.write(`data: ${JSON.stringify({ iteration, total, phase, bestFitness })}\n\n`);
+      };
+
+      // Create optimizer with progress callback
+      const optimizer = new BayesianOptimizer({
+        totalIterations,
+        randomExploration,
+        verbose: false,
+        saveCheckpoints: false,
+        onProgress,
+      });
+
+      // Run optimization
+      const startTime = Date.now();
+      const bestPolicy = await optimizer.optimize();
+      const duration = Date.now() - startTime;
+
+      // Get convergence history
+      const progress = optimizer.getProgress();
+
+      // Generate complete strategy from best policy
+      const policyEngine = new PolicyEngine(bestPolicy.params);
+      const fullStrategy = policyEngine.toStrategy(INITIAL_STATE_HISTORICAL);
+
+      // Create action summary
+      const actionSummary = {
+        totalActions: fullStrategy.timedActions.length,
+        byType: fullStrategy.timedActions.reduce((acc, action) => {
+          acc[action.type] = (acc[action.type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+      };
+
+      // Send final result
+      res.write(`data: ${JSON.stringify({
+        done: true,
+        result: {
+          bestPolicy: bestPolicy.params,
+          bestStrategy: fullStrategy,
+          bestNetWorth: bestPolicy.netWorth,
+          bestFitness: bestPolicy.fitnessScore,
+          bestIteration: bestPolicy.iteration,
+          convergenceHistory: progress.convergenceHistory,
+          actionSummary,
+          duration,
+          totalIterations,
+          randomExploration,
+        },
+      })}\n\n`);
+
+      res.end();
+      return;
+    }
+
+    // Non-streaming mode (original behavior)
     // Create optimizer
     const optimizer = new BayesianOptimizer({
       totalIterations,
