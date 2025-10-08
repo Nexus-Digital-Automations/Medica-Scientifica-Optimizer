@@ -50,6 +50,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.36.0",
+    "gaussian-process": "^0.0.1",
     "postcss": "^8.5.6",
     "puppeteer": "^24.23.0",
     "tailwindcss": "^3.4.18",

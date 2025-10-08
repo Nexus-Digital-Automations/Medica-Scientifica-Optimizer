@@ -208,7 +208,9 @@ async function runAllTests(): Promise<void> {
 }
 
 // Run tests if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Note: Using a more robust check for ESM module execution
+const isMainModule = process.argv[1] && process.argv[1].includes('testPolicyEngine');
+if (isMainModule) {
   runAllTests();
 }
 
