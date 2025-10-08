@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { PolicyParameters } from '../../../optimization/policyEngine.js';
+import type { PolicyParameters, WeeklyPolicyParameters } from '../../../optimization/policyEngine.js';
 import type { Strategy, StrategyAction } from '../../../simulation/types.js';
 import { useStrategyStore } from '../../stores/strategyStore';
 
@@ -28,7 +28,7 @@ interface BayesianOptimizerPanelProps {
 }
 
 interface OptimizationResult {
-  bestPolicy: PolicyParameters;
+  bestPolicy: PolicyParameters | WeeklyPolicyParameters;
   bestStrategy: Strategy;
   bestNetWorth: number;
   bestFitness: number;
@@ -491,62 +491,144 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
 
           {/* Complete Policy Parameters */}
           <div className="mt-6 space-y-3">
-            <h5 className="font-semibold text-white text-base">Complete Optimized Policy (All 15 Parameters)</h5>
+            {/* Check if weekly policy */}
+            {'weeks' in result.bestPolicy ? (
+              <>
+                <h5 className="font-semibold text-white text-base">
+                  📅 Weekly State-Conditional Policies (52 Weeks × 15 Parameters = 780 Total)
+                </h5>
+                <div className="text-xs text-gray-400 mb-3">
+                  Policies vary by week and adapt to business state (cash/inventory/debt levels)
+                </div>
 
-            {/* Inventory Management */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-blue-300 mb-2">📦 Inventory Management</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div><span className="text-gray-400">Reorder Point:</span> <span className="text-white font-medium">{result.bestPolicy.reorderPoint}</span></div>
-                <div><span className="text-gray-400">Order Quantity:</span> <span className="text-white font-medium">{result.bestPolicy.orderQuantity}</span></div>
-                <div><span className="text-gray-400">Safety Stock:</span> <span className="text-white font-medium">{result.bestPolicy.safetyStock}</span></div>
-              </div>
-            </div>
+                {/* Weekly policies - collapsible for each week */}
+                <details className="bg-gray-800/50 rounded-lg p-4 border border-gray-700" open>
+                  <summary className="cursor-pointer text-sm font-semibold text-white hover:text-blue-300 transition-colors">
+                    📊 View All 52 Weekly Policies (Click to expand/collapse)
+                  </summary>
 
-            {/* Production Allocation */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-purple-300 mb-2">🏭 Production Allocation</div>
-              <div className="text-xs"><span className="text-gray-400">MCE Custom Allocation:</span> <span className="text-white font-medium">{(result.bestPolicy.mceCustomAllocation * 100).toFixed(1)}%</span></div>
-            </div>
+                  <div className="mt-4 max-h-[600px] overflow-y-auto space-y-3">
+                    {Object.entries((result.bestPolicy as WeeklyPolicyParameters).weeks).map(([weekNum, weekPolicy]: [string, PolicyParameters]) => (
+                      <div key={weekNum} className="bg-gray-900/70 rounded-lg p-3 border border-gray-700">
+                        <div className="font-semibold text-blue-300 mb-3">
+                          Week {weekNum} (Days {51 + (parseInt(weekNum) - 1) * 7}-{Math.min(415, 51 + parseInt(weekNum) * 7 - 1)})
+                        </div>
 
-            {/* Batching Strategy */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-green-300 mb-2">📊 Batching Strategy</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-gray-400">Batch Size:</span> <span className="text-white font-medium">{result.bestPolicy.standardBatchSize}</span></div>
-                <div><span className="text-gray-400">Batch Interval:</span> <span className="text-white font-medium">{result.bestPolicy.batchInterval} days</span></div>
-              </div>
-            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                          {/* Inventory */}
+                          <div>
+                            <div className="text-gray-500 font-semibold mb-1">📦 Inventory</div>
+                            <div className="space-y-0.5 text-gray-300">
+                              <div>Reorder: <span className="text-white">{weekPolicy.reorderPoint}</span></div>
+                              <div>Order Qty: <span className="text-white">{weekPolicy.orderQuantity}</span></div>
+                              <div>Safety: <span className="text-white">{weekPolicy.safetyStock}</span></div>
+                            </div>
+                          </div>
 
-            {/* Workforce Policy */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-yellow-300 mb-2">👥 Workforce Policy</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-gray-400">Target Experts:</span> <span className="text-white font-medium">{result.bestPolicy.targetExperts}</span></div>
-                <div><span className="text-gray-400">Hire Threshold:</span> <span className="text-white font-medium">{(result.bestPolicy.hireThreshold * 100).toFixed(0)}%</span></div>
-                <div><span className="text-gray-400">Max Overtime:</span> <span className="text-white font-medium">{result.bestPolicy.maxOvertimeHours.toFixed(1)}h</span></div>
-                <div><span className="text-gray-400">OT Threshold:</span> <span className="text-white font-medium">{(result.bestPolicy.overtimeThreshold * 100).toFixed(0)}%</span></div>
-              </div>
-            </div>
+                          {/* Production & Batching */}
+                          <div>
+                            <div className="text-gray-500 font-semibold mb-1">🏭 Production</div>
+                            <div className="space-y-0.5 text-gray-300">
+                              <div>MCE: <span className="text-white">{(weekPolicy.mceCustomAllocation * 100).toFixed(1)}%</span></div>
+                              <div>Batch: <span className="text-white">{weekPolicy.standardBatchSize}</span></div>
+                              <div>Interval: <span className="text-white">{weekPolicy.batchInterval}d</span></div>
+                            </div>
+                          </div>
 
-            {/* Financial Policy */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-cyan-300 mb-2">💰 Financial Policy</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div><span className="text-gray-400">Cash Reserve:</span> <span className="text-white font-medium">${result.bestPolicy.cashReserveTarget.toLocaleString()}</span></div>
-                <div><span className="text-gray-400">Loan Amount:</span> <span className="text-white font-medium">${result.bestPolicy.loanAmount.toLocaleString()}</span></div>
-                <div><span className="text-gray-400">Repay At:</span> <span className="text-white font-medium">${result.bestPolicy.repayThreshold.toLocaleString()}</span></div>
-              </div>
-            </div>
+                          {/* Workforce */}
+                          <div>
+                            <div className="text-gray-500 font-semibold mb-1">👥 Workforce</div>
+                            <div className="space-y-0.5 text-gray-300">
+                              <div>Experts: <span className="text-white">{weekPolicy.targetExperts}</span></div>
+                              <div>Hire @: <span className="text-white">{(weekPolicy.hireThreshold * 100).toFixed(0)}%</span></div>
+                              <div>OT: <span className="text-white">{weekPolicy.maxOvertimeHours.toFixed(1)}h</span></div>
+                            </div>
+                          </div>
 
-            {/* Pricing Strategy */}
-            <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-              <div className="text-sm font-semibold text-pink-300 mb-2">💲 Pricing Strategy</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-gray-400">Standard Price:</span> <span className="text-white font-medium">${(225 * result.bestPolicy.standardPriceMultiplier).toFixed(2)}</span></div>
-                <div><span className="text-gray-400">Custom Base:</span> <span className="text-white font-medium">${result.bestPolicy.customBasePrice.toFixed(2)}</span></div>
-              </div>
-            </div>
+                          {/* Financial */}
+                          <div>
+                            <div className="text-gray-500 font-semibold mb-1">💰 Financial</div>
+                            <div className="space-y-0.5 text-gray-300">
+                              <div>Reserve: <span className="text-white">${(weekPolicy.cashReserveTarget / 1000).toFixed(0)}k</span></div>
+                              <div>Loan: <span className="text-white">${(weekPolicy.loanAmount / 1000).toFixed(0)}k</span></div>
+                              <div>Repay: <span className="text-white">${(weekPolicy.repayThreshold / 1000).toFixed(0)}k</span></div>
+                            </div>
+                          </div>
+
+                          {/* Pricing */}
+                          <div>
+                            <div className="text-gray-500 font-semibold mb-1">💲 Pricing</div>
+                            <div className="space-y-0.5 text-gray-300">
+                              <div>Std: <span className="text-white">${(225 * weekPolicy.standardPriceMultiplier).toFixed(0)}</span></div>
+                              <div>Custom: <span className="text-white">${weekPolicy.customBasePrice.toFixed(0)}</span></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </>
+            ) : (
+              <>
+                <h5 className="font-semibold text-white text-base">Complete Optimized Policy (All 15 Parameters)</h5>
+
+                {/* Inventory Management */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-blue-300 mb-2">📦 Inventory Management</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><span className="text-gray-400">Reorder Point:</span> <span className="text-white font-medium">{result.bestPolicy.reorderPoint}</span></div>
+                    <div><span className="text-gray-400">Order Quantity:</span> <span className="text-white font-medium">{result.bestPolicy.orderQuantity}</span></div>
+                    <div><span className="text-gray-400">Safety Stock:</span> <span className="text-white font-medium">{result.bestPolicy.safetyStock}</span></div>
+                  </div>
+                </div>
+
+                {/* Production Allocation */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-purple-300 mb-2">🏭 Production Allocation</div>
+                  <div className="text-xs"><span className="text-gray-400">MCE Custom Allocation:</span> <span className="text-white font-medium">{(result.bestPolicy.mceCustomAllocation * 100).toFixed(1)}%</span></div>
+                </div>
+
+                {/* Batching Strategy */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-green-300 mb-2">📊 Batching Strategy</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-gray-400">Batch Size:</span> <span className="text-white font-medium">{result.bestPolicy.standardBatchSize}</span></div>
+                    <div><span className="text-gray-400">Batch Interval:</span> <span className="text-white font-medium">{result.bestPolicy.batchInterval} days</span></div>
+                  </div>
+                </div>
+
+                {/* Workforce Policy */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-yellow-300 mb-2">👥 Workforce Policy</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-gray-400">Target Experts:</span> <span className="text-white font-medium">{result.bestPolicy.targetExperts}</span></div>
+                    <div><span className="text-gray-400">Hire Threshold:</span> <span className="text-white font-medium">{(result.bestPolicy.hireThreshold * 100).toFixed(0)}%</span></div>
+                    <div><span className="text-gray-400">Max Overtime:</span> <span className="text-white font-medium">{result.bestPolicy.maxOvertimeHours.toFixed(1)}h</span></div>
+                    <div><span className="text-gray-400">OT Threshold:</span> <span className="text-white font-medium">{(result.bestPolicy.overtimeThreshold * 100).toFixed(0)}%</span></div>
+                  </div>
+                </div>
+
+                {/* Financial Policy */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-cyan-300 mb-2">💰 Financial Policy</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><span className="text-gray-400">Cash Reserve:</span> <span className="text-white font-medium">${result.bestPolicy.cashReserveTarget.toLocaleString()}</span></div>
+                    <div><span className="text-gray-400">Loan Amount:</span> <span className="text-white font-medium">${result.bestPolicy.loanAmount.toLocaleString()}</span></div>
+                    <div><span className="text-gray-400">Repay At:</span> <span className="text-white font-medium">${result.bestPolicy.repayThreshold.toLocaleString()}</span></div>
+                  </div>
+                </div>
+
+                {/* Pricing Strategy */}
+                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                  <div className="text-sm font-semibold text-pink-300 mb-2">💲 Pricing Strategy</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-gray-400">Standard Price:</span> <span className="text-white font-medium">${(225 * result.bestPolicy.standardPriceMultiplier).toFixed(2)}</span></div>
+                    <div><span className="text-gray-400">Custom Base:</span> <span className="text-white font-medium">${result.bestPolicy.customBasePrice.toFixed(2)}</span></div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Actions Timeline Summary */}
