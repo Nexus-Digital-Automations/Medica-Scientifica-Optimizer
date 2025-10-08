@@ -19,15 +19,19 @@ import type { SimulationResult, SimulationState } from '../simulation/types.js';
 import {
   PolicyEngine,
   type PolicyParameters,
+  type WeeklyPolicyParameters,
   PARAMETER_SPACE,
   generateRandomPolicy,
+  generateWeeklyParameterSpace,
+  flatParamsToWeeklyPolicy,
+  weeklyPolicyToFlatParams,
 } from './policyEngine.js';
 
 /**
  * Result from evaluating a single policy
  */
 interface PolicyEvaluation {
-  params: PolicyParameters;
+  params: PolicyParameters | WeeklyPolicyParameters;
   netWorth: number;
   fitnessScore: number;
   simulationResult: SimulationResult;
@@ -61,18 +65,23 @@ export interface BayesianOptimizerConfig {
   onProgress?: ProgressCallback;   // Callback for progress updates
   useMemory?: boolean;             // Use historical memory for warm-start
   warmStartPolicies?: PolicyParameters[]; // Pre-selected policies to start from
+  useWeeklyPolicies?: boolean;     // Use 52-week state-conditional policies (780 params)
 }
 
 /**
  * Bayesian Optimizer for Policy Parameters
  *
- * Finds the best 15 policy parameters by intelligently sampling the search space.
+ * Finds the best policy parameters by intelligently sampling the search space.
+ * Supports both:
+ * - Single policies (15 parameters)
+ * - Weekly state-conditional policies (780 parameters = 15 × 52 weeks)
  */
 export class BayesianOptimizer {
   private config: BayesianOptimizerConfig;
   private progress: OptimizationProgress;
   private iterationsSinceImprovement: number = 0;
   private adaptiveMutationIntensity: number = 0.15;
+  private parameterSpace: Record<string, { min: number; max: number; type: 'integer' | 'real' }>;
 
   constructor(config: Partial<BayesianOptimizerConfig> = {}) {
     this.config = {
@@ -81,7 +90,16 @@ export class BayesianOptimizer {
       verbose: config.verbose !== undefined ? config.verbose : true,
       saveCheckpoints: config.saveCheckpoints || true,
       checkpointInterval: config.checkpointInterval || 10,
+      useWeeklyPolicies: config.useWeeklyPolicies || false,
+      useMemory: config.useMemory,
+      warmStartPolicies: config.warmStartPolicies,
+      onProgress: config.onProgress,
     };
+
+    // Select parameter space based on mode
+    this.parameterSpace = this.config.useWeeklyPolicies
+      ? generateWeeklyParameterSpace()
+      : PARAMETER_SPACE;
 
     this.progress = {
       iteration: 0,
@@ -144,7 +162,7 @@ export class BayesianOptimizer {
     this.log('Sampling diverse policies across the entire search space...\n');
 
     for (let i = 0; i < reducedRandom; i++) {
-      const policy = generateRandomPolicy();
+      const policy = this.generateRandomPolicy();
       await this.evaluatePolicy(policy, ++currentIteration, 'random');
 
       if ((i + 1) % 10 === 0) {
@@ -199,7 +217,7 @@ export class BayesianOptimizer {
    * @returns Evaluation results
    */
   private async evaluatePolicy(
-    params: PolicyParameters,
+    params: PolicyParameters | WeeklyPolicyParameters,
     iteration: number,
     phase: 'random' | 'guided'
   ): Promise<PolicyEvaluation> {
@@ -334,7 +352,7 @@ export class BayesianOptimizer {
    * - If no improvement for 50 iterations → increase mutation to 0.25
    * - If stuck in negative fitness → inject random policies
    */
-  private selectNextPolicy(): PolicyParameters {
+  private selectNextPolicy(): PolicyParameters | WeeklyPolicyParameters {
     // ADAPTIVE: Increase mutation intensity if stuck
     if (this.iterationsSinceImprovement >= 50) {
       this.adaptiveMutationIntensity = 0.25;
@@ -346,7 +364,7 @@ export class BayesianOptimizer {
     const allNegative = top10.every(e => e.netWorth < 0);
     if (allNegative && this.iterationsSinceImprovement >= 20) {
       this.log(`\n🔄 Adaptive mode: Stuck in negative fitness, forcing random exploration`);
-      return generateRandomPolicy();
+      return this.generateRandomPolicy();
     }
 
     const strategy = Math.random();
@@ -359,6 +377,28 @@ export class BayesianOptimizer {
       return this.crossover();
     } else {
       // RANDOM: Explore completely new region
+      return this.generateRandomPolicy();
+    }
+  }
+
+  /**
+   * Generate random policy parameters within bounds
+   * Supports both single and weekly policies
+   */
+  private generateRandomPolicy(): PolicyParameters | WeeklyPolicyParameters {
+    if (this.config.useWeeklyPolicies) {
+      // Generate random parameters for all 780 dimensions
+      const flatParams: Record<string, number> = {};
+
+      for (const [key, bounds] of Object.entries(this.parameterSpace)) {
+        const value = Math.random() * (bounds.max - bounds.min) + bounds.min;
+        flatParams[key] = bounds.type === 'integer' ? Math.round(value) : value;
+      }
+
+      // Convert to WeeklyPolicyParameters structure
+      return flatParamsToWeeklyPolicy(flatParams);
+    } else {
+      // Use existing single policy generator
       return generateRandomPolicy();
     }
   }
@@ -366,7 +406,7 @@ export class BayesianOptimizer {
   /**
    * Local search: Small mutations around best policies
    */
-  private localSearch(): PolicyParameters {
+  private localSearch(): PolicyParameters | WeeklyPolicyParameters {
     // Get top 3 best evaluations
     const topN = this.getTopN(3);
     const parent = topN[Math.floor(Math.random() * topN.length)].params;
@@ -378,20 +418,41 @@ export class BayesianOptimizer {
   /**
    * Crossover: Combine parameters from two top performers
    */
-  private crossover(): PolicyParameters {
+  private crossover(): PolicyParameters | WeeklyPolicyParameters {
     const topN = this.getTopN(5);
     const parent1 = topN[Math.floor(Math.random() * topN.length)].params;
     const parent2 = topN[Math.floor(Math.random() * topN.length)].params;
 
-    // Uniform crossover: Each parameter from random parent
-    const child: PolicyParameters = {} as PolicyParameters;
-    const keys = Object.keys(parent1) as Array<keyof PolicyParameters>;
+    if (this.config.useWeeklyPolicies) {
+      // Convert to flat format for crossover
+      const flat1 = 'weeks' in parent1
+        ? weeklyPolicyToFlatParams(parent1)
+        : (parent1 as unknown as Record<string, number>);
+      const flat2 = 'weeks' in parent2
+        ? weeklyPolicyToFlatParams(parent2)
+        : (parent2 as unknown as Record<string, number>);
 
-    for (const key of keys) {
-      child[key] = Math.random() < 0.5 ? parent1[key] : parent2[key];
+      const childFlat: Record<string, number> = {};
+      const keys = Object.keys(flat1);
+
+      for (const key of keys) {
+        childFlat[key] = Math.random() < 0.5 ? flat1[key] : flat2[key];
+      }
+
+      return flatParamsToWeeklyPolicy(childFlat);
+    } else {
+      // Uniform crossover for single policies
+      const child: PolicyParameters = {} as PolicyParameters;
+      const keys = Object.keys(parent1) as Array<keyof PolicyParameters>;
+
+      for (const key of keys) {
+        const p1 = parent1 as PolicyParameters;
+        const p2 = parent2 as PolicyParameters;
+        child[key] = Math.random() < 0.5 ? p1[key] : p2[key];
+      }
+
+      return child;
     }
-
-    return child;
   }
 
   /**
@@ -401,34 +462,72 @@ export class BayesianOptimizer {
    * @param intensity Mutation strength (0.1 = ±10%, 0.2 = ±20%, etc.)
    * @returns Mutated policy (staying within bounds)
    */
-  private mutatePolicy(policy: PolicyParameters, intensity: number): PolicyParameters {
-    const mutated: PolicyParameters = { ...policy };
-    const keys = Object.keys(policy) as Array<keyof PolicyParameters>;
+  private mutatePolicy(
+    policy: PolicyParameters | WeeklyPolicyParameters,
+    intensity: number
+  ): PolicyParameters | WeeklyPolicyParameters {
+    if (this.config.useWeeklyPolicies && 'weeks' in policy) {
+      // Convert to flat format for mutation
+      const flatPolicy = weeklyPolicyToFlatParams(policy);
+      const mutatedFlat: Record<string, number> = {};
 
-    // Mutate each parameter with 40% probability (increased for more exploration)
-    for (const key of keys) {
-      if (Math.random() < 0.4) { // 40% chance to mutate each parameter
-        const bounds = PARAMETER_SPACE[key];
-        const currentValue = policy[key] as number;
-        const range = bounds.max - bounds.min;
+      // Mutate each parameter with 40% probability
+      for (const [key, value] of Object.entries(flatPolicy)) {
+        if (Math.random() < 0.4) {
+          const bounds = this.parameterSpace[key];
+          const range = bounds.max - bounds.min;
 
-        // Gaussian mutation
-        const mutation = this.gaussianRandom() * intensity * range;
-        let newValue = currentValue + mutation;
+          // Gaussian mutation
+          const mutation = this.gaussianRandom() * intensity * range;
+          let newValue = value + mutation;
 
-        // Clamp to bounds
-        newValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
+          // Clamp to bounds
+          newValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
 
-        // Round if integer
-        if (bounds.type === 'integer') {
-          newValue = Math.round(newValue);
+          // Round if integer
+          if (bounds.type === 'integer') {
+            newValue = Math.round(newValue);
+          }
+
+          mutatedFlat[key] = newValue;
+        } else {
+          mutatedFlat[key] = value;
         }
-
-        mutated[key] = newValue as number;
       }
-    }
 
-    return mutated;
+      // Convert back to WeeklyPolicyParameters
+      return flatParamsToWeeklyPolicy(mutatedFlat);
+    } else {
+      // Single policy mutation
+      const singlePolicy = policy as PolicyParameters;
+      const mutated: PolicyParameters = { ...singlePolicy };
+      const keys = Object.keys(singlePolicy) as Array<keyof PolicyParameters>;
+
+      // Mutate each parameter with 40% probability
+      for (const key of keys) {
+        if (Math.random() < 0.4) {
+          const bounds = this.parameterSpace[key];
+          const currentValue = singlePolicy[key] as number;
+          const range = bounds.max - bounds.min;
+
+          // Gaussian mutation
+          const mutation = this.gaussianRandom() * intensity * range;
+          let newValue = currentValue + mutation;
+
+          // Clamp to bounds
+          newValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
+
+          // Round if integer
+          if (bounds.type === 'integer') {
+            newValue = Math.round(newValue);
+          }
+
+          mutated[key] = newValue as number;
+        }
+      }
+
+      return mutated;
+    }
   }
 
   /**
@@ -537,31 +636,45 @@ export class BayesianOptimizer {
     this.log(`   Fitness Score:  ${currentBest.fitnessScore.toLocaleString()}`);
     this.log(`   Found at:       Iteration ${currentBest.iteration}`);
 
-    this.log(`\n🎯 Best Policy Parameters (State-Conditional - Phase 1):`);
-    this.log(`   Policies adapt based on cash state: 🔴 Low (<$100k) | 🟡 Med ($100-300k) | 🟢 High (>$300k)\n`);
+    // For weekly policies, show week 1 as representative
+    const params = 'weeks' in currentBest.params
+      ? currentBest.params.weeks[1]
+      : currentBest.params;
 
-    const params = currentBest.params;
+    if ('weeks' in currentBest.params) {
+      this.log(`\n🎯 Best Policy Type: Weekly State-Conditional (780 parameters)`);
+      this.log(`   Showing Week 1 parameters as representative:`);
+    } else {
+      this.log(`\n🎯 Best Policy Parameters:`);
+    }
 
-    // Helper to format state-conditional parameter display
-    const showParam = (name: string, lowKey: keyof typeof params, medKey: keyof typeof params, highKey: keyof typeof params, formatter = (v: number) => v.toString()) => {
-      this.log(`     ${name.padEnd(20)} 🔴 ${formatter(params[lowKey] as number).padEnd(12)} 🟡 ${formatter(params[medKey] as number).padEnd(12)} 🟢 ${formatter(params[highKey] as number)}`);
-    };
+    this.log(`   Inventory:`);
+    this.log(`     Reorder Point:  ${params.reorderPoint} units`);
+    this.log(`     Order Quantity: ${params.orderQuantity} units`);
+    this.log(`     Safety Stock:   ${params.safetyStock} units`);
 
-    this.log(`   📦 Inventory:`);
-    showParam('Reorder Point:', 'reorderPoint_lowCash', 'reorderPoint_medCash', 'reorderPoint_highCash', v => `${v} units`);
-    showParam('Order Quantity:', 'orderQuantity_lowCash', 'orderQuantity_medCash', 'orderQuantity_highCash', v => `${v} units`);
+    this.log(`\n   Production:`);
+    this.log(`     MCE Allocation: ${(params.mceCustomAllocation * 100).toFixed(1)}% to Custom`);
+    this.log(`     Batch Size:     ${params.standardBatchSize} units`);
+    this.log(`     Batch Interval: ${params.batchInterval} days`);
 
-    this.log(`\n   🏭 Production:`);
-    showParam('MCE Allocation:', 'mceCustomAllocation_lowCash', 'mceCustomAllocation_medCash', 'mceCustomAllocation_highCash', v => `${(v * 100).toFixed(1)}%`);
-    showParam('Batch Size:', 'standardBatchSize_lowCash', 'standardBatchSize_medCash', 'standardBatchSize_highCash', v => `${v} units`);
+    this.log(`\n   Workforce:`);
+    this.log(`     Target Experts: ${params.targetExperts}`);
+    this.log(`     Hire Threshold: ${(params.hireThreshold * 100).toFixed(0)}%`);
+    this.log(`     Max Overtime:   ${params.maxOvertimeHours.toFixed(1)} hours/day`);
 
-    this.log(`\n   👥 Workforce:`);
-    showParam('Target Experts:', 'targetExperts_lowCash', 'targetExperts_medCash', 'targetExperts_highCash');
-    showParam('Max Overtime:', 'maxOvertimeHours_lowCash', 'maxOvertimeHours_medCash', 'maxOvertimeHours_highCash', v => `${v.toFixed(1)}h`);
+    this.log(`\n   Financial:`);
+    this.log(`     Cash Reserve:   $${params.cashReserveTarget.toLocaleString()}`);
+    this.log(`     Loan Amount:    $${params.loanAmount.toLocaleString()}`);
+    this.log(`     Repay At:       $${params.repayThreshold.toLocaleString()}`);
 
-    this.log(`\n   💰 Financial:`);
-    showParam('Cash Reserve:', 'cashReserveTarget_lowCash', 'cashReserveTarget_medCash', 'cashReserveTarget_highCash', v => `$${(v / 1000).toFixed(0)}k`);
-    showParam('Loan Amount:', 'loanAmount_lowCash', 'loanAmount_medCash', 'loanAmount_highCash', v => `$${(v / 1000).toFixed(0)}k`);
+    this.log(`\n   Pricing:`);
+    this.log(`     Standard Price: $${Math.round(225 * params.standardPriceMultiplier)}`);
+    this.log(`     Custom Base:    $${params.customBasePrice.toFixed(2)}`);
+
+    if ('weeks' in currentBest.params) {
+      this.log(`\n   Note: Actual behavior varies by week (1-52) and business state`);
+    }
 
     this.log('\n' + '='.repeat(70) + '\n');
   }

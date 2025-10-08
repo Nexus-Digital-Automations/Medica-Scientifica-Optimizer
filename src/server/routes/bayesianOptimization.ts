@@ -20,7 +20,7 @@ const router = Router();
  */
 router.post('/bayesian-optimize', async (req: Request, res: Response) => {
   try {
-    const { totalIterations = 150, randomExploration = 30, stream = false, useMemory = false, demandContext } = req.body;
+    const { totalIterations = 150, randomExploration = 30, stream = false, useMemory = false, useWeeklyPolicies = false, demandContext } = req.body;
 
     // Validate inputs
     if (totalIterations < 10) {
@@ -67,6 +67,7 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
           saveCheckpoints: false,
           onProgress,
           useMemory,
+          useWeeklyPolicies,
           warmStartPolicies,
         });
 
@@ -132,6 +133,7 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
       verbose: false, // Don't log to console in API mode
       saveCheckpoints: false, // Don't save checkpoints in API mode
       useMemory,
+      useWeeklyPolicies,
       warmStartPolicies,
     });
 

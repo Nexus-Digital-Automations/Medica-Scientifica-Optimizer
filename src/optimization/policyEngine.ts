@@ -12,112 +12,109 @@ import type { SimulationState, Strategy, StrategyAction } from '../simulation/ty
 import { CONSTANTS } from '../simulation/constants.js';
 
 /**
- * Business State - Used for State-Conditional Policies
- *
- * Policies adapt based on the current financial health of the business.
+ * Business State Categories for Conditional Logic
  */
-export type CashState = 'lowCash' | 'medCash' | 'highCash';
+export type CashState = 'LOW' | 'MEDIUM' | 'HIGH';
+export type InventoryState = 'LOW' | 'MEDIUM' | 'HIGH';
+export type DebtState = 'LOW' | 'MEDIUM' | 'HIGH';
 
 /**
- * Detect current business state based on net cash position
+ * State Thresholds for Conditional Policies
  */
-export function detectBusinessState(state: SimulationState): CashState {
-  const netCash = state.cash - state.debt;
-
-  if (netCash < 100000) return 'lowCash';    // Survival mode - conservative
-  if (netCash < 300000) return 'medCash';   // Balanced operations
-  return 'highCash';                        // Aggressive growth
-}
-
+export const STATE_THRESHOLDS = {
+  cash: {
+    LOW: 80000,    // Below this = LOW, above = MEDIUM
+    HIGH: 200000,  // Above this = HIGH
+  },
+  inventory: {
+    LOW: 200,      // Below this = LOW
+    HIGH: 500,     // Above this = HIGH
+  },
+  debt: {
+    LOW: 50000,    // Below this = LOW
+    HIGH: 150000,  // Above this = HIGH
+  },
+};
 
 /**
- * 45 State-Conditional Policy Parameters - Phase 1
+ * State-Conditional Multipliers
+ * Applied to base weekly parameters based on business conditions
+ */
+export const STATE_MULTIPLIERS = {
+  cash: {
+    LOW: 0.7,      // Conservative when cash is tight
+    MEDIUM: 1.0,   // Baseline
+    HIGH: 1.2,     // Aggressive when flush
+  },
+  inventory: {
+    LOW: 1.3,      // Order more when low
+    MEDIUM: 1.0,   // Normal
+    HIGH: 0.7,     // Reduce orders when high
+  },
+  debt: {
+    LOW: 1.1,      // Can invest more when low debt
+    MEDIUM: 1.0,   // Balanced
+    HIGH: 0.8,     // Conservative when high debt
+  },
+};
+
+/**
+ * 15 Policy Parameters - The Optimization Variables
  *
- * Each of the 15 base parameters now has 3 variants for different cash states:
- * - lowCash:  Conservative policies for survival (netCash < $100k)
- * - medCash:  Balanced policies for steady growth ($100k-$300k)
- * - highCash: Aggressive policies for expansion (netCash > $300k)
- *
- * Total: 15 base × 3 states = 45 parameters
+ * These parameters define HOW the business operates, not specific daily actions.
+ * Bayesian Optimization will find the best values for these 15 numbers.
  */
 export interface PolicyParameters {
   // ============================================================================
-  // INVENTORY MANAGEMENT (3 × 3 = 9 parameters)
+  // INVENTORY MANAGEMENT (3 parameters)
   // ============================================================================
-  reorderPoint_lowCash: number;
-  reorderPoint_medCash: number;
-  reorderPoint_highCash: number;
-
-  orderQuantity_lowCash: number;
-  orderQuantity_medCash: number;
-  orderQuantity_highCash: number;
-
-  safetyStock_lowCash: number;
-  safetyStock_medCash: number;
-  safetyStock_highCash: number;
+  reorderPoint: number;        // [200-600] When inventory drops below this, order more
+  orderQuantity: number;       // [300-800] How much to order each time
+  safetyStock: number;         // [100-300] Emergency buffer below reorder point
 
   // ============================================================================
-  // PRODUCTION ALLOCATION (1 × 3 = 3 parameters) - CRITICAL
+  // PRODUCTION ALLOCATION (1 parameter) - CRITICAL
   // ============================================================================
-  mceCustomAllocation_lowCash: number;
-  mceCustomAllocation_medCash: number;
-  mceCustomAllocation_highCash: number;
+  mceCustomAllocation: number; // [0.4-0.7] % of MCE time allocated to custom line
 
   // ============================================================================
-  // BATCH PRODUCTION (2 × 3 = 6 parameters)
+  // BATCH PRODUCTION (2 parameters)
   // ============================================================================
-  standardBatchSize_lowCash: number;
-  standardBatchSize_medCash: number;
-  standardBatchSize_highCash: number;
-
-  batchInterval_lowCash: number;
-  batchInterval_medCash: number;
-  batchInterval_highCash: number;
+  standardBatchSize: number;   // [50-120] Units per production batch
+  batchInterval: number;       // [6-12] Days between starting new batches
 
   // ============================================================================
-  // WORKFORCE MANAGEMENT (4 × 3 = 12 parameters)
+  // WORKFORCE MANAGEMENT (4 parameters)
   // ============================================================================
-  targetExperts_lowCash: number;
-  targetExperts_medCash: number;
-  targetExperts_highCash: number;
-
-  hireThreshold_lowCash: number;
-  hireThreshold_medCash: number;
-  hireThreshold_highCash: number;
-
-  maxOvertimeHours_lowCash: number;
-  maxOvertimeHours_medCash: number;
-  maxOvertimeHours_highCash: number;
-
-  overtimeThreshold_lowCash: number;
-  overtimeThreshold_medCash: number;
-  overtimeThreshold_highCash: number;
+  targetExperts: number;       // [8-15] Target number of expert workers
+  hireThreshold: number;       // [0.7-0.9] Hire when experts drop below this fraction of target
+  maxOvertimeHours: number;    // [0-4] Maximum daily overtime hours allowed
+  overtimeThreshold: number;   // [0.75-0.95] Use overtime when utilization exceeds this
 
   // ============================================================================
-  // FINANCIAL MANAGEMENT (3 × 3 = 9 parameters)
+  // FINANCIAL MANAGEMENT (3 parameters)
   // ============================================================================
-  cashReserveTarget_lowCash: number;
-  cashReserveTarget_medCash: number;
-  cashReserveTarget_highCash: number;
-
-  loanAmount_lowCash: number;
-  loanAmount_medCash: number;
-  loanAmount_highCash: number;
-
-  repayThreshold_lowCash: number;
-  repayThreshold_medCash: number;
-  repayThreshold_highCash: number;
+  cashReserveTarget: number;   // [15000-35000] Minimum cash buffer to maintain
+  loanAmount: number;          // [20000-50000] Standard loan size when cash is low
+  repayThreshold: number;      // [70000-120000] Repay debt when cash exceeds this
 
   // ============================================================================
-  // PRICING STRATEGY (2 × 3 = 6 parameters)
+  // PRICING STRATEGY (2 parameters)
   // ============================================================================
-  standardPriceMultiplier_lowCash: number;
-  standardPriceMultiplier_medCash: number;
-  standardPriceMultiplier_highCash: number;
+  standardPriceMultiplier: number;  // [0.9-1.1] Multiplier vs market price ($225)
+  customBasePrice: number;          // [105-115] Base price before delivery penalty
+}
 
-  customBasePrice_lowCash: number;
-  customBasePrice_medCash: number;
-  customBasePrice_highCash: number;
+/**
+ * Weekly Policy Parameters - 52 weeks of dynamic strategies
+ *
+ * Total optimization space: 15 parameters × 52 weeks = 780 dimensions
+ * This allows the strategy to evolve week-by-week throughout the year
+ */
+export interface WeeklyPolicyParameters {
+  weeks: {
+    [weekNumber: number]: PolicyParameters; // Weeks 1-52
+  };
 }
 
 /**
@@ -125,33 +122,127 @@ export interface PolicyParameters {
  *
  * This class implements the business logic that generates strategic actions
  * for each day based on:
- * 1. Policy parameters (from optimizer)
+ * 1. Policy parameters (from optimizer) - either single or weekly
  * 2. Current business state (from simulation)
- * 3. Time context (day number)
+ * 3. Time context (day number, week number)
+ * 4. State-conditional multipliers (cash, inventory, debt)
  */
 export class PolicyEngine {
-  private params: PolicyParameters;
+  private params: PolicyParameters | null = null;
+  private weeklyParams: WeeklyPolicyParameters | null = null;
+  private isWeekly: boolean = false;
   private lastBatchDay: number = 0;
   private lastInventoryOrderDay: number = 0;
 
-  constructor(params: PolicyParameters) {
-    this.params = params;
+  constructor(params: PolicyParameters | WeeklyPolicyParameters) {
+    if ('weeks' in params) {
+      this.weeklyParams = params;
+      this.isWeekly = true;
+    } else {
+      this.params = params;
+      this.isWeekly = false;
+    }
   }
 
   /**
-   * Get state-conditional parameter value
-   *
-   * Dynamically selects the appropriate parameter variant based on current business state.
-   * This enables policies to adapt to financial conditions.
-   *
-   * @param baseParam Base parameter name (e.g., 'reorderPoint')
-   * @param state Current simulation state
-   * @returns The state-appropriate parameter value
+   * Determine cash state based on current cash level
    */
-  private getStateConditionalParameter(baseParam: string, state: SimulationState): number {
-    const cashState = detectBusinessState(state);
-    const paramKey = `${baseParam}_${cashState}` as keyof PolicyParameters;
-    return this.params[paramKey];
+  private getCashState(cash: number): CashState {
+    if (cash < STATE_THRESHOLDS.cash.LOW) return 'LOW';
+    if (cash >= STATE_THRESHOLDS.cash.HIGH) return 'HIGH';
+    return 'MEDIUM';
+  }
+
+  /**
+   * Determine inventory state based on raw material level
+   */
+  private getInventoryState(inventory: number): InventoryState {
+    if (inventory < STATE_THRESHOLDS.inventory.LOW) return 'LOW';
+    if (inventory >= STATE_THRESHOLDS.inventory.HIGH) return 'HIGH';
+    return 'MEDIUM';
+  }
+
+  /**
+   * Determine debt state based on current debt level
+   */
+  private getDebtState(debt: number): DebtState {
+    if (debt < STATE_THRESHOLDS.debt.LOW) return 'LOW';
+    if (debt >= STATE_THRESHOLDS.debt.HIGH) return 'HIGH';
+    return 'MEDIUM';
+  }
+
+  /**
+   * Get week number from day (Day 51 = Week 1, Day 57 = Week 1, Day 58 = Week 2, etc.)
+   * Clamps to week 52 since simulation is 365 days (52.14 weeks)
+   */
+  private getWeekNumber(day: number): number {
+    const daysSinceStart = day - CONSTANTS.SIMULATION_START_DAY;
+    const weekNumber = Math.floor(daysSinceStart / 7) + 1;
+    // Clamp to week 52 (last few days use week 52 parameters)
+    return Math.min(weekNumber, 52);
+  }
+
+  /**
+   * Get effective policy parameters for a given day and state
+   * Applies weekly lookup and state-conditional multipliers
+   */
+  private getEffectiveParameters(day: number, state: SimulationState): PolicyParameters {
+    // Get base parameters (either single or week-specific)
+    let baseParams: PolicyParameters;
+
+    if (this.isWeekly && this.weeklyParams) {
+      const weekNumber = this.getWeekNumber(day);
+      baseParams = this.weeklyParams.weeks[weekNumber];
+
+      if (!baseParams) {
+        throw new Error(`No policy parameters defined for week ${weekNumber}`);
+      }
+    } else if (this.params) {
+      baseParams = this.params;
+    } else {
+      throw new Error('No policy parameters available');
+    }
+
+    // Determine business state
+    const cashState = this.getCashState(state.cash);
+    const inventoryState = this.getInventoryState(state.rawMaterialInventory);
+    const debtState = this.getDebtState(state.debt);
+
+    // Get multipliers
+    const cashMultiplier = STATE_MULTIPLIERS.cash[cashState];
+    const inventoryMultiplier = STATE_MULTIPLIERS.inventory[inventoryState];
+    const debtMultiplier = STATE_MULTIPLIERS.debt[debtState];
+
+    // Apply state-conditional multipliers to base parameters
+    // Different parameters are affected by different state conditions
+    return {
+      // Inventory: Affected by inventory state and cash state
+      reorderPoint: Math.round(baseParams.reorderPoint * inventoryMultiplier),
+      orderQuantity: Math.round(baseParams.orderQuantity * inventoryMultiplier * cashMultiplier),
+      safetyStock: Math.round(baseParams.safetyStock * inventoryMultiplier),
+
+      // Production: Affected by cash state (can we afford aggressive custom production?)
+      mceCustomAllocation: Math.max(0.2, Math.min(0.8, baseParams.mceCustomAllocation * cashMultiplier)),
+
+      // Batching: Affected by cash and debt state
+      standardBatchSize: Math.round(baseParams.standardBatchSize * debtMultiplier),
+      batchInterval: baseParams.batchInterval, // Keep constant
+
+      // Workforce: Affected by cash state (can we afford hiring/overtime?)
+      targetExperts: Math.round(baseParams.targetExperts * cashMultiplier),
+      hireThreshold: baseParams.hireThreshold, // Keep constant
+      maxOvertimeHours: baseParams.maxOvertimeHours * cashMultiplier * debtMultiplier,
+      overtimeThreshold: baseParams.overtimeThreshold, // Keep constant
+
+      // Financial: Affected by debt state
+      cashReserveTarget: Math.round(baseParams.cashReserveTarget * debtMultiplier),
+      loanAmount: Math.round(baseParams.loanAmount * (1 / debtMultiplier)), // Borrow MORE when debt is LOW
+      repayThreshold: Math.round(baseParams.repayThreshold * debtMultiplier),
+
+      // Pricing: Keep base parameters (pricing is less state-dependent)
+      standardPriceMultiplier: baseParams.standardPriceMultiplier,
+      customBasePrice: baseParams.customBasePrice,
+    };
   }
 
   /**
@@ -197,43 +288,40 @@ export class PolicyEngine {
   private generateDailyActions(state: SimulationState, day: number): StrategyAction[] {
     const actions: StrategyAction[] = [];
 
-    // ========================================================================
-    // 1. INVENTORY MANAGEMENT (State-Conditional)
-    // ========================================================================
-    const reorderPoint = this.getStateConditionalParameter('reorderPoint', state);
-    const orderQuantity = this.getStateConditionalParameter('orderQuantity', state);
+    // Get effective parameters with weekly lookup + state-conditional multipliers
+    const effectiveParams = this.getEffectiveParameters(day, state);
 
-    if (state.rawMaterialInventory <= reorderPoint) {
+    // ========================================================================
+    // 1. INVENTORY MANAGEMENT
+    // ========================================================================
+    if (state.rawMaterialInventory <= effectiveParams.reorderPoint) {
       // Only order if we haven't ordered recently (avoid spam)
       if (day - this.lastInventoryOrderDay >= 5) {
         actions.push({
           day,
           type: 'ORDER_MATERIALS',
-          quantity: orderQuantity,
+          quantity: effectiveParams.orderQuantity,
         });
         this.lastInventoryOrderDay = day;
       }
     }
 
     // ========================================================================
-    // 2. BATCH PRODUCTION SCHEDULING (State-Conditional)
+    // 2. BATCH PRODUCTION SCHEDULING
     // ========================================================================
-    const batchInterval = this.getStateConditionalParameter('batchInterval', state);
-    const standardBatchSize = this.getStateConditionalParameter('standardBatchSize', state);
-
-    if (day - this.lastBatchDay >= batchInterval) {
+    if (day - this.lastBatchDay >= effectiveParams.batchInterval) {
       actions.push({
         day,
         type: 'ADJUST_BATCH_SIZE',
-        newSize: standardBatchSize,
+        newSize: effectiveParams.standardBatchSize,
       });
       this.lastBatchDay = day;
     }
 
     // ========================================================================
-    // 3. MCE ALLOCATION (CRITICAL - DAILY ADJUSTMENT, State-Conditional)
+    // 3. MCE ALLOCATION (CRITICAL - DAILY ADJUSTMENT)
     // ========================================================================
-    let allocation = this.getStateConditionalParameter('mceCustomAllocation', state);
+    let allocation = effectiveParams.mceCustomAllocation;
 
     // Dynamic adjustment based on business pressures
     const customWIP = state.customLineWIP.orders.length;
@@ -261,18 +349,15 @@ export class PolicyEngine {
     });
 
     // ========================================================================
-    // 4. WORKFORCE MANAGEMENT (State-Conditional)
+    // 4. WORKFORCE MANAGEMENT
     // ========================================================================
-    const targetExperts = this.getStateConditionalParameter('targetExperts', state);
-    const hireThreshold = this.getStateConditionalParameter('hireThreshold', state);
-
     const currentExperts = state.workforce.experts;
     const rookiesInTraining = state.workforce.rookiesInTraining.length;
     const futureExperts = currentExperts + rookiesInTraining;
 
     // Hiring decision: Maintain target expert count
-    if (futureExperts < targetExperts * hireThreshold) {
-      const hireCount = Math.ceil(targetExperts - futureExperts);
+    if (futureExperts < effectiveParams.targetExperts * effectiveParams.hireThreshold) {
+      const hireCount = Math.ceil(effectiveParams.targetExperts - futureExperts);
       if (hireCount > 0 && hireCount <= 5) { // Safety cap
         actions.push({
           day,
@@ -282,28 +367,27 @@ export class PolicyEngine {
       }
     }
 
-    // Overtime decision (handled via strategy parameter in toStrategy() method)
-    // The strategy.dailyOvertimeHours is set from state-conditional maxOvertimeHours
+    // Overtime decision (handled via strategy parameter, just validate here)
+    // The strategy.dailyOvertimeHours will be set from effectiveParams.maxOvertimeHours
 
     // ========================================================================
-    // 5. FINANCIAL MANAGEMENT (State-Conditional)
+    // 5. FINANCIAL MANAGEMENT
     // ========================================================================
-    const cashReserveTarget = this.getStateConditionalParameter('cashReserveTarget', state);
-    const loanAmount = this.getStateConditionalParameter('loanAmount', state);
-    const repayThreshold = this.getStateConditionalParameter('repayThreshold', state);
 
     // Take loan if cash is getting low (but debt not too high)
-    if (state.cash < cashReserveTarget && state.debt < 200000) {
+    if (state.cash < effectiveParams.cashReserveTarget && state.debt < 200000) {
+      const loanNeeded = effectiveParams.loanAmount;
+
       actions.push({
         day,
         type: 'TAKE_LOAN',
-        amount: loanAmount,
+        amount: loanNeeded,
       });
     }
 
     // Repay debt if we have excess cash
-    if (state.cash > repayThreshold && state.debt > 0) {
-      const excessCash = state.cash - cashReserveTarget;
+    if (state.cash > effectiveParams.repayThreshold && state.debt > 0) {
+      const excessCash = state.cash - effectiveParams.cashReserveTarget;
       const repayAmount = Math.min(excessCash, state.debt);
 
       if (repayAmount > 1000) { // Only repay if meaningful amount
@@ -316,13 +400,11 @@ export class PolicyEngine {
     }
 
     // ========================================================================
-    // 6. PRICING STRATEGY (Set once at start, State-Conditional)
+    // 6. PRICING STRATEGY (Set once at start, custom auto-calculated)
     // ========================================================================
     if (day === CONSTANTS.SIMULATION_START_DAY) {
-      const standardPriceMultiplier = this.getStateConditionalParameter('standardPriceMultiplier', state);
-
       const marketPrice = 225; // From Medica case
-      const standardPrice = Math.round(marketPrice * standardPriceMultiplier);
+      const standardPrice = Math.round(marketPrice * effectiveParams.standardPriceMultiplier);
 
       actions.push({
         day,
@@ -333,7 +415,7 @@ export class PolicyEngine {
 
       // Note: Custom price is auto-calculated by simulation based on delivery performance
       // customPrice = customBasePrice × (1 - 0.27 × max(0, avgDeliveryTime - 5))
-      // The customBasePrice is set in the Strategy object via toStrategy() method
+      // We just set the base price in the strategy, not via actions
     }
 
     return actions;
@@ -415,30 +497,48 @@ export class PolicyEngine {
   }
 
   /**
+   * Get representative parameters for Strategy object
+   * For single policies: returns the single set
+   * For weekly policies: returns week 1 as representative
+   */
+  private getRepresentativeParameters(): PolicyParameters {
+    if (this.isWeekly && this.weeklyParams) {
+      const week1Params = this.weeklyParams.weeks[1];
+      if (!week1Params) {
+        throw new Error('Week 1 parameters not defined for weekly policy');
+      }
+      return week1Params;
+    } else if (this.params) {
+      return this.params;
+    } else {
+      throw new Error('No policy parameters available');
+    }
+  }
+
+  /**
    * Convert policy parameters to a complete Strategy object
    *
    * This creates the Strategy that will be fed into the simulation.
    * It includes both the policy parameters AND the generated actions.
-   * Static strategy fields use initial state's cash state for defaults.
+   * For weekly policies, uses week 1 as representative for static fields,
+   * but actual behavior comes from generated timedActions.
    */
   public toStrategy(initialState: SimulationState, baseStrategy?: Strategy): Strategy {
     const actions = this.generateAllActions(initialState);
-
-    // Use initial state to determine which state-conditional params to use as defaults
-    const cashState = detectBusinessState(initialState);
+    const representativeParams = this.getRepresentativeParameters();
 
     return {
       // Copy base strategy defaults
       ...(baseStrategy || {}),
 
-      // Override with state-conditional policy parameters (using initial state)
-      reorderPoint: this.params[`reorderPoint_${cashState}`],
-      orderQuantity: this.params[`orderQuantity_${cashState}`],
-      standardBatchSize: this.params[`standardBatchSize_${cashState}`],
-      mceAllocationCustom: this.params[`mceCustomAllocation_${cashState}`],
-      standardPrice: Math.round(225 * this.params[`standardPriceMultiplier_${cashState}`]),
-      customBasePrice: this.params[`customBasePrice_${cashState}`],
-      dailyOvertimeHours: this.params[`maxOvertimeHours_${cashState}`],
+      // Override with policy parameters (representative for weekly)
+      reorderPoint: representativeParams.reorderPoint,
+      orderQuantity: representativeParams.orderQuantity,
+      standardBatchSize: representativeParams.standardBatchSize,
+      mceAllocationCustom: representativeParams.mceCustomAllocation,
+      standardPrice: Math.round(225 * representativeParams.standardPriceMultiplier),
+      customBasePrice: representativeParams.customBasePrice,
+      dailyOvertimeHours: representativeParams.maxOvertimeHours,
 
       // Use defaults from base strategy for other parameters
       customPenaltyPerDay: baseStrategy?.customPenaltyPerDay || 0.27,
@@ -456,13 +556,13 @@ export class PolicyEngine {
       overtimeTriggerDays: baseStrategy?.overtimeTriggerDays || 5,
       dailyQuitProbability: baseStrategy?.dailyQuitProbability || 0.10,
 
-      // Debt management (use state-conditional policy parameters from initial state)
+      // Debt management (use policy parameters)
       autoDebtPaydown: true,
-      minCashReserveDays: Math.round(this.params[`cashReserveTarget_${cashState}`] / 5000), // Estimate
+      minCashReserveDays: Math.round(representativeParams.cashReserveTarget / 5000), // Estimate
       debtPaydownAggressiveness: 0.80,
       preemptiveWageLoanDays: 4,
       maxDebtThreshold: 200000,
-      emergencyLoanBuffer: this.params[`cashReserveTarget_${cashState}`],
+      emergencyLoanBuffer: representativeParams.cashReserveTarget,
 
       // Financial health ratios (use defaults)
       maxDebtToAssetRatio: baseStrategy?.maxDebtToAssetRatio || 0.70,
@@ -476,12 +576,15 @@ export class PolicyEngine {
 }
 
 /**
- * Base Parameter Space (before state-conditional expansion)
+ * Parameter Space Definition for Bayesian Optimization
  *
- * These are the original search ranges for each parameter type.
- * Will be expanded to create state-conditional versions.
+ * Defines the search space: min/max bounds for each parameter.
+ * These bounds are based on:
+ * 1. Business constraints from Medica case
+ * 2. Domain knowledge from Operations Research
+ * 3. Preliminary sensitivity analysis
  */
-const BASE_PARAMETER_SPACE = {
+export const PARAMETER_SPACE = {
   // Inventory
   reorderPoint: { min: 200, max: 600, type: 'integer' as const },
   orderQuantity: { min: 300, max: 800, type: 'integer' as const },
@@ -511,60 +614,152 @@ const BASE_PARAMETER_SPACE = {
 };
 
 /**
- * Generate state-conditional parameter space
+ * Generate Weekly Parameter Space for 52-week optimization
  *
- * Expands each base parameter into 3 variants (lowCash, medCash, highCash)
- * Total: 15 base × 3 states = 45 parameters
+ * Creates parameter space with 780 dimensions (15 params × 52 weeks)
+ * Format: week1_reorderPoint, week1_orderQuantity, ..., week52_customBasePrice
+ *
+ * @returns Parameter space object with 780 parameter definitions
  */
-function generateStateConditionalSpace() {
-  const space: Record<string, { min: number; max: number; type: 'integer' | 'real' }> = {};
-  const states: CashState[] = ['lowCash', 'medCash', 'highCash'];
+export function generateWeeklyParameterSpace(): Record<string, { min: number; max: number; type: 'integer' | 'real' }> {
+  const weeklySpace: Record<string, { min: number; max: number; type: 'integer' | 'real' }> = {};
 
-  for (const [baseParam, bounds] of Object.entries(BASE_PARAMETER_SPACE)) {
-    for (const state of states) {
-      const paramName = `${baseParam}_${state}`;
-      space[paramName] = { ...bounds };
-    }
+  // Generate parameter space for each of 52 weeks
+  for (let week = 1; week <= 52; week++) {
+    const prefix = `week${week}_`;
+
+    // Inventory parameters
+    weeklySpace[`${prefix}reorderPoint`] = { min: 200, max: 600, type: 'integer' };
+    weeklySpace[`${prefix}orderQuantity`] = { min: 300, max: 800, type: 'integer' };
+    weeklySpace[`${prefix}safetyStock`] = { min: 100, max: 300, type: 'integer' };
+
+    // Allocation
+    weeklySpace[`${prefix}mceCustomAllocation`] = { min: 0.4, max: 0.7, type: 'real' };
+
+    // Batching
+    weeklySpace[`${prefix}standardBatchSize`] = { min: 50, max: 120, type: 'integer' };
+    weeklySpace[`${prefix}batchInterval`] = { min: 6, max: 12, type: 'integer' };
+
+    // Workforce
+    weeklySpace[`${prefix}targetExperts`] = { min: 1, max: 50, type: 'integer' };
+    weeklySpace[`${prefix}hireThreshold`] = { min: 0.3, max: 1.0, type: 'real' };
+    weeklySpace[`${prefix}maxOvertimeHours`] = { min: 0.0, max: 12.0, type: 'real' };
+    weeklySpace[`${prefix}overtimeThreshold`] = { min: 0.5, max: 1.0, type: 'real' };
+
+    // Financial
+    weeklySpace[`${prefix}cashReserveTarget`] = { min: 15000, max: 35000, type: 'integer' };
+    weeklySpace[`${prefix}loanAmount`] = { min: 20000, max: 50000, type: 'integer' };
+    weeklySpace[`${prefix}repayThreshold`] = { min: 70000, max: 120000, type: 'integer' };
+
+    // Pricing
+    weeklySpace[`${prefix}standardPriceMultiplier`] = { min: 0.9, max: 1.1, type: 'real' };
+    weeklySpace[`${prefix}customBasePrice`] = { min: 105.0, max: 115.0, type: 'real' };
   }
 
-  return space;
+  return weeklySpace;
 }
 
 /**
- * Parameter Space Definition for Bayesian Optimization (State-Conditional)
+ * Convert flat weekly parameter object to WeeklyPolicyParameters structure
  *
- * 45 parameters total (15 base × 3 cash states)
- * Auto-generated from BASE_PARAMETER_SPACE
+ * @param flatParams Flat object with keys like week1_reorderPoint, week2_orderQuantity, etc.
+ * @returns Nested WeeklyPolicyParameters structure
  */
-export const PARAMETER_SPACE = generateStateConditionalSpace();
+export function flatParamsToWeeklyPolicy(flatParams: Record<string, number>): WeeklyPolicyParameters {
+  const weeklyParams: WeeklyPolicyParameters = { weeks: {} };
+
+  for (let week = 1; week <= 52; week++) {
+    const prefix = `week${week}_`;
+
+    weeklyParams.weeks[week] = {
+      reorderPoint: flatParams[`${prefix}reorderPoint`],
+      orderQuantity: flatParams[`${prefix}orderQuantity`],
+      safetyStock: flatParams[`${prefix}safetyStock`],
+      mceCustomAllocation: flatParams[`${prefix}mceCustomAllocation`],
+      standardBatchSize: flatParams[`${prefix}standardBatchSize`],
+      batchInterval: flatParams[`${prefix}batchInterval`],
+      targetExperts: flatParams[`${prefix}targetExperts`],
+      hireThreshold: flatParams[`${prefix}hireThreshold`],
+      maxOvertimeHours: flatParams[`${prefix}maxOvertimeHours`],
+      overtimeThreshold: flatParams[`${prefix}overtimeThreshold`],
+      cashReserveTarget: flatParams[`${prefix}cashReserveTarget`],
+      loanAmount: flatParams[`${prefix}loanAmount`],
+      repayThreshold: flatParams[`${prefix}repayThreshold`],
+      standardPriceMultiplier: flatParams[`${prefix}standardPriceMultiplier`],
+      customBasePrice: flatParams[`${prefix}customBasePrice`],
+    };
+  }
+
+  return weeklyParams;
+}
 
 /**
- * Generate random policy parameters within bounds (State-Conditional)
+ * Convert WeeklyPolicyParameters to flat parameter object
+ *
+ * @param weeklyParams Nested WeeklyPolicyParameters structure
+ * @returns Flat object for Bayesian optimizer
+ */
+export function weeklyPolicyToFlatParams(weeklyParams: WeeklyPolicyParameters): Record<string, number> {
+  const flatParams: Record<string, number> = {};
+
+  for (let week = 1; week <= 52; week++) {
+    const prefix = `week${week}_`;
+    const params = weeklyParams.weeks[week];
+
+    if (!params) {
+      throw new Error(`Missing parameters for week ${week}`);
+    }
+
+    flatParams[`${prefix}reorderPoint`] = params.reorderPoint;
+    flatParams[`${prefix}orderQuantity`] = params.orderQuantity;
+    flatParams[`${prefix}safetyStock`] = params.safetyStock;
+    flatParams[`${prefix}mceCustomAllocation`] = params.mceCustomAllocation;
+    flatParams[`${prefix}standardBatchSize`] = params.standardBatchSize;
+    flatParams[`${prefix}batchInterval`] = params.batchInterval;
+    flatParams[`${prefix}targetExperts`] = params.targetExperts;
+    flatParams[`${prefix}hireThreshold`] = params.hireThreshold;
+    flatParams[`${prefix}maxOvertimeHours`] = params.maxOvertimeHours;
+    flatParams[`${prefix}overtimeThreshold`] = params.overtimeThreshold;
+    flatParams[`${prefix}cashReserveTarget`] = params.cashReserveTarget;
+    flatParams[`${prefix}loanAmount`] = params.loanAmount;
+    flatParams[`${prefix}repayThreshold`] = params.repayThreshold;
+    flatParams[`${prefix}standardPriceMultiplier`] = params.standardPriceMultiplier;
+    flatParams[`${prefix}customBasePrice`] = params.customBasePrice;
+  }
+
+  return flatParams;
+}
+
+/**
+ * Generate random policy parameters within bounds
  * Used for initial random exploration phase
- * Auto-generates all 45 parameters from PARAMETER_SPACE
  */
 export function generateRandomPolicy(): PolicyParameters {
-  const policy: any = {};
-
-  for (const [paramName, bounds] of Object.entries(PARAMETER_SPACE)) {
-    const range = bounds.max - bounds.min;
-    const randomValue = Math.random() * range + bounds.min;
-
-    policy[paramName] = bounds.type === 'integer'
-      ? Math.floor(randomValue)
-      : randomValue;
-  }
-
-  return policy as PolicyParameters;
+  return {
+    reorderPoint: Math.floor(Math.random() * (600 - 200) + 200),
+    orderQuantity: Math.floor(Math.random() * (800 - 300) + 300),
+    safetyStock: Math.floor(Math.random() * (300 - 100) + 100),
+    mceCustomAllocation: Math.random() * (0.7 - 0.4) + 0.4,
+    standardBatchSize: Math.floor(Math.random() * (120 - 50) + 50),
+    batchInterval: Math.floor(Math.random() * (12 - 6) + 6),
+    targetExperts: Math.floor(Math.random() * (50 - 1) + 1),
+    hireThreshold: Math.random() * (1.0 - 0.3) + 0.3,
+    maxOvertimeHours: Math.random() * 12.0,
+    overtimeThreshold: Math.random() * (1.0 - 0.5) + 0.5,
+    cashReserveTarget: Math.floor(Math.random() * (35000 - 15000) + 15000),
+    loanAmount: Math.floor(Math.random() * (50000 - 20000) + 20000),
+    repayThreshold: Math.floor(Math.random() * (120000 - 70000) + 70000),
+    standardPriceMultiplier: Math.random() * (1.1 - 0.9) + 0.9,
+    customBasePrice: Math.random() * (115.0 - 105.0) + 105.0,
+  };
 }
 
 /**
- * Get reasonable default/baseline policy parameters (State-Conditional)
+ * Get reasonable default/baseline policy parameters
  * Based on historical analysis and domain knowledge
- * Uses conservative, balanced, and aggressive defaults for lowCash, medCash, highCash
  */
 export function getDefaultPolicy(): PolicyParameters {
-  const baseDefaults = {
+  return {
     // Inventory: Moderate levels
     reorderPoint: 400,
     orderQuantity: 500,
@@ -592,33 +787,4 @@ export function getDefaultPolicy(): PolicyParameters {
     standardPriceMultiplier: 1.0,
     customBasePrice: 110,
   };
-
-  const policy: any = {};
-  const states: CashState[] = ['lowCash', 'medCash', 'highCash'];
-
-  // Generate state-conditional defaults
-  // lowCash = conservative (-20%), medCash = balanced (base), highCash = aggressive (+20%)
-  for (const [baseParam, baseValue] of Object.entries(baseDefaults)) {
-    for (const state of states) {
-      const paramName = `${baseParam}_${state}`;
-      let value = baseValue;
-
-      // Adjust based on cash state
-      if (state === 'lowCash') {
-        // Conservative: reduce spending/risk parameters
-        if (['orderQuantity', 'loanAmount', 'maxOvertimeHours', 'targetExperts'].includes(baseParam)) {
-          value = baseValue * 0.8;
-        }
-      } else if (state === 'highCash') {
-        // Aggressive: increase growth parameters
-        if (['orderQuantity', 'targetExperts', 'maxOvertimeHours'].includes(baseParam)) {
-          value = baseValue * 1.2;
-        }
-      }
-
-      policy[paramName] = value;
-    }
-  }
-
-  return policy as PolicyParameters;
 }
