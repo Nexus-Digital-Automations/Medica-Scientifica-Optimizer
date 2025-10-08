@@ -225,6 +225,35 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
                 console.log('✅ Optimization complete, setting result');
                 setResult(data.result);
                 onOptimizationComplete?.(data.result);
+
+                // Auto-save to memory if enabled
+                if (useMemory) {
+                  console.log('🧠 Auto-saving to memory (useMemory enabled)');
+                  try {
+                    const saveResponse = await fetch('/api/bayesian-memory/save', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        policy: data.result.bestPolicy,
+                        fitness: data.result.bestFitness,
+                        netWorth: data.result.bestNetWorth,
+                        demandContext,
+                        totalIterations: totalIter,
+                      }),
+                    });
+
+                    const saveData = await saveResponse.json();
+                    if (saveData.success) {
+                      console.log(`✅ Auto-saved to memory! Total runs: ${saveData.stats.totalRuns}`);
+                      await fetchMemoryStats(); // Refresh stats display
+                    } else {
+                      console.log(`⚠️ Memory save skipped: ${saveData.message}`);
+                    }
+                  } catch (saveError) {
+                    console.error('Auto-save to memory failed:', saveError);
+                  }
+                }
+
                 setIsRunning(false);
               } else {
                 // Progress update
