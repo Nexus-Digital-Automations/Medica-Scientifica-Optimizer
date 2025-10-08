@@ -78,7 +78,7 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Total Iterations
             <span className="ml-2 text-xs text-gray-400">
-              (150-200 recommended, ~45ms each)
+              (150-200 recommended, ~45ms each, no limit)
             </span>
           </label>
           <input
@@ -97,8 +97,6 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete }: Bayes
               const val = parseInt(e.target.value);
               if (isNaN(val) || val < 10) {
                 setTotalIterations(150);
-              } else if (val > 500) {
-                setTotalIterations(500);
               } else {
                 setTotalIterations(val);
               }

@@ -19,9 +19,9 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
     const { totalIterations = 150, randomExploration = 30 } = req.body;
 
     // Validate inputs
-    if (totalIterations < 10 || totalIterations > 500) {
+    if (totalIterations < 10) {
       return res.status(400).json({
-        error: 'totalIterations must be between 10 and 500',
+        error: 'totalIterations must be at least 10',
       });
     }
 

@@ -402,11 +402,11 @@ export const PARAMETER_SPACE = {
   standardBatchSize: { min: 50, max: 120, type: 'integer' as const },
   batchInterval: { min: 6, max: 12, type: 'integer' as const },
 
-  // Workforce
-  targetExperts: { min: 8, max: 15, type: 'integer' as const },
-  hireThreshold: { min: 0.7, max: 0.9, type: 'real' as const },
-  maxOvertimeHours: { min: 0.0, max: 4.0, type: 'real' as const },
-  overtimeThreshold: { min: 0.75, max: 0.95, type: 'real' as const },
+  // Workforce (unlimited ranges for optimizer flexibility)
+  targetExperts: { min: 1, max: 50, type: 'integer' as const },
+  hireThreshold: { min: 0.3, max: 1.0, type: 'real' as const },
+  maxOvertimeHours: { min: 0.0, max: 12.0, type: 'real' as const },
+  overtimeThreshold: { min: 0.5, max: 1.0, type: 'real' as const },
 
   // Financial
   cashReserveTarget: { min: 15000, max: 35000, type: 'integer' as const },
@@ -430,10 +430,10 @@ export function generateRandomPolicy(): PolicyParameters {
     mceCustomAllocation: Math.random() * (0.7 - 0.4) + 0.4,
     standardBatchSize: Math.floor(Math.random() * (120 - 50) + 50),
     batchInterval: Math.floor(Math.random() * (12 - 6) + 6),
-    targetExperts: Math.floor(Math.random() * (15 - 8) + 8),
-    hireThreshold: Math.random() * (0.9 - 0.7) + 0.7,
-    maxOvertimeHours: Math.random() * 4.0,
-    overtimeThreshold: Math.random() * (0.95 - 0.75) + 0.75,
+    targetExperts: Math.floor(Math.random() * (50 - 1) + 1),
+    hireThreshold: Math.random() * (1.0 - 0.3) + 0.3,
+    maxOvertimeHours: Math.random() * 12.0,
+    overtimeThreshold: Math.random() * (1.0 - 0.5) + 0.5,
     cashReserveTarget: Math.floor(Math.random() * (35000 - 15000) + 15000),
     loanAmount: Math.floor(Math.random() * (50000 - 20000) + 20000),
     repayThreshold: Math.floor(Math.random() * (120000 - 70000) + 70000),

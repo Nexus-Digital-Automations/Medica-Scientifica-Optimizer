@@ -63,6 +63,8 @@ export interface BayesianOptimizerConfig {
 export class BayesianOptimizer {
   private config: BayesianOptimizerConfig;
   private progress: OptimizationProgress;
+  private iterationsSinceImprovement: number = 0;
+  private adaptiveMutationIntensity: number = 0.15;
 
   constructor(config: Partial<BayesianOptimizerConfig> = {}) {
     this.config = {
@@ -161,6 +163,8 @@ export class BayesianOptimizer {
     const policyEngine = new PolicyEngine(params);
 
     // Convert to full strategy
+    // NOTE: Demand parameters are FIXED and use historical case defaults
+    // They are NOT optimized - only the 15 policy parameters are optimized
     const strategy = policyEngine.toStrategy(INITIAL_STATE_HISTORICAL);
 
     // Run simulation
@@ -186,10 +190,13 @@ export class BayesianOptimizer {
     // Update best if this is better
     if (!this.progress.currentBest || fitnessScore > this.progress.currentBest.fitnessScore) {
       this.progress.currentBest = evaluation;
+      this.iterationsSinceImprovement = 0; // Reset counter on improvement
+      this.adaptiveMutationIntensity = 0.15; // Reset to base mutation intensity
       this.log(`\n🌟 NEW BEST FOUND (iteration ${iteration}, ${phase}):`);
       this.log(`   Net Worth: $${netWorth.toLocaleString()}`);
       this.log(`   Fitness:   ${fitnessScore.toLocaleString()}`);
     } else {
+      this.iterationsSinceImprovement++; // Increment stagnation counter
       this.log(`[${iteration}/${this.config.totalIterations}] ${phase}: $${netWorth.toLocaleString()} (fitness: ${fitnessScore.toLocaleString()})`);
     }
 
@@ -206,6 +213,8 @@ export class BayesianOptimizer {
    * - Rejected custom orders
    * - Standard stockouts
    * - Excessive inventory (cash tied up)
+   *
+   * Penalties reduced by 50% to allow more exploration of solution space
    */
   private calculateFitness(result: SimulationResult): {
     netWorth: number;
@@ -217,34 +226,39 @@ export class BayesianOptimizer {
     // Start with net worth
     let fitness = netWorth;
 
-    // CATASTROPHIC PENALTY: Bankruptcy
+    // CATASTROPHIC PENALTY: Bankruptcy (kept high as business failure)
     if (state.cash < 0) {
       return { netWorth, fitnessScore: -1000000 };
     }
 
-    // PENALTY: Poor custom service level
+    // PENALTY: Poor custom service level (reduced 50%: 10000 → 5000)
     const avgCustomDelivery = this.getAvgCustomDeliveryTime(state);
     if (avgCustomDelivery > 10) {
-      fitness -= (avgCustomDelivery - 10) * 10000;
+      fitness -= (avgCustomDelivery - 10) * 5000;
     }
 
-    // PENALTY: Custom order rejections (lost revenue + reputation)
+    // PENALTY: Custom order rejections (reduced 50%: 5000 → 2500)
     const customRejections = this.getCustomRejections(state);
-    fitness -= customRejections * 5000;
+    fitness -= customRejections * 2500;
 
-    // PENALTY: Standard stockouts (lost sales)
+    // PENALTY: Standard stockouts (reduced 50%: 1000 → 500)
     const stockoutDays = this.getStockoutDays(state);
-    fitness -= stockoutDays * 1000;
+    fitness -= stockoutDays * 500;
 
-    // PENALTY: Excessive inventory (cash tied up)
+    // PENALTY: Excessive inventory (reduced 50%: 100 → 50)
     const avgInventory = this.getAvgInventory(state);
     if (avgInventory > 400) {
-      fitness -= (avgInventory - 400) * 100;
+      fitness -= (avgInventory - 400) * 50;
     }
 
-    // PENALTY: Excessive debt (interest costs)
+    // PENALTY: Excessive debt (reduced 50%: 1x → 0.5x)
     const totalInterest = this.getTotalInterest(state);
-    fitness -= totalInterest; // Already paid, but emphasize minimization
+    fitness -= totalInterest * 0.5;
+
+    // BONUS: Reward positive net worth to encourage profitable solutions
+    if (netWorth > 0) {
+      fitness += netWorth * 0.1; // 10% bonus for profitability
+    }
 
     return { netWorth, fitnessScore: Math.round(fitness) };
   }
@@ -256,15 +270,33 @@ export class BayesianOptimizer {
    * - Balance exploitation (refine good solutions)
    * - With exploration (try new regions)
    *
-   * Simplified algorithm:
-   * 1. 70% probability: Local search around top 3 best policies
-   * 2. 20% probability: Crossover between top performers
+   * Simplified algorithm (adjusted for more exploration):
+   * 1. 65% probability: Local search around top 3 best policies
+   * 2. 25% probability: Crossover between top performers
    * 3. 10% probability: Random exploration (avoid local optima)
+   *
+   * ADAPTIVE BEHAVIOR:
+   * - If no improvement for 50 iterations → increase mutation to 0.25
+   * - If stuck in negative fitness → inject random policies
    */
   private selectNextPolicy(): PolicyParameters {
+    // ADAPTIVE: Increase mutation intensity if stuck
+    if (this.iterationsSinceImprovement >= 50) {
+      this.adaptiveMutationIntensity = 0.25;
+      this.log(`\n⚡ Adaptive mode: No improvement for 50 iterations, increasing mutation to ±25%`);
+    }
+
+    // ADAPTIVE: Force random exploration if all top solutions are negative
+    const top10 = this.getTopN(10);
+    const allNegative = top10.every(e => e.netWorth < 0);
+    if (allNegative && this.iterationsSinceImprovement >= 20) {
+      this.log(`\n🔄 Adaptive mode: Stuck in negative fitness, forcing random exploration`);
+      return generateRandomPolicy();
+    }
+
     const strategy = Math.random();
 
-    if (strategy < 0.7) {
+    if (strategy < 0.65) {
       // LOCAL SEARCH: Mutate one of the top 3 best policies
       return this.localSearch();
     } else if (strategy < 0.9) {
@@ -284,8 +316,8 @@ export class BayesianOptimizer {
     const topN = this.getTopN(3);
     const parent = topN[Math.floor(Math.random() * topN.length)].params;
 
-    // Mutate with small changes (±10% typically)
-    return this.mutatePolicy(parent, 0.1);
+    // Mutate with adaptive intensity (increases if stuck)
+    return this.mutatePolicy(parent, this.adaptiveMutationIntensity);
   }
 
   /**
@@ -318,9 +350,9 @@ export class BayesianOptimizer {
     const mutated: PolicyParameters = { ...policy };
     const keys = Object.keys(policy) as Array<keyof PolicyParameters>;
 
-    // Mutate each parameter with probability proportional to intensity
+    // Mutate each parameter with 40% probability (increased for more exploration)
     for (const key of keys) {
-      if (Math.random() < 0.3) { // 30% chance to mutate each parameter
+      if (Math.random() < 0.4) { // 40% chance to mutate each parameter
         const bounds = PARAMETER_SPACE[key];
         const currentValue = policy[key] as number;
         const range = bounds.max - bounds.min;
