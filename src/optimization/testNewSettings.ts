@@ -38,13 +38,11 @@ async function testNewSettings(): Promise<void> {
   console.log(`  Duration:   ${(duration / 1000).toFixed(1)}s`);
   console.log(`  Avg/iter:   ${(duration / 200).toFixed(0)}ms`);
 
-  console.log(`\nKey Parameters:`);
-  console.log(`  Target Experts:     ${result.params.targetExperts}`);
-  console.log(`  Hire Threshold:     ${(result.params.hireThreshold * 100).toFixed(0)}%`);
-  console.log(`  Max Overtime:       ${result.params.maxOvertimeHours.toFixed(1)}h`);
-  console.log(`  Overtime Threshold: ${(result.params.overtimeThreshold * 100).toFixed(0)}%`);
-  console.log(`  MCE Allocation:     ${(result.params.mceCustomAllocation * 100).toFixed(1)}%`);
-  console.log(`  Standard Price:     $${Math.round(225 * result.params.standardPriceMultiplier)}`);
+  console.log(`\nKey Parameters (State-Conditional):`);
+  console.log(`  State:           🔴 LowCash    🟡 MedCash    🟢 HighCash`);
+  console.log(`  Target Experts:  ${result.params.targetExperts_lowCash}            ${result.params.targetExperts_medCash}            ${result.params.targetExperts_highCash}`);
+  console.log(`  Max Overtime:    ${result.params.maxOvertimeHours_lowCash.toFixed(1)}h         ${result.params.maxOvertimeHours_medCash.toFixed(1)}h         ${result.params.maxOvertimeHours_highCash.toFixed(1)}h`);
+  console.log(`  MCE Allocation:  ${(result.params.mceCustomAllocation_lowCash * 100).toFixed(1)}%        ${(result.params.mceCustomAllocation_medCash * 100).toFixed(1)}%        ${(result.params.mceCustomAllocation_highCash * 100).toFixed(1)}%`);
 
   const isProfitable = result.netWorth > 0;
   console.log(`\n${isProfitable ? '✅' : '❌'} Profitability: ${isProfitable ? 'POSITIVE' : 'NEGATIVE'}`);

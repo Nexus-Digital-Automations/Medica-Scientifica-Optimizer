@@ -537,31 +537,31 @@ export class BayesianOptimizer {
     this.log(`   Fitness Score:  ${currentBest.fitnessScore.toLocaleString()}`);
     this.log(`   Found at:       Iteration ${currentBest.iteration}`);
 
-    this.log(`\n🎯 Best Policy Parameters:`);
+    this.log(`\n🎯 Best Policy Parameters (State-Conditional - Phase 1):`);
+    this.log(`   Policies adapt based on cash state: 🔴 Low (<$100k) | 🟡 Med ($100-300k) | 🟢 High (>$300k)\n`);
+
     const params = currentBest.params;
-    this.log(`   Inventory:`);
-    this.log(`     Reorder Point:  ${params.reorderPoint} units`);
-    this.log(`     Order Quantity: ${params.orderQuantity} units`);
-    this.log(`     Safety Stock:   ${params.safetyStock} units`);
 
-    this.log(`\n   Production:`);
-    this.log(`     MCE Allocation: ${(params.mceCustomAllocation * 100).toFixed(1)}% to Custom`);
-    this.log(`     Batch Size:     ${params.standardBatchSize} units`);
-    this.log(`     Batch Interval: ${params.batchInterval} days`);
+    // Helper to format state-conditional parameter display
+    const showParam = (name: string, lowKey: keyof typeof params, medKey: keyof typeof params, highKey: keyof typeof params, formatter = (v: number) => v.toString()) => {
+      this.log(`     ${name.padEnd(20)} 🔴 ${formatter(params[lowKey] as number).padEnd(12)} 🟡 ${formatter(params[medKey] as number).padEnd(12)} 🟢 ${formatter(params[highKey] as number)}`);
+    };
 
-    this.log(`\n   Workforce:`);
-    this.log(`     Target Experts: ${params.targetExperts}`);
-    this.log(`     Hire Threshold: ${(params.hireThreshold * 100).toFixed(0)}%`);
-    this.log(`     Max Overtime:   ${params.maxOvertimeHours.toFixed(1)} hours/day`);
+    this.log(`   📦 Inventory:`);
+    showParam('Reorder Point:', 'reorderPoint_lowCash', 'reorderPoint_medCash', 'reorderPoint_highCash', v => `${v} units`);
+    showParam('Order Quantity:', 'orderQuantity_lowCash', 'orderQuantity_medCash', 'orderQuantity_highCash', v => `${v} units`);
 
-    this.log(`\n   Financial:`);
-    this.log(`     Cash Reserve:   $${params.cashReserveTarget.toLocaleString()}`);
-    this.log(`     Loan Amount:    $${params.loanAmount.toLocaleString()}`);
-    this.log(`     Repay At:       $${params.repayThreshold.toLocaleString()}`);
+    this.log(`\n   🏭 Production:`);
+    showParam('MCE Allocation:', 'mceCustomAllocation_lowCash', 'mceCustomAllocation_medCash', 'mceCustomAllocation_highCash', v => `${(v * 100).toFixed(1)}%`);
+    showParam('Batch Size:', 'standardBatchSize_lowCash', 'standardBatchSize_medCash', 'standardBatchSize_highCash', v => `${v} units`);
 
-    this.log(`\n   Pricing:`);
-    this.log(`     Standard Price: $${Math.round(225 * params.standardPriceMultiplier)}`);
-    this.log(`     Custom Base:    $${params.customBasePrice.toFixed(2)}`);
+    this.log(`\n   👥 Workforce:`);
+    showParam('Target Experts:', 'targetExperts_lowCash', 'targetExperts_medCash', 'targetExperts_highCash');
+    showParam('Max Overtime:', 'maxOvertimeHours_lowCash', 'maxOvertimeHours_medCash', 'maxOvertimeHours_highCash', v => `${v.toFixed(1)}h`);
+
+    this.log(`\n   💰 Financial:`);
+    showParam('Cash Reserve:', 'cashReserveTarget_lowCash', 'cashReserveTarget_medCash', 'cashReserveTarget_highCash', v => `$${(v / 1000).toFixed(0)}k`);
+    showParam('Loan Amount:', 'loanAmount_lowCash', 'loanAmount_medCash', 'loanAmount_highCash', v => `$${(v / 1000).toFixed(0)}k`);
 
     this.log('\n' + '='.repeat(70) + '\n');
   }
