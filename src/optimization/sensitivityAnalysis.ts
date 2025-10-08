@@ -69,7 +69,7 @@ async function analyzeSensitivity(
         newValue = Math.round(newValue);
       }
 
-      testPolicy[param] = newValue as any;
+      testPolicy[param] = newValue as number;
 
       // Run simulation
       const testEngine = new PolicyEngine(testPolicy);

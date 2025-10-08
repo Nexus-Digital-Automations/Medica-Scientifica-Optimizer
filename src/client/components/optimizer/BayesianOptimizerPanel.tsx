@@ -87,7 +87,12 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
         standardDemandSlope: strategy.standardDemandSlope,
       };
 
-      const params = new URLSearchParams(demandContext as any);
+      const params = new URLSearchParams(
+        Object.entries(demandContext).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>)
+      );
       const response = await fetch(`/api/bayesian-memory/matching?${params}`);
       if (response.ok) {
         const matching = await response.json();

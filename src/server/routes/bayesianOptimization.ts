@@ -6,7 +6,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { BayesianOptimizer } from '../../optimization/bayesianOptimizer.js';
-import { PolicyEngine } from '../../optimization/policyEngine.js';
+import { PolicyEngine, type PolicyParameters } from '../../optimization/policyEngine.js';
 import { INITIAL_STATE_HISTORICAL } from '../../simulation/constants.js';
 import { memoryManager, type DemandContext } from '../../optimization/memoryManager.js';
 
@@ -36,7 +36,7 @@ router.post('/bayesian-optimize', async (req: Request, res: Response) => {
     }
 
     // Load warm-start policies from memory if enabled
-    let warmStartPolicies: any[] | undefined;
+    let warmStartPolicies: PolicyParameters[] | undefined;
     if (useMemory && demandContext) {
       warmStartPolicies = memoryManager.getTopPolicies(10, demandContext as DemandContext);
       console.log(`🧠 Loaded ${warmStartPolicies.length} policies from memory for warm-start`);

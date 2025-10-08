@@ -15,7 +15,7 @@
 
 import { runSimulation } from '../simulation/simulationEngine.js';
 import { INITIAL_STATE_HISTORICAL } from '../simulation/constants.js';
-import type { SimulationResult } from '../simulation/types.js';
+import type { SimulationResult, SimulationState } from '../simulation/types.js';
 import {
   PolicyEngine,
   type PolicyParameters,
@@ -40,7 +40,7 @@ interface PolicyEvaluation {
 interface OptimizationProgress {
   iteration: number;
   evaluations: PolicyEvaluation[];
-  currentBest: PolicyEvaluation;
+  currentBest: PolicyEvaluation | null;
   convergenceHistory: number[];
 }
 
@@ -86,7 +86,7 @@ export class BayesianOptimizer {
     this.progress = {
       iteration: 0,
       evaluations: [],
-      currentBest: null as any, // Will be set after first evaluation
+      currentBest: null, // Will be set after first evaluation
       convergenceHistory: [],
     };
   }
@@ -182,6 +182,10 @@ export class BayesianOptimizer {
 
     this.log('\n✅ Optimization complete!');
     this.logFinalResults();
+
+    if (!this.progress.currentBest) {
+      throw new Error('Optimization completed but no best policy found');
+    }
 
     return this.progress.currentBest;
   }
@@ -420,7 +424,7 @@ export class BayesianOptimizer {
           newValue = Math.round(newValue);
         }
 
-        mutated[key] = newValue as any;
+        mutated[key] = newValue as number;
       }
     }
 
@@ -450,33 +454,33 @@ export class BayesianOptimizer {
   // HELPER METHODS: Extract metrics from simulation state
   // ========================================================================
 
-  private getAvgCustomDeliveryTime(state: any): number {
+  private getAvgCustomDeliveryTime(state: SimulationState): number {
     const history = state.history.dailyCustomDeliveryTime || [];
     if (history.length === 0) return 0;
-    const sum = history.reduce((acc: number, entry: any) => acc + entry.value, 0);
+    const sum = history.reduce((acc: number, entry: { day: number; value: number }) => acc + entry.value, 0);
     return sum / history.length;
   }
 
-  private getCustomRejections(_state: any): number {
+  private getCustomRejections(_state: SimulationState): number {
     // Count rejected orders (if tracked in state)
     return 0; // TODO: Add if tracked in simulation
   }
 
-  private getStockoutDays(state: any): number {
+  private getStockoutDays(state: SimulationState): number {
     // Count days with zero inventory
     return state.stockoutDays || 0;
   }
 
-  private getAvgInventory(state: any): number {
+  private getAvgInventory(state: SimulationState): number {
     const history = state.history.dailyRawMaterial || [];
     if (history.length === 0) return 0;
-    const sum = history.reduce((acc: number, entry: any) => acc + entry.value, 0);
+    const sum = history.reduce((acc: number, entry: { day: number; value: number }) => acc + entry.value, 0);
     return sum / history.length;
   }
 
-  private getTotalInterest(state: any): number {
+  private getTotalInterest(state: SimulationState): number {
     const history = state.history.dailyInterestPaid || [];
-    return history.reduce((acc: number, entry: any) => acc + entry.value, 0);
+    return history.reduce((acc: number, entry: { day: number; value: number }) => acc + entry.value, 0);
   }
 
   // ========================================================================
@@ -491,6 +495,12 @@ export class BayesianOptimizer {
 
   private logProgress(): void {
     const { iteration, currentBest, evaluations } = this.progress;
+
+    if (!currentBest) {
+      this.log(`\n📊 Progress Update (Iteration ${iteration}/${this.config.totalIterations})`);
+      this.log(`   No evaluations yet`);
+      return;
+    }
 
     this.log(`\n📊 Progress Update (Iteration ${iteration}/${this.config.totalIterations})`);
     this.log(`   Current Best: $${currentBest.netWorth.toLocaleString()} (fitness: ${currentBest.fitnessScore.toLocaleString()})`);
@@ -512,6 +522,11 @@ export class BayesianOptimizer {
 
   private logFinalResults(): void {
     const { currentBest } = this.progress;
+
+    if (!currentBest) {
+      this.log('\n⚠️  No results to display');
+      return;
+    }
 
     this.log('\n' + '='.repeat(70));
     this.log('🏆 OPTIMIZATION COMPLETE - BEST POLICY FOUND');
@@ -568,6 +583,10 @@ export class BayesianOptimizer {
     results: number[];
   }> {
     this.log(`\n🔍 Validating best policy with ${runs} runs...\n`);
+
+    if (!this.progress.currentBest) {
+      throw new Error('Cannot validate: no best policy found');
+    }
 
     const bestPolicy = this.progress.currentBest.params;
     const results: number[] = [];

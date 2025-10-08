@@ -280,12 +280,13 @@ export class PolicyEngine {
             daysRemaining: CONSTANTS.ROOKIE_TRAINING_TIME,
           });
           break;
-        case 'ORDER_MATERIALS':
+        case 'ORDER_MATERIALS': {
           // Materials arrive in 4 days, costs deducted now
           const cost = action.quantity * CONSTANTS.RAW_MATERIAL_UNIT_COST +
                       CONSTANTS.RAW_MATERIAL_ORDER_FEE;
           newState.cash -= cost;
           break;
+        }
       }
     }
 

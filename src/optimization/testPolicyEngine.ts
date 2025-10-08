@@ -130,6 +130,11 @@ async function testBayesianOptimization(): Promise<void> {
   // Validate that optimization improved over random
   const progress = optimizer.getProgress();
   const firstScore = progress.evaluations[0].fitnessScore;
+
+  if (!progress.currentBest) {
+    throw new Error('No best policy found after optimization');
+  }
+
   const bestScore = progress.currentBest.fitnessScore;
   const improvement = ((bestScore - firstScore) / Math.abs(firstScore)) * 100;
 
