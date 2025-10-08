@@ -59,6 +59,8 @@ export interface BayesianOptimizerConfig {
   saveCheckpoints: boolean;        // Save progress periodically
   checkpointInterval: number;      // Save every N iterations
   onProgress?: ProgressCallback;   // Callback for progress updates
+  useMemory?: boolean;             // Use historical memory for warm-start
+  warmStartPolicies?: PolicyParameters[]; // Pre-selected policies to start from
 }
 
 /**
@@ -99,19 +101,51 @@ export class BayesianOptimizer {
    */
   public async optimize(): Promise<PolicyEvaluation> {
     this.log('\n🚀 Starting Bayesian Optimization for Medica Scientifica\n');
+
+    const useMemory = this.config.useMemory && this.config.warmStartPolicies && this.config.warmStartPolicies.length > 0;
+    const warmStartCount = useMemory ? Math.min(10, this.config.warmStartPolicies!.length) : 0;
+    const reducedRandom = useMemory ? Math.max(10, Math.floor(this.config.randomExploration / 3)) : this.config.randomExploration;
+
     this.log(`Configuration:`);
     this.log(`  Total Iterations: ${this.config.totalIterations}`);
-    this.log(`  Random Exploration: ${this.config.randomExploration}`);
-    this.log(`  Guided Search: ${this.config.totalIterations - this.config.randomExploration}`);
+    if (useMemory) {
+      this.log(`  🧠 Memory Mode: ENABLED`);
+      this.log(`  Warm Start: ${warmStartCount} historical policies`);
+      this.log(`  Random Exploration: ${reducedRandom} (reduced from ${this.config.randomExploration})`);
+      this.log(`  Guided Search: ${this.config.totalIterations - warmStartCount - reducedRandom}`);
+    } else {
+      this.log(`  Random Exploration: ${this.config.randomExploration}`);
+      this.log(`  Guided Search: ${this.config.totalIterations - this.config.randomExploration}`);
+    }
     this.log('');
 
+    let currentIteration = 0;
+
+    // Phase 0: Warm Start (if memory enabled)
+    if (useMemory) {
+      this.log('🧠 Phase 0: Warm Start from Historical Memory');
+      this.log(`Evaluating top ${warmStartCount} historical policies...\n`);
+
+      for (let i = 0; i < warmStartCount; i++) {
+        const policy = this.config.warmStartPolicies![i];
+        await this.evaluatePolicy(policy, ++currentIteration, 'random');
+
+        if ((i + 1) % 5 === 0) {
+          this.logProgress();
+        }
+      }
+
+      this.log('\n✅ Warm start complete');
+      this.logProgress();
+    }
+
     // Phase 1: Random Exploration
-    this.log('📍 Phase 1: Random Exploration');
+    this.log('\n📍 Phase 1: Random Exploration');
     this.log('Sampling diverse policies across the entire search space...\n');
 
-    for (let i = 0; i < this.config.randomExploration; i++) {
+    for (let i = 0; i < reducedRandom; i++) {
       const policy = generateRandomPolicy();
-      await this.evaluatePolicy(policy, i + 1, 'random');
+      await this.evaluatePolicy(policy, ++currentIteration, 'random');
 
       if ((i + 1) % 10 === 0) {
         this.logProgress();
@@ -125,13 +159,13 @@ export class BayesianOptimizer {
     this.log('\n🎯 Phase 2: Guided Bayesian Search');
     this.log('Focusing on promising regions of the search space...\n');
 
-    const guidedIterations = this.config.totalIterations - this.config.randomExploration;
+    const guidedIterations = this.config.totalIterations - currentIteration;
 
     for (let i = 0; i < guidedIterations; i++) {
       const policy = this.selectNextPolicy();
       await this.evaluatePolicy(
         policy,
-        this.config.randomExploration + i + 1,
+        ++currentIteration,
         'guided'
       );
 

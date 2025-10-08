@@ -4,10 +4,23 @@
  * Allows users to run policy-based Bayesian Optimization with configurable iterations.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { PolicyParameters } from '../../../optimization/policyEngine.js';
 import type { Strategy, StrategyAction } from '../../../simulation/types.js';
 import { useStrategyStore } from '../../stores/strategyStore';
+
+interface MemoryStats {
+  totalRuns: number;
+  avgFitness: number;
+  topFitness: number;
+  lastUpdated: string;
+}
+
+interface MemoryMatching {
+  count: number;
+  avgFitness: number;
+  topFitness: number;
+}
 
 interface BayesianOptimizerPanelProps {
   onOptimizationComplete?: (result: OptimizationResult) => void;
@@ -33,8 +46,57 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, phase: '' });
   const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [useMemory, setUseMemory] = useState(false);
+  const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null);
+  const [memoryMatching, setMemoryMatching] = useState<MemoryMatching | null>(null);
 
-  const { loadStrategy } = useStrategyStore();
+  const { loadStrategy, strategy } = useStrategyStore();
+
+  // Fetch memory stats on mount
+  useEffect(() => {
+    fetchMemoryStats();
+  }, []);
+
+  // Fetch matching evaluations when memory toggle changes
+  useEffect(() => {
+    if (useMemory) {
+      fetchMatchingEvaluations();
+    }
+  }, [useMemory]);
+
+  const fetchMemoryStats = async () => {
+    try {
+      const response = await fetch('/api/bayesian-memory/stats');
+      if (response.ok) {
+        const stats = await response.json();
+        setMemoryStats(stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch memory stats:', error);
+    }
+  };
+
+  const fetchMatchingEvaluations = async () => {
+    try {
+      const demandContext = {
+        customDemandMean1: strategy.customDemandMean1,
+        customDemandStdDev1: strategy.customDemandStdDev1,
+        customDemandMean2: strategy.customDemandMean2,
+        customDemandStdDev2: strategy.customDemandStdDev2,
+        standardDemandIntercept: strategy.standardDemandIntercept,
+        standardDemandSlope: strategy.standardDemandSlope,
+      };
+
+      const params = new URLSearchParams(demandContext as any);
+      const response = await fetch(`/api/bayesian-memory/matching?${params}`);
+      if (response.ok) {
+        const matching = await response.json();
+        setMemoryMatching(matching);
+      }
+    } catch (error) {
+      console.error('Failed to fetch matching evaluations:', error);
+    }
+  };
 
   // Helper function to format actions for display
   const formatAction = (action: StrategyAction): string => {
@@ -80,6 +142,16 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
     setResult(null);
 
     try {
+      // Extract demand context from strategy
+      const demandContext = {
+        customDemandMean1: strategy.customDemandMean1,
+        customDemandStdDev1: strategy.customDemandStdDev1,
+        customDemandMean2: strategy.customDemandMean2,
+        customDemandStdDev2: strategy.customDemandStdDev2,
+        standardDemandIntercept: strategy.standardDemandIntercept,
+        standardDemandSlope: strategy.standardDemandSlope,
+      };
+
       // Use fetch with streaming for progress updates
       const response = await fetch('/api/bayesian-optimize', {
         method: 'POST',
@@ -88,6 +160,8 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
           totalIterations: totalIter,
           randomExploration: randomExp,
           stream: true,
+          useMemory,
+          demandContext,
         }),
       });
 
@@ -153,6 +227,50 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
         Policy-based optimization using Bayesian methods to find optimal business rules.
         Optimizes 15 high-level parameters instead of 3,650 daily decisions.
       </p>
+
+      {/* Historical Memory Toggle */}
+      {memoryStats && memoryStats.totalRuns > 0 && (
+        <div className="mb-6 bg-blue-900/20 border border-blue-600/30 rounded p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="useMemory"
+                checked={useMemory}
+                onChange={(e) => setUseMemory(e.target.checked)}
+                disabled={isRunning}
+                className="w-5 h-5 rounded"
+              />
+              <label htmlFor="useMemory" className="text-sm font-semibold text-white cursor-pointer">
+                🧠 Use Historical Memory
+              </label>
+            </div>
+            <div className="text-xs text-gray-400">
+              {memoryStats.totalRuns} runs saved
+            </div>
+          </div>
+
+          {useMemory && memoryMatching && (
+            <div className="mt-3 text-xs text-gray-300 space-y-1">
+              <div className="font-semibold text-blue-300">
+                {memoryMatching.count > 0 ?
+                  `✅ Found ${memoryMatching.count} matching evaluations` :
+                  '⚠️ No matching evaluations (different demand parameters)'
+                }
+              </div>
+              {memoryMatching.count > 0 && (
+                <>
+                  <div>Avg Historical Fitness: {memoryMatching.avgFitness.toLocaleString()}</div>
+                  <div>Top Historical Fitness: {memoryMatching.topFitness.toLocaleString()}</div>
+                  <div className="text-green-300 mt-2">
+                    Memory will reduce random exploration and start from best historical policies
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Configuration */}
       <div className="space-y-4 mb-6">
@@ -410,8 +528,8 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
             </div>
           </div>
 
-          {/* Export Buttons */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          {/* Export & Save Buttons */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
             <button
               onClick={() => {
                 if (!result) return;
@@ -461,6 +579,51 @@ export default function BayesianOptimizerPanel({ onOptimizationComplete, onLoadI
               className="py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
             >
               💾 Download JSON
+            </button>
+
+            <button
+              onClick={async () => {
+                if (!result) return;
+
+                // Extract demand context
+                const demandContext = {
+                  customDemandMean1: strategy.customDemandMean1,
+                  customDemandStdDev1: strategy.customDemandStdDev1,
+                  customDemandMean2: strategy.customDemandMean2,
+                  customDemandStdDev2: strategy.customDemandStdDev2,
+                  standardDemandIntercept: strategy.standardDemandIntercept,
+                  standardDemandSlope: strategy.standardDemandSlope,
+                };
+
+                try {
+                  const response = await fetch('/api/bayesian-memory/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      policy: result.bestPolicy,
+                      fitness: result.bestFitness,
+                      netWorth: result.bestNetWorth,
+                      demandContext,
+                      totalIterations: typeof totalIterations === 'number' ? totalIterations : parseInt(totalIterations) || 150,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (data.success) {
+                    alert(`✅ Saved to memory!\n\nTotal runs in memory: ${data.stats.totalRuns}\nAvg fitness: ${data.stats.avgFitness.toLocaleString()}`);
+                    await fetchMemoryStats(); // Refresh stats
+                  } else {
+                    alert(`⚠️ ${data.message}`);
+                  }
+                } catch (error) {
+                  console.error('Failed to save to memory:', error);
+                  alert('Failed to save to memory');
+                }
+              }}
+              className="py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold"
+            >
+              🧠 Save to Memory
             </button>
           </div>
         </div>
